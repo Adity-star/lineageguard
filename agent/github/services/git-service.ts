@@ -1,5 +1,6 @@
-import { GenerationResult } from "@/generator";
-
+import { GenerationResult } from "../../generators/types.js";
+import { ContextBundle } from "../../context/type.js";
+import { logger } from "../../config/logger.js";
 import { ChangedFile } from "../types/changed-file";
 
 export class GitService {
@@ -11,22 +12,22 @@ export class GitService {
     return [
 
       {
-        path: "prisma/schema.prisma",
+        path: "schema.prisma",
         content: generation.prisma.schema
       },
 
       {
-        path: "prisma/migrations/generated/migration.sql",
-        content: generation.sql.content
+        path: "migration.sql",
+        content: generation.sql.formatted
       },
 
       {
-        path: "prisma/migrations/generated/rollback.sql",
-        content: generation.rollback.content
+        path: "rollback.sql",
+        content: generation.rollback.sql
       },
 
       {
-        path: "docs/schema-change.md",
+        path: "CHANGELOG.md",
         content: generation.documentation.markdown
       }
 

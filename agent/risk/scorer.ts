@@ -1,5 +1,5 @@
-import { RiskAssessment } from "./types";
-import { RiskMetrics } from "./calculator";
+import { RiskAssessment } from "./types.js";
+import { RiskMetrics } from "./calculator.js";
 
 export class RiskScorer {
   score(metrics: RiskMetrics): Pick<

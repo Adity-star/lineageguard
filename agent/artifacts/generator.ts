@@ -1,76 +1,36 @@
-import { ExecutionPlan } from "@/planning";
-import { RiskAssessment } from "@/risk";
+import { ExecutionPlan } from "../planner/types.js";
+import { RiskAssessment } from "../risk/types.js";
 
-import { MigrationArtifacts } from "./types";
-import { ArtifactValidator } from "./validator";
-import { SqlGenerator } from "./sql-generator";
-import { SummaryGenerator } from "./summary-generator";
-import { ChecklistGenerator } from "./checklist-generator";
+import { MigrationArtifacts } from "./types.js";
+import { ArtifactValidator } from "./validator.js";
+import { SqlGenerator } from "./sql-generator.js";
+import { SummaryGenerator } from "./summary-generator.js";
 
 export class ArtifactGenerator {
   constructor(
-    private readonly sqlGenerator =
-      new SqlGenerator(),
-
-    private readonly summaryGenerator =
-      new SummaryGenerator(),
-
-    private readonly checklistGenerator =
-      new ChecklistGenerator(),
-
-    private readonly validator =
-      new ArtifactValidator()
+    private readonly sqlGenerator = new SqlGenerator(),
+    private readonly summaryGenerator = new SummaryGenerator()
   ) {}
+
+  private readonly validator = new ArtifactValidator();
 
   generate(
     plan: ExecutionPlan,
     risk: RiskAssessment
   ): MigrationArtifacts {
-
-    const sql =
-      this.sqlGenerator.generate(plan);
-
-    const summary =
-      this.summaryGenerator.generate(
-        plan,
-        risk
-      );
-
-    const checklist =
-      this.checklistGenerator.generate(
-        plan,
-        risk
-      );
-
-    const pullRequest = [
-      "# Summary",
-      "",
-      summary,
-      "",
-      "# Risk",
-      `Risk Level: ${risk.overallRisk}`,
-      `Risk Score: ${risk.score}/100`,
-      "",
-      "# Recommendations",
-      ...risk.recommendations.map(r => `- ${r}`)
-    ].join("\n");
+    const sql = this.sqlGenerator.generate(plan);
+    const summary = this.summaryGenerator.generate(plan, risk);
 
     const artifacts: MigrationArtifacts = {
-
-      summary,
-
-      migration: sql.migration,
-
+      summary: summary,
+      sql: sql.migration,
       rollback: sql.rollback,
-
-      pullRequest,
-
-      checklist
-
+      pullRequest: summary,
+      checklist: [],
     };
 
-    return this.validator.validate(
-      artifacts
-    );
+    this.validator.validate(artifacts);
+
+    return artifacts;
   }
 }

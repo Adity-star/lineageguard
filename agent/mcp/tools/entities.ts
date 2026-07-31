@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-import { MCPClient } from "../client";
+import { MCPClient } from "../client.js";
 
 import {
   Dataset,
   DatasetSchema,
   MCPToolResponse,
-} from "../types";
+} from "../types.js";
 
 const EntityResponseSchema = DatasetSchema;
 
@@ -17,29 +17,25 @@ export class EntityTool {
 
   public async getDataset(
     urn: string
-  ): Promise<MCPToolResponse<Dataset>> {
-    const start = performance.now();
-
-    const raw = await this.client.callTool<any>(
-      "get_entities",
-      {
-        urns: [urn],
-      }
+  ): Promise<Dataset> {
+    const raw = await this.client.executeTool<any>(
+      "get_dataset",
+      { urn },
+      EntityResponseSchema
     );
+    return raw.data;
+  }
 
-    const entity =
-      raw.entities?.[0] ??
-      raw.content?.entities?.[0] ??
-      raw;
-
-    const parsed =
-      EntityResponseSchema.parse(entity);
-
-    return {
-      tool: "get_entities",
-      durationMs: performance.now() - start,
-      data: parsed,
-    };
+  public async searchDatasets(
+    query: string,
+    limit: number = 5
+  ): Promise<Dataset[]> {
+    const raw = await this.client.executeTool<any>(
+      "search_datasets",
+      { query, limit },
+      z.array(EntityResponseSchema)
+    );
+    return raw.data;
   }
 
   public async getDatasets(
@@ -47,26 +43,18 @@ export class EntityTool {
   ): Promise<MCPToolResponse<Dataset[]>> {
     const start = performance.now();
 
-    const raw = await this.client.callTool<any>(
+    const raw = await this.client.executeTool<any>(
       "get_entities",
       {
         urns,
-      }
+      },
+      z.array(EntityResponseSchema)
     );
-
-    const entities =
-      raw.entities ??
-      raw.content?.entities ??
-      [];
-
-    const parsed = z
-      .array(DatasetSchema)
-      .parse(entities);
 
     return {
       tool: "get_entities",
       durationMs: performance.now() - start,
-      data: parsed,
+      data: raw.data,
     };
   }
 }

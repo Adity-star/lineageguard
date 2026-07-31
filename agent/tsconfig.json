@@ -23,25 +23,7 @@
 
     "outDir": "./dist",
 
-    "rootDir": ".",
-
-    "baseUrl": ".",
-
-    "paths": {
-      "@/*": ["*"],
-      "@config/*": ["config/*"],
-      "@context/*": ["context/*"],
-      "@models/*": ["models/*"],
-      "@mcp/*": ["mcp/*"],
-      "@utils/*": ["utils/*"],
-      "@llm/*": ["llm/*"],
-      "@planning/*": ["planner/*"],
-      "@risk/*": ["risk/*"],
-      "@generator/*": ["generators/*"],
-      "@impact/*": ["impact/*"],
-      "@github/*": ["github/*"],
-      "@orchestration/*": ["orchestration/*"]
-    }
+    "rootDir": "."
   },
   "include": [
     "**/*.ts"

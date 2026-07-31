@@ -1,10 +1,10 @@
 import { z, ZodSchema } from "zod";
 
-import { logger } from "@/config/logger";
+import { logger } from "../config/logger.js";
 
-import { MCPToolError } from "./errors";
-import { MCPTransport } from "./transport";
-import { MCPToolResponse } from "./types";
+import { MCPToolError } from "./errors.js";
+import { MCPTransport } from "./transport.js";
+import { MCPToolResponse } from "./types.js";
 
 export interface CallToolOptions {
   timeoutMs?: number;

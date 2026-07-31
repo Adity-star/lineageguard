@@ -1,13 +1,13 @@
-import { ExecutionPlan } from "@/planning";
-import { RiskAssessment } from "@/risk";
+import { ExecutionPlan } from "../planner/types.js";
+import { RiskAssessment } from "../risk/types.js";
 
-import { PrismaGenerator } from "./prisma";
-import { SQLGenerator } from "./sql";
-import { RollbackGenerator } from "./rollback";
-import { DocumentationGenerator } from "./documentation";
-import { DbtGenerator } from "./dbt";
-import { GenerationValidator } from "./validator";
-import { GenerationResult } from "./types";
+import { PrismaGenerator } from "./prisma.js";
+import { SQLGenerator } from "./sql.js";
+import { RollbackGenerator } from "./rollback.js";
+import { DocumentationGenerator } from "./documentation.js";
+import { DbtGenerator } from "./db.js";
+import { GenerationValidator } from "./validator.js";
+import { GenerationResult } from "./types.js";
 
 export class Generator {
 
@@ -49,10 +49,9 @@ export class Generator {
       );
 
     // Step 2
+    const migration = prismaResult.migration || "-- No migration generated";
     const sql =
-      this.sql.generate(
-        prismaResult.migration
-      );
+      this.sql.generate(migration);
 
     // Step 3
     const rollback =

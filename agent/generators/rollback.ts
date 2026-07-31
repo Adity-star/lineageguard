@@ -1,6 +1,6 @@
-import { ExecutionPlan } from "@/planning";
+import { ExecutionPlan } from "../planner/types.js";
 
-import { RollbackArtifact } from "./types";
+import { RollbackArtifact } from "./types.js";
 
 export class RollbackGenerator {
   generate(

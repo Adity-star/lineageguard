@@ -1,5 +1,5 @@
-import { ExecutionPlan } from "@/planning";
-import { RiskAssessment } from "@/risk";
+import { ExecutionPlan } from "../planner/types.js";
+import { RiskAssessment } from "../risk/types.js";
 
 import { ChecklistItem } from "./types";
 

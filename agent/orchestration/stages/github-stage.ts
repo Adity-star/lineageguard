@@ -1,8 +1,8 @@
-import { GitHubEngine } from "@/github";
+import { GitHubEngine } from "../../github/github-engine.js";
 
-import { PipelineStage } from "../pipeline";
-import { StateStore } from "../state";
-import { MissingWorkflowStateError } from "../errors";
+import { PipelineStage } from "../pipeline.js";
+import { StateStore } from "../state.js";
+import { MissingWorkflowStateError } from "../errors.js";
 
 export class GitHubStage implements PipelineStage {
 
@@ -19,10 +19,21 @@ export class GitHubStage implements PipelineStage {
     state: StateStore
   ): Promise<void> {
 
+    const approval = state.get("approval");
     const context = state.get("context");
     const plan = state.get("plan");
     const generation = state.get("generation");
     const impact = state.get("impact");
+
+    if (!approval) {
+      throw new MissingWorkflowStateError("approval");
+    }
+
+    // Check if approved before proceeding to GitHub
+    if (approval.status !== "APPROVED") {
+      // Skip GitHub stage if not approved
+      return;
+    }
 
     if (!context) {
       throw new MissingWorkflowStateError("context");
@@ -50,7 +61,7 @@ export class GitHubStage implements PipelineStage {
 
       context,
 
-      plan,
+      plan: plan.plan,
 
       generation,
 

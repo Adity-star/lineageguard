@@ -2,12 +2,12 @@ import { ContextBundle } from "../context/type.js";
 import { ExecutionPlan } from "../planner/types.js";
 import { RiskAssessment } from "../risk/types.js";
 
-import { ImpactReport } from "./types.js";
-import { ImpactValidator } from "./validator.js";
+import { ReportBuilder } from "./report.js";
 import { ImpactScorer } from "./scorer.js";
 import { RecommendationEngine } from "./recommendations.js";
-import { ReportBuilder } from "./report.js";
 import { MetadataWriter } from "./metadata-writer.js";
+import { ImpactReport } from "./types.js";
+import { ImpactValidator } from "./validator.js";
 
 export class ImpactEngine {
 

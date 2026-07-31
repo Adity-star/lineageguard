@@ -1,11 +1,11 @@
-import { ContextBundle } from "@/context";
-import { ExecutionPlan } from "@/planning";
+import { ContextBundle } from "../context/type.js";
+import { ExecutionPlan } from "../planner/types.js";
 
-import { RiskCalculator } from "./calculator";
-import { RecommendationEngine } from "./recommendations";
-import { RiskScorer } from "./scorer";
-import { RiskAssessment } from "./types";
-import { RiskValidator } from "./validator";
+import { RiskCalculator } from "./calculator.js";
+import { RecommendationEngine } from "./recommendations.js";
+import { RiskScorer } from "./scorer.js";
+import { RiskAssessment } from "./types.js";
+import { RiskValidator } from "./validator.js";
 
 export class RiskEngine {
   constructor(
@@ -36,9 +36,9 @@ export class RiskEngine {
       findings.push({
         severity:
           metrics.downstreamDatasets > 10
-            ? "HIGH"
-            : "MEDIUM",
-        category: "LINEAGE",
+            ? ("HIGH" as const)
+            : ("MEDIUM" as const),
+        category: "LINEAGE" as const,
         message:
           `${metrics.downstreamDatasets} downstream dataset(s) may be affected.`,
       });
@@ -46,8 +46,8 @@ export class RiskEngine {
 
     if (!metrics.hasDocumentation) {
       findings.push({
-        severity: "LOW",
-        category: "DOCUMENTATION",
+        severity: "LOW" as const,
+        category: "DOCUMENTATION" as const,
         message:
           "Dataset has no documentation.",
       });
@@ -55,8 +55,8 @@ export class RiskEngine {
 
     if (!metrics.hasOwner) {
       findings.push({
-        severity: "MEDIUM",
-        category: "GOVERNANCE",
+        severity: "MEDIUM" as const,
+        category: "GOVERNANCE" as const,
         message:
           "Dataset has no assigned owner.",
       });

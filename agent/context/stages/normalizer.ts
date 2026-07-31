@@ -1,5 +1,5 @@
-import { ContextBundle } from "../types";
-import { ContextState } from "../state";
+import { ContextBundle } from "../type.js";
+import { ContextState } from "../state.js";
 
 export class ContextNormalizerStage {
 

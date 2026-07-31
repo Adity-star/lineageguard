@@ -1,8 +1,8 @@
-import { logger } from "@/config/logger";
-
-import { ChangeRequest, ContextBundle } from "@/models";
-
-import { PlanningPromptBuilder } from "./prompt";
+import { logger } from "../config/logger.js";
+import { ChangeRequest } from "../mcp/types.js";
+import { ContextBundle } from "../context/type.js";
+import { ExecutionPlan } from "./types.js";
+import { PlanningPromptBuilder } from "./prompt.js";
 
 export interface LLMClient {
   generate(

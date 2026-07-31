@@ -1,7 +1,6 @@
-import { logger } from "@/config/logger";
-import { DataHubClient } from "@/mcp";
-
-import { RawContext } from "../types";
+import { logger } from "../../config/logger.js";
+import { DataHubClient } from "../../mcp/datahub-client.js";
+import { ContextState } from "../state.js";
 
 export abstract class ContextStage {
 
@@ -12,12 +11,12 @@ export abstract class ContextStage {
     abstract readonly name: string;
 
     protected abstract run(
-        context: RawContext
-    ): Promise<RawContext>;
+        state: ContextState
+    ): Promise<void>;
 
     async execute(
-        context: RawContext
-    ): Promise<RawContext> {
+        state: ContextState
+    ): Promise<void> {
 
         logger.info({
             stage: this.name,
@@ -28,15 +27,12 @@ export abstract class ContextStage {
 
         try {
 
-            const result =
-                await this.run(context);
+            await this.run(state);
 
             logger.info({
                 stage: this.name,
                 durationMs: performance.now() - started
             });
-
-            return result;
 
         } catch (error) {
 

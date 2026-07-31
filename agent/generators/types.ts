@@ -7,6 +7,8 @@ export const PrismaArtifactSchema = z.object({
   schema: z.string().min(1),
 
   valid: z.boolean(),
+
+  migration: z.string().optional(),
 });
 
 export type PrismaArtifact = z.infer<

@@ -1,5 +1,5 @@
-import { GenerationResult } from "@/generator";
-import { ImpactReport } from "@/impact";
+import { GenerationResult } from "../generators/types.js";
+import { ImpactReport } from "../impact/types.js";
 
 export class PullRequestTemplate {
 
@@ -41,9 +41,7 @@ Approval Required: ${
 
 # Recommendations
 
-${impact.recommendations
-  .map(r => `- ${r.title}`)
-  .join("\n")}
+${impact.recommendations.map((r) => `- ${r.title}`).join("\n")}
 
 ---
 

@@ -1,5 +1,5 @@
-import { ChangeRequest } from "@/models";
-import { Dataset, SchemaField, Lineage, DatasetQuery, Document } from "@/mcp";
+import { ChangeRequest } from "../mcp/types.js";
+import { Dataset, SchemaField, Lineage, DatasetQuery, Document } from "../mcp/types.js";
 
 export interface ContextState {
   request: ChangeRequest;

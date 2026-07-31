@@ -1,15 +1,13 @@
-import { BranchBuilder } from "./branch";
-import { CommitBuilder } from "./commit";
-import { PullRequestTemplate } from "./templates";
-import { ReviewerResolver } from "./reviewers";
-import { LabelResolver } from "./labels";
-
-import { ExecutionPlan } from "@/planning";
-import { GenerationResult } from "@/generator";
-import { ImpactReport } from "@/impact";
-import { ContextBundle } from "@/context";
-
-import { PullRequest } from "./types";
+import { BranchBuilder } from "./branch.js";
+import { CommitBuilder } from "./commit.js";
+import { PullRequestTemplate } from "./templates.js";
+import { ReviewerResolver } from "./reviewers.js";
+import { LabelResolver } from "./labels.js";
+import { ContextBundle } from "../context/type.js";
+import { ExecutionPlan } from "../planner/types.js";
+import { GenerationResult } from "../generators/types.js";
+import { ImpactReport } from "../impact/types.js";
+import { logger } from "../config/logger.js";
 
 export class PullRequestBuilder {
 
@@ -22,16 +20,17 @@ export class PullRequestBuilder {
   ) {}
 
   build(
-
     context: ContextBundle,
-
     plan: ExecutionPlan,
-
     generation: GenerationResult,
-
     impact: ImpactReport
-
-  ): PullRequest {
+  ): {
+    branch: string;
+    title: string;
+    body: string;
+    labels: string[];
+    reviewers: Array<{ username: string }>;
+  } {
 
     return {
 

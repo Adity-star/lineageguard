@@ -1,16 +1,15 @@
-import { ContextStage } from "./base-stage";
-
-import { RawContext } from "../types";
+import { ContextStage } from "./base-stage.js";
+import { ContextState } from "../state.js";
 
 export class SchemaCollectorStage extends ContextStage {
 
     readonly name = "Schema Collector";
 
     protected async run(
-        context: RawContext
-    ): Promise<RawContext> {
+        state: ContextState
+    ): Promise<void> {
 
-        if (!context.dataset) {
+        if (!state.dataset) {
             throw new Error(
                 "Dataset must be resolved before schema collection."
             );
@@ -18,14 +17,10 @@ export class SchemaCollectorStage extends ContextStage {
 
         const schema =
             await this.dataHub.getSchema(
-                context.dataset.urn
+                state.dataset.urn
             );
 
-        return {
-            ...context,
-            schema
-        };
-
+        state.schema = schema;
     }
 
 }

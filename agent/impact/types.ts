@@ -74,6 +74,12 @@ export const ImpactReportSchema = z.object({
     RecommendationSchema
   ),
 
+  triggeredRules: z.array(z.object({
+    id: z.string(),
+    description: z.string(),
+    weight: z.number(),
+  })).optional(),
+
   generatedAt: z.string(),
 
   metadata: z.object({

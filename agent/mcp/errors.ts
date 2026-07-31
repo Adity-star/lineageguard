@@ -1,4 +1,4 @@
-import { AppError } from "@/utils/errors";
+import { AppError } from "../utils/errors.js";
 
 export class MCPError extends AppError {
   constructor(
@@ -8,48 +8,46 @@ export class MCPError extends AppError {
     super(message, "MCP_ERROR", 500);
 
     if (cause instanceof Error && cause.stack) {
-      this.stack = cause.stack;
+      (this as any).stack = cause.stack;
     }
   }
 }
 
 export class MCPConnectionError extends MCPError {
-  constructor(message = "Unable to connect to MCP server", cause?: unknown) {
+  constructor(message: string, cause?: unknown) {
     super(message, cause);
-    this.name = "MCPConnectionError";
+    (this as any).name = "MCPConnectionError";
   }
 }
 
 export class MCPAuthenticationError extends MCPError {
-  constructor(message = "MCP authentication failed", cause?: unknown) {
+  constructor(message: string, cause?: unknown) {
     super(message, cause);
-    this.name = "MCPAuthenticationError";
+    (this as any).name = "MCPAuthenticationError";
   }
 }
 
 export class MCPToolError extends MCPError {
   constructor(
-    public readonly tool: string,
+    tool: string,
     message: string,
     cause?: unknown
   ) {
-    super(`[${tool}] ${message}`, cause);
-    this.name = "MCPToolError";
+    super(`${tool}: ${message}`, cause);
+    (this as any).name = "MCPToolError";
   }
 }
 
 export class MCPValidationError extends MCPError {
-  constructor(message: string) {
-    super(message);
-    this.name = "MCPValidationError";
+  constructor(message: string, cause?: unknown) {
+    super(message, cause);
+    (this as any).name = "MCPValidationError";
   }
 }
 
 export class MCPTimeoutError extends MCPError {
-  constructor(
-    public readonly timeoutMs: number
-  ) {
-    super(`MCP request timed out after ${timeoutMs}ms`);
-    this.name = "MCPTimeoutError";
+  constructor(message: string, cause?: unknown) {
+    super(message, cause);
+    (this as any).name = "MCPTimeoutError";
   }
 }

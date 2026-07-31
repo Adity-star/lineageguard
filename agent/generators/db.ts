@@ -1,6 +1,6 @@
-import { ExecutionPlan } from "@/planning";
+import { ExecutionPlan } from "../planner/types.js";
 
-import { DbtArtifact } from "./types";
+import { DbtArtifact } from "./types.js";
 
 export class DbtGenerator {
   generate(

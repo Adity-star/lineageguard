@@ -1,13 +1,13 @@
-import { ContextBundle } from "@/context";
-import { ExecutionPlan } from "@/planning";
-import { RiskAssessment } from "@/risk";
+import { ContextBundle } from "../context/type.js";
+import { ExecutionPlan } from "../planner/types.js";
+import { RiskAssessment } from "../risk/types.js";
 
-import { ImpactScore } from "./scorer";
-import { Recommendation } from "./types";
+import { ImpactScore } from "./scorer.js";
+import { Recommendation } from "./types.js";
 import {
   ImpactReport,
   ImpactedAsset,
-} from "./types";
+} from "./types.js";
 
 export class ReportBuilder {
 
@@ -37,6 +37,8 @@ export class ReportBuilder {
         this.collectAssets(context),
 
       recommendations,
+
+      triggeredRules: impact.triggeredRules,
 
       generatedAt:
         new Date().toISOString(),

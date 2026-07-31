@@ -1,6 +1,6 @@
-import { logger } from "@/config/logger";
+import { logger } from "../config/logger.js";
 
-import { ContextState } from "./state";
+import { ContextState } from "./state.js";
 
 export interface PipelineStage {
   readonly name: string;

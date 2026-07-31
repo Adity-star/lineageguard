@@ -1,4 +1,4 @@
-import { ExecutionPlan } from "@/planning";
+import { ExecutionPlan } from "../planner/types.js";
 
 export interface SchemaEditorRequest {
   schema: string;

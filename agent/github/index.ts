@@ -1,13 +1,14 @@
-export * from "./types";
-export * from "./validator";
-export * from "./templates";
+export * from "./types.js";
+export * from "./validator.js";
+export * from "./templates.js";
 
-export * from "./github-client";
-export * from "./branch";
-export * from "./commit";
+export * from "./github-client.js";
+export * from "./branch.js";
+export * from "./commit.js";
 
-export * from "./reviewers";
-export * from "./labels";
-export * from "./pull-request";
+export * from "./reviewers.js";
+export * from "./labels.js";
 
-export * from "./github-engine";
+export * from "./github-engine.js";
+export * from "./octokit-client.js";
+export { PullRequestBuilder } from "./pull-request.js";

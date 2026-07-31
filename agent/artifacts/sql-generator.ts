@@ -1,4 +1,4 @@
-import { ExecutionPlan } from "@/planning";
+import { ExecutionPlan } from "../planner/types.js";
 
 export class SqlGenerator {
   generate(plan: ExecutionPlan): {

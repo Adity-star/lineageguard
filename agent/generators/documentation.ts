@@ -1,7 +1,7 @@
-import { ExecutionPlan } from "@/planning";
-import { RiskAssessment } from "@/risk";
+import { ExecutionPlan } from "../planner/types.js";
+import { RiskAssessment } from "../risk/types.js";
 
-import { DocumentationArtifact } from "./types";
+import { DocumentationArtifact } from "./types.js";
 
 export class DocumentationGenerator {
   generate(

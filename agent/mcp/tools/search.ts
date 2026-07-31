@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-import { MCPClient } from "../client";
+import { MCPClient } from "../client.js";
 import {
   MCPToolResponse,
   SearchResult,
   SearchResultSchema,
-} from "../types";
+} from "../types.js";
 
 const SearchResponseSchema = z.array(SearchResultSchema);
 
@@ -24,48 +24,60 @@ export class SearchTool {
   ): Promise<MCPToolResponse<SearchResult[]>> {
     const start = performance.now();
 
-    const raw = await this.client.callTool<any>(
+    const raw = await this.client.executeTool<any>(
       "search",
       {
         query,
         entityTypes: ["dataset"],
         limit,
-      }
-    );
-
-    const parsed = SearchResponseSchema.parse(
-      raw.content ?? raw
+      } as unknown as Record<string, unknown>,
+      SearchResponseSchema
     );
 
     return {
       tool: "search",
       durationMs: performance.now() - start,
-      data: parsed,
+      data: raw.data,
     };
   }
 
-  public async searchEntities(
+  public async searchWithResponse(
     options: SearchOptions
   ): Promise<MCPToolResponse<SearchResult[]>> {
     const start = performance.now();
 
-    const raw = await this.client.callTool<any>(
+    const response = await this.client.executeTool<any>(
       "search",
-      {
-        query: options.query,
-        entityTypes: options.entityTypes,
-        limit: options.limit ?? 10,
-      }
-    );
-
-    const parsed = SearchResponseSchema.parse(
-      raw.content ?? raw
+      options as unknown as Record<string, unknown>,
+      SearchResponseSchema
     );
 
     return {
       tool: "search",
       durationMs: performance.now() - start,
-      data: parsed,
+      data: response.data,
     };
+  }
+
+  public async search(
+    options: SearchOptions
+  ): Promise<SearchResult[]> {
+    const raw = await this.client.executeTool<any>(
+      "search",
+      options as unknown as Record<string, unknown>,
+      SearchResponseSchema
+    );
+    return raw.data;
+  }
+
+  public async autocomplete(
+    options: SearchOptions
+  ): Promise<SearchResult[]> {
+    const raw = await this.client.executeTool<any>(
+      "autocomplete",
+      options as unknown as Record<string, unknown>,
+      SearchResponseSchema
+    );
+    return raw.data;
   }
 }

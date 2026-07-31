@@ -4,7 +4,7 @@ import {
     Lineage,
     DatasetQuery,
     Document
-} from "@/mcp";
+} from "../mcp/types.js";
 
 export interface RawContext {
 

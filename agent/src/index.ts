@@ -1,5 +1,5 @@
-import { logger } from "./config/logger.js";
-import { gracefulShutdown } from "./utils/shutdown.js";
+import { logger } from "../config/logger.js";
+import { gracefulShutdown } from "../utils/shutdown.js";
 
 logger.info("Starting LineageGuard Engine");
 

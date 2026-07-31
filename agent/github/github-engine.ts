@@ -1,11 +1,11 @@
-import { ContextBundle } from "@/context";
-import { ExecutionPlan } from "@/planning";
-import { GenerationResult } from "@/generator";
-import { ImpactReport } from "@/impact";
+import { ContextBundle } from "../context/type.js";
+import { ExecutionPlan } from "../planner/types.js";
+import { GenerationResult } from "../generators/types.js";
+import { ImpactReport } from "../impact/types.js";
 
-import { GitHubClient } from "./github-client";
-import { PullRequestBuilder } from "./pull-request";
-import { GitHubValidator } from "./validator";
+import { GitHubClient } from "./github-client.js";
+import { PullRequestBuilder } from "./pull-request.js";
+import { GitHubValidator } from "./validator.js";
 
 export interface GitHubEngineRequest {
 

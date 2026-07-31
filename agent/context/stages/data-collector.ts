@@ -1,6 +1,5 @@
-import { DataHubClient } from "@/mcp";
-
-import { RawContext } from "../types";
+import { DataHubClient } from "../../mcp/datahub-client.js";
+import { ContextState } from "../state.js";
 
 export class MetadataCollectorStage {
   constructor(
@@ -8,9 +7,9 @@ export class MetadataCollectorStage {
   ) {}
 
   public async execute(
-    context: RawContext
-  ): Promise<RawContext> {
-    if (!context.dataset) {
+    state: ContextState
+  ): Promise<void> {
+    if (!state.dataset) {
       throw new Error(
         "Dataset must be resolved before metadata collection."
       );
@@ -25,12 +24,9 @@ export class MetadataCollectorStage {
      */
 
     const dataset = await this.dataHub.getDataset(
-      context.dataset.urn
+      state.dataset.urn
     );
 
-    return {
-      ...context,
-      dataset,
-    };
+    state.dataset = dataset;
   }
 }

@@ -1,11 +1,11 @@
-import { ContextBundle } from "@/context";
-import { ExecutionPlan } from "@/planning";
-import { RiskAssessment } from "@/risk";
+import { ContextBundle } from "../context/type.js";
+import { ExecutionPlan } from "../planner/types.js";
+import { RiskAssessment } from "../risk/types.js";
 
-import {
+import { 
   Recommendation,
   ImpactLevel,
-} from "./types";
+} from "./types.js";
 
 export class RecommendationEngine {
 
@@ -112,7 +112,7 @@ export class RecommendationEngine {
     // Missing Owner
     // ----------------------------------------
 
-    if (!context.metadata.owner) {
+    if (context.dataset.owners.length === 0) {
 
       recommendations.push({
         id: "assign-owner",

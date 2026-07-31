@@ -35,7 +35,7 @@ export class GeneratorStage implements PipelineStage {
     const generation =
       await this.engine.generate(
         context.schema,
-        plan,
+        plan.plan,
         risk
       );
 

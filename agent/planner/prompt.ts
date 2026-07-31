@@ -1,4 +1,5 @@
-import { ChangeRequest, ContextBundle } from "@/models";
+import { ChangeRequest } from "../mcp/types.js";
+import { ContextBundle } from "../context/type.js";
 
 export interface PromptMessages {
   system: string;

@@ -73,12 +73,8 @@ export class DataHubClient {
         urn: string
     ): Promise<Dataset> {
 
-        const result =
-            await this.entities.getDataset(
-                urn
-            );
-
-        return result.data;
+        const result = await this.entities.getDataset(urn);
+        return result;
     }
 
     async getSchema(
@@ -139,9 +135,10 @@ export class DataHubClient {
         if (datasets.length === 0)
             return null;
 
-        return this.getDataset(
-            datasets[0].urn
-        );
+        const urn = datasets[0]?.urn;
+        if (!urn) return null;
+
+        return this.getDataset(urn);
     }
 
 }

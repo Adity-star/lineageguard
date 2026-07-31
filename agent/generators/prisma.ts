@@ -1,8 +1,8 @@
-import { ExecutionPlan } from "@/planning";
+import { ExecutionPlan } from "../planner/types.js";
 
-import { PrismaArtifact } from "./types";
-import { LLMEditor } from "./llm-editor";
-import { PrismaRunner } from "./prisma-runner";
+import { PrismaArtifact } from "./types.js";
+import { LLMEditor } from "./llm-editor.js";
+import { PrismaRunner } from "./prisma-runner.js";
 
 export class PrismaGenerator {
   constructor(

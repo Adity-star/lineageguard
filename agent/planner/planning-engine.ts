@@ -1,10 +1,11 @@
-import { logger } from "@/config/logger";
-import { ChangeRequest, ContextBundle } from "@/models";
+import { logger } from "../config/logger.js";
+import { ChangeRequest } from "../mcp/types.js";
+import { ContextBundle } from "../context/type.js";
 
-import { Planner } from "./planner";
-import { PlanningParser } from "./parser";
-import { PlanningValidator } from "./validator";
-import { PlanningResult } from "./types";
+import { Planner } from "./planner.js";
+import { PlanningParser } from "./parser.js";
+import { PlanningValidator } from "./validator.js";
+import { PlanningResult } from "./types.js";
 
 export class PlanningEngine {
   constructor(

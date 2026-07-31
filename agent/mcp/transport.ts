@@ -1,13 +1,13 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
-import { env } from "@/config/env";
-import { logger } from "@/config/logger";
+import { env } from "../config/env.js";
+import { logger } from "../config/logger.js";
 
 import {
   MCPConnectionError,
   MCPTimeoutError,
-} from "./errors";
+} from "./errors.js";
 
 export interface MCPTransportOptions {
   timeoutMs?: number;
@@ -50,7 +50,7 @@ export class MCPTransport {
         }
       );
 
-      await this.client.connect(this.transport);
+      await this.client.connect(this.transport as any);
 
       this.connected = true;
 
@@ -94,7 +94,7 @@ export class MCPTransport {
   ): Promise<T> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
-        reject(new MCPTimeoutError(this.timeoutMs));
+        reject(new MCPTimeoutError(String(this.timeoutMs)));
       }, this.timeoutMs);
     });
 

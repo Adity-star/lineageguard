@@ -1,16 +1,17 @@
-import { DataHubClient } from "@/mcp";
+import { DataHubClient } from "../mcp/datahub-client.js";
 
-import { ChangeRequest } from "@/models";
+import { ChangeRequest } from "../mcp/types.js";
 
-import { ContextBundle, RawContext } from "./types";
+import { ContextBundle } from "./type.js";
+import { ContextState, createContextState } from "./state.js";
 
-import { DatasetResolverStage } from "./stages/dataset-resolver";
-import { MetadataCollectorStage } from "./stages/metadata-collector";
-import { SchemaCollectorStage } from "./stages/schema-collector";
-import { LineageCollectorStage } from "./stages/lineage-collector";
-import { QueryCollectorStage } from "./stages/query-collector";
-import { DocumentationCollectorStage } from "./stages/documentation-collector";
-import { ContextNormalizerStage } from "./stages/normalizer";
+import { DatasetResolverStage } from "./stages/data-resolver.js";
+import { MetadataCollectorStage } from "./stages/data-collector.js";
+import { SchemaCollectorStage } from "./stages/schema-commector.js";
+import { LineageCollectorStage } from "./stages/lineage-collector.js";
+import { QueryCollectorStage } from "./stages/query-collector.js";
+import { DocumentationCollectorStage } from "./stages/documentation-collector.js";
+import { ContextNormalizerStage } from "./stages/normalizer.js";
 
 export class ContextEngine {
 
@@ -22,34 +23,34 @@ export class ContextEngine {
         request: ChangeRequest
     ): Promise<ContextBundle> {
 
-        const raw: RawContext = {};
+        const state = createContextState(request);
 
         await new DatasetResolverStage(
             this.dataHub
-        ).execute(request, raw);
+        ).execute(request, state);
 
         await new MetadataCollectorStage(
             this.dataHub
-        ).execute(raw);
+        ).execute(state);
 
         await new SchemaCollectorStage(
             this.dataHub
-        ).execute(raw);
+        ).execute(state);
 
         await new LineageCollectorStage(
             this.dataHub
-        ).execute(raw);
+        ).execute(state);
 
         await new QueryCollectorStage(
             this.dataHub
-        ).execute(raw);
+        ).execute(state);
 
         await new DocumentationCollectorStage(
             this.dataHub
-        ).execute(raw);
+        ).execute(state);
 
         return new ContextNormalizerStage()
-            .execute(raw);
+            .execute(state);
     }
 
 }

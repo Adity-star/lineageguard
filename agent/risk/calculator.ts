@@ -1,5 +1,5 @@
-import { ContextBundle } from "@/context";
-import { ExecutionPlan } from "@/planning";
+import { ContextBundle } from "../context/type.js";
+import { ExecutionPlan } from "../planner/types.js";
 
 export interface RiskMetrics {
   affectedColumns: number;

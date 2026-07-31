@@ -48,7 +48,7 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
       priority: priority || 'medium',
     };
 
-    logger.info('Processing schema change request', { description });
+    logger.info('Processing schema change request');
 
     const result = await container.orchestrator.execute(request);
 

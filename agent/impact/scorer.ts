@@ -1,8 +1,8 @@
-import { ContextBundle } from "@/context";
-import { ExecutionPlan } from "@/planning";
-import { RiskAssessment } from "@/risk";
+import { ContextBundle } from "../context/type.js";
+import { ExecutionPlan } from "../planner/types.js";
+import { RiskAssessment } from "../risk/types.js";
 
-import { ImpactLevel } from "./types";
+import { ImpactLevel } from "./types.js";
 
 export interface ImpactRule {
   id: string;
@@ -80,7 +80,7 @@ const IMPACT_RULES: ImpactRule[] = [
     description: "Dataset has no owner",
     weight: 10,
     applies: (context) =>
-      !context.metadata.owner,
+      context.dataset.owners.length === 0,
   },
 
   {

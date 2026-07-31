@@ -1,13 +1,13 @@
-export * from "./types";
-export * from "./validator";
+export * from "./types.js";
+export * from "./validator.js";
 
-export * from "./llm-editor";
-export * from "./prisma-runner";
+export * from "./llm-editor.js";
+export * from "./prisma-runner.js";
 
-export * from "./prisma";
-export * from "./sql";
-export * from "./rollback";
-export * from "./documentation";
-export * from "./dbt";
+export * from "./prisma.js";
+export * from "./sql.js";
+export * from "./rollback.js";
+export * from "./documentation.js";
+export * from "./db.js";
 
-export * from "./generator";
+export * from "./generator.js";

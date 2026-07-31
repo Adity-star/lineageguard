@@ -1,4 +1,5 @@
-import { ImpactReport } from "@/impact";
+import { ImpactReport } from "../impact/types.js";
+import { logger } from "../config/logger.js";
 
 export class LabelResolver {
 
@@ -20,8 +21,10 @@ export class LabelResolver {
       labels.push("high-impact");
     }
 
-    for (const rule of report.triggeredRules) {
-      labels.push(rule);
+    if (report.triggeredRules) {
+      for (const rule of report.triggeredRules) {
+        labels.push(`impact:${rule.id}`);
+      }
     }
 
     return [...new Set(labels)];
