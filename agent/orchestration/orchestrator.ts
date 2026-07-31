@@ -18,6 +18,16 @@ import {
   WorkflowListener,
 } from "./events";
 
+import {
+  ContextStage,
+  PlanningStage,
+  RiskStage,
+  GeneratorStage,
+  ImpactStage,
+  GitHubStage,
+} from "./stages";
+import { config } from "zod/v4/core";
+
 export class Orchestrator {
 
   private readonly pipeline: Pipeline;
@@ -30,10 +40,19 @@ export class Orchestrator {
 
   ) {
 
-    this.pipeline =
-      new Pipeline(stages);
-
-  }
+    this.pipeline = new Pipeline([
+    new ContextStage(contextEngine),
+    new PlanningStage(planningEngine),
+    new RiskStage(riskEngine),
+    new GeneratorStage(generatorEngine),
+    new ImpactStage(impactEngine),
+    new GitHubStage(
+        githubEngine,
+        config.github.owner,
+        config.github.repository,
+        config.github.baseBranch
+    )
+    ]);
 
   async execute(
     request: ChangeRequest
