@@ -1,0 +1,17 @@
+node_modules
+
+dist
+
+.env
+
+coverage
+
+.prisma
+
+*.log
+
+.vscode
+
+.DS_Store
+
+datahub311
