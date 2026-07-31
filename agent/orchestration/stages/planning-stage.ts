@@ -1,8 +1,8 @@
-import { PlanningEngine } from "@/planning";
+import { PlanningEngine } from "../../planner/planning-engine.js";
 
-import { PipelineStage } from "../pipeline";
-import { StateStore } from "../state";
-import { MissingWorkflowStateError } from "../errors";
+import { PipelineStage } from "../pipeline.js";
+import { StateStore } from "../state.js";
+import { MissingWorkflowStateError } from "../errors.js";
 
 export class PlanningStage
   implements PipelineStage {
@@ -17,19 +17,19 @@ export class PlanningStage
     state: StateStore
   ): Promise<void> {
 
-    const context =
-      state.get("context");
+    const request = state.get("request");
+    const context = state.get("context");
+
+    if (!request) {
+      throw new MissingWorkflowStateError("request");
+    }
 
     if (!context) {
-      throw new MissingWorkflowStateError(
-        "context"
-      );
+      throw new MissingWorkflowStateError("context");
     }
 
     const plan =
-      await this.engine.execute(
-        context
-      );
+      await this.engine.plan(request, context);
 
     state.set(
       "plan",

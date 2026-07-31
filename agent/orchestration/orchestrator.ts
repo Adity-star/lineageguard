@@ -1,58 +1,38 @@
-import { ChangeRequest } from "@/mcp";
+import { ChangeRequest } from "../mcp/types.js";
 
 import {
   Pipeline,
   PipelineStage,
-} from "./pipeline";
+} from "./pipeline.js";
 
-import { StateStore } from "./state";
+import { StateStore } from "./state.js";
 
-import { WorkflowState } from "./types";
+import { WorkflowState } from "./type.js";
 
 import {
   WorkflowError,
-} from "./errors";
+} from "./errors.js";
 
 import {
   WorkflowEvent,
   WorkflowListener,
-} from "./events";
-
-import {
-  ContextStage,
-  PlanningStage,
-  RiskStage,
-  GeneratorStage,
-  ImpactStage,
-  GitHubStage,
-} from "./stages";
-import { config } from "zod/v4/core";
+} from "./events.js";
 
 export class Orchestrator {
 
   private readonly pipeline: Pipeline;
 
   constructor(
-
     stages: PipelineStage[],
-
+    private readonly owner: string,
+    private readonly repository: string,
+    private readonly baseBranch: string,
     private readonly listener?: WorkflowListener
-
   ) {
 
-    this.pipeline = new Pipeline([
-    new ContextStage(contextEngine),
-    new PlanningStage(planningEngine),
-    new RiskStage(riskEngine),
-    new GeneratorStage(generatorEngine),
-    new ImpactStage(impactEngine),
-    new GitHubStage(
-        githubEngine,
-        config.github.owner,
-        config.github.repository,
-        config.github.baseBranch
-    )
-    ]);
+    this.pipeline = new Pipeline(stages);
+
+  }
 
   async execute(
     request: ChangeRequest

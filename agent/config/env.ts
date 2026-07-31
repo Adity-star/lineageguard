@@ -12,11 +12,17 @@ const envSchema = z.object({
 
   DATAHUB_GMS_TOKEN: z.string(),
 
+  DATAHUB_MCP_URL: z.string().url(),
+
+  DATAHUB_MCP_TOKEN: z.string(),
+
   GITHUB_TOKEN: z.string(),
 
   GITHUB_OWNER: z.string(),
 
   GITHUB_REPOSITORY: z.string(),
+
+  GITHUB_BASE_BRANCH: z.string().default("main"),
 
   SUPABASE_URL: z.string().url(),
 

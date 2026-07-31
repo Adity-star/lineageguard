@@ -1,18 +1,19 @@
-import { GitHubResult } from "@/github";
+import { GitHubResult } from "../github/github-engine.js";
+import { ChangeRequest } from "../mcp/types.js";
 
 export interface WorkflowState {
 
   request?: ChangeRequest;
 
-  context?: ContextBundle;
+  context?: any;
 
-  plan?: ExecutionPlan;
+  plan?: any;
 
-  risk?: RiskAssessment;
+  risk?: any;
 
-  generation?: GenerationResult;
+  generation?: any;
 
-  impact?: ImpactReport;
+  impact?: any;
 
   github?: GitHubResult;
 

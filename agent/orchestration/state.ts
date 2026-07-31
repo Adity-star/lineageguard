@@ -1,4 +1,4 @@
-import { WorkflowState } from "./types";
+import { WorkflowState } from "./type.js";
 
 export class StateStore {
 

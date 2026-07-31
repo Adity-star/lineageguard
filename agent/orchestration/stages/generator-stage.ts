@@ -1,8 +1,8 @@
-import { Generator } from "@/generator";
+import { Generator } from "../../generators/generator.js";
 
-import { PipelineStage } from "../pipeline";
-import { StateStore } from "../state";
-import { MissingWorkflowStateError } from "../errors";
+import { PipelineStage } from "../pipeline.js";
+import { StateStore } from "../state.js";
+import { MissingWorkflowStateError } from "../errors.js";
 
 export class GeneratorStage implements PipelineStage {
 

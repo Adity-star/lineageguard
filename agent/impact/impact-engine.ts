@@ -1,31 +1,22 @@
-import { ContextBundle } from "@/context";
-import { ExecutionPlan } from "@/planning";
-import { RiskAssessment } from "@/risk";
+import { ContextBundle } from "../context/type.js";
+import { ExecutionPlan } from "../planner/types.js";
+import { RiskAssessment } from "../risk/types.js";
 
-import { ImpactReport } from "./types";
-import { ImpactValidator } from "./validator";
-import { ImpactScorer } from "./scorer";
-import { RecommendationEngine } from "./recommendations";
-import { ReportBuilder } from "./report";
-import { MetadataWriter } from "./metadata-writer";
+import { ImpactReport } from "./types.js";
+import { ImpactValidator } from "./validator.js";
+import { ImpactScorer } from "./scorer.js";
+import { RecommendationEngine } from "./recommendations.js";
+import { ReportBuilder } from "./report.js";
+import { MetadataWriter } from "./metadata-writer.js";
 
 export class ImpactEngine {
 
   constructor(
-
+    private readonly writer: MetadataWriter,
     private readonly scorer = new ImpactScorer(),
-
-    private readonly recommendations =
-      new RecommendationEngine(),
-
-    private readonly reportBuilder =
-      new ReportBuilder(),
-
-    private readonly validator =
-      new ImpactValidator(),
-
-    private readonly writer: MetadataWriter
-
+    private readonly recommendations = new RecommendationEngine(),
+    private readonly reportBuilder = new ReportBuilder(),
+    private readonly validator = new ImpactValidator()
   ) {}
 
   async execute(

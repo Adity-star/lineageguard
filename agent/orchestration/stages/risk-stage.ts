@@ -1,8 +1,8 @@
-import { RiskEngine } from "@/risk";
+import { RiskEngine } from "../../risk/risk-engine.js";
 
-import { PipelineStage } from "../pipeline";
-import { StateStore } from "../state";
-import { MissingWorkflowStateError } from "../errors";
+import { PipelineStage } from "../pipeline.js";
+import { StateStore } from "../state.js";
+import { MissingWorkflowStateError } from "../errors.js";
 
 export class RiskStage
   implements PipelineStage {
@@ -17,29 +17,18 @@ export class RiskStage
     state: StateStore
   ): Promise<void> {
 
-    const context =
-      state.get("context");
-
-    const plan =
-      state.get("plan");
+    const context = state.get("context");
+    const plan = state.get("plan");
 
     if (!context) {
-      throw new MissingWorkflowStateError(
-        "context"
-      );
+      throw new MissingWorkflowStateError("context");
     }
 
     if (!plan) {
-      throw new MissingWorkflowStateError(
-        "plan"
-      );
+      throw new MissingWorkflowStateError("plan");
     }
 
-    const risk =
-      await this.engine.execute(
-        context,
-        plan
-      );
+    const risk = this.engine.assess(plan, context);
 
     state.set(
       "risk",

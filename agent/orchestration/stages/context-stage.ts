@@ -1,8 +1,8 @@
-import { ContextEngine } from "@/context";
+import { ContextEngine } from "../../context/context-engine.js";
 
-import { PipelineStage } from "../pipeline";
-import { StateStore } from "../state";
-import { MissingWorkflowStateError } from "../errors";
+import { PipelineStage } from "../pipeline.js";
+import { StateStore } from "../state.js";
+import { MissingWorkflowStateError } from "../errors.js";
 
 export class ContextStage implements PipelineStage {
 
@@ -25,7 +25,7 @@ export class ContextStage implements PipelineStage {
     }
 
     const context =
-      await this.engine.execute(request);
+      await this.engine.buildContext(request);
 
     state.set(
       "context",

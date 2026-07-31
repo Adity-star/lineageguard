@@ -162,3 +162,14 @@ export interface MCPToolResponse<T> {
 
   data: T;
 }
+
+/* -------------------------------------------------- */
+/* Change Request */
+/* -------------------------------------------------- */
+
+export interface ChangeRequest {
+  description: string;
+  datasetUrn?: string;
+  requestedBy: string;
+  priority?: 'low' | 'medium' | 'high';
+}

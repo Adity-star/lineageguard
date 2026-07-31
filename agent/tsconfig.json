@@ -23,9 +23,9 @@
 
     "outDir": "./dist",
 
-    "rootDir": "./src",
+    "rootDir": ".",
 
-    "baseUrl": "./src",
+    "baseUrl": ".",
 
     "paths": {
       "@/*": ["*"],
@@ -34,10 +34,20 @@
       "@models/*": ["models/*"],
       "@mcp/*": ["mcp/*"],
       "@utils/*": ["utils/*"],
-      "@llm/*": ["llm/*"]
+      "@llm/*": ["llm/*"],
+      "@planning/*": ["planner/*"],
+      "@risk/*": ["risk/*"],
+      "@generator/*": ["generators/*"],
+      "@impact/*": ["impact/*"],
+      "@github/*": ["github/*"],
+      "@orchestration/*": ["orchestration/*"]
     }
   },
   "include": [
-    "src"
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
   ]
 }
