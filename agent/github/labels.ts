@@ -1,0 +1,31 @@
+import { ImpactReport } from "@/impact";
+
+export class LabelResolver {
+
+  resolve(
+    report: ImpactReport
+  ): string[] {
+
+    const labels: string[] = [];
+
+    labels.push("lineageguard");
+
+    labels.push(report.level.toLowerCase());
+
+    if (report.requiresApproval) {
+      labels.push("needs-review");
+    }
+
+    if (report.score >= 80) {
+      labels.push("high-impact");
+    }
+
+    for (const rule of report.triggeredRules) {
+      labels.push(rule);
+    }
+
+    return [...new Set(labels)];
+
+  }
+
+}
