@@ -55,7 +55,6 @@ model Tenant {
   changeRequests ChangeRequest[]
   workflows     WorkflowRun[]
   auditLogs      AuditLog[]
-  settings       TenantSettings?
 
   @@index([slug])
   @@index([status])
@@ -435,7 +434,7 @@ enum EntityType {
   RISK_ASSESSMENT
   IMPACT_REPORT
   GENERATED_ARTIFACT
-  RATE_LIMIT
+
 }
 
 enum AuditAction {
@@ -448,7 +447,6 @@ enum AuditAction {
   COMPLETE
   FAIL
   CANCEL
-  RATE_LIMIT_EXCEEDED
 }
 
 // ============================================================================
