@@ -1,42 +1,20 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Database, Search, Filter, RefreshCw } from 'lucide-react'
+import { Database, Search, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '@/lib/api-client'
 
 export default function DataHubPage() {
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Mock data
-  const datasets = [
-    {
-      id: '1',
-      name: 'customers',
-      platform: 'snowflake',
-      owner: 'data-team@company.com',
-      description: 'Customer master data',
-      tags: ['pii', 'core'],
-      lastModified: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    },
-    {
-      id: '2',
-      name: 'orders',
-      platform: 'snowflake',
-      owner: 'analytics@company.com',
-      description: 'Order transactions',
-      tags: ['core', 'financial'],
-      lastModified: new Date(Date.now() - 1000 * 60 * 60 * 48),
-    },
-    {
-      id: '3',
-      name: 'products',
-      platform: 'postgres',
-      owner: 'inventory@company.com',
-      description: 'Product catalog',
-      tags: ['inventory'],
-      lastModified: new Date(Date.now() - 1000 * 60 * 60 * 72),
-    },
-  ]
+  const { data: datasetsData, isLoading, error } = useQuery({
+    queryKey: ['datasets', searchQuery],
+    queryFn: () => apiClient.listDatasets({ search: searchQuery }),
+  })
+
+  const datasets = datasetsData?.data || []
 
   return (
     <div className="p-8">
@@ -75,17 +53,31 @@ export default function DataHubPage() {
       </motion.div>
 
       {/* Dataset Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {datasets.map((dataset, index) => (
-          <motion.div
-            key={dataset.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + index * 0.05 }}
-            className="bg-white/5 backdrop-blur-xl rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-white/5 backdrop-blur-xl rounded-xl p-6 animate-pulse">
+              <div className="h-10 w-10 bg-gray-600 rounded mb-4" />
+              <div className="h-5 w-3/4 bg-gray-600 rounded mb-2" />
+              <div className="h-4 w-1/2 bg-gray-600 rounded" />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6">
+          <p className="text-red-500">Failed to load datasets</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {datasets.map((dataset: any, index: number) => (
+            <motion.div
+              key={dataset.urn}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + index * 0.05 }}
+              className="bg-white/5 backdrop-blur-xl rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <div className="flex items-start gap-3 mb-4">
                 <div className="h-10 w-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
                   <Database className="h-5 w-5 text-blue-500" />
                 </div>
@@ -94,24 +86,24 @@ export default function DataHubPage() {
                   <p className="text-xs text-gray-400 capitalize">{dataset.platform}</p>
                 </div>
               </div>
-            </div>
 
-            <p className="text-sm text-gray-400 mb-4">{dataset.description}</p>
+              <p className="text-sm text-gray-400 mb-4">{dataset.description}</p>
 
-            <div className="flex items-center gap-2 mb-4">
-              {dataset.tags.map((tag) => (
-                <span key={tag} className="px-2 py-1 rounded bg-blue-500/10 text-blue-500 text-xs">
-                  {tag}
-                </span>
-              ))}
-            </div>
+              <div className="flex items-center gap-2 mb-4">
+                {dataset.tags?.map((tag: string) => (
+                  <span key={tag} className="px-2 py-1 rounded bg-blue-500/10 text-blue-500 text-xs">
+                    {tag}
+                  </span>
+                ))}
+              </div>
 
-            <div className="text-xs text-gray-500">
-              Owned by {dataset.owner}
-            </div>
-          </motion.div>
-        ))}
-      </div>
+              <div className="text-xs text-gray-500">
+                Owned by {dataset.owners?.[0]?.name || 'Unknown'}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* Connection Status */}
       <motion.div

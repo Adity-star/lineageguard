@@ -1,9 +1,11 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ArrowLeft, Clock, AlertTriangle, GitPullRequest, User, Calendar } from 'lucide-react'
+import { ArrowLeft, Clock, AlertTriangle, GitPullRequest, User, Calendar, Check } from 'lucide-react'
 import Link from 'next/link'
 import { PipelineAnimation, PipelineStage, PipelineStatus } from '@/components/pipeline/pipeline-animation'
+import { PerformanceTimeline } from '@/components/performance-timeline'
+import { RiskExplanation } from '@/components/risk-explanation'
 import { cn, getRiskColor, getRiskBgColor, formatDate } from '@/lib/utils'
 import { useState } from 'react'
 
@@ -164,8 +166,30 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
 }
 
 function OverviewTab({ runData }: { runData: any }) {
+  // Mock performance data - in production this would come from the API
+  const mockPerformance = {
+    contextMs: 2100,
+    planningMs: 3400,
+    riskMs: 1200,
+    generationMs: 2200,
+    impactMs: 1700,
+    approvalMs: 800,
+    githubMs: 3400,
+    totalMs: 14800,
+  }
+
   return (
     <div className="space-y-6">
+      <PerformanceTimeline performance={mockPerformance} />
+
+      <RiskExplanation 
+        risk={{
+          overallRisk: runData.risk,
+          score: runData.score,
+          requiresApproval: runData.approvalRequired,
+        }}
+      />
+
       <div className="glass-card rounded-xl p-6">
         <h3 className="text-lg font-semibold mb-4">AI Summary</h3>
         <p className="text-muted-foreground leading-relaxed">
@@ -222,8 +246,11 @@ function DiffTab() {
       <h3 className="text-lg font-semibold mb-4">Schema Diff</h3>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <h4 className="text-sm font-medium text-muted-foreground mb-2">Before</h4>
-          <pre className="bg-accent/50 rounded-lg p-4 text-sm overflow-x-auto">
+          <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-red-500" />
+            Before
+          </h4>
+          <pre className="bg-accent/50 rounded-lg p-4 text-sm overflow-x-auto border border-red-500/20">
             <code>{`model Customer {
   id        Int    @id
   email     String
@@ -233,8 +260,11 @@ function DiffTab() {
           </pre>
         </div>
         <div>
-          <h4 className="text-sm font-medium text-muted-foreground mb-2">After</h4>
-          <pre className="bg-accent/50 rounded-lg p-4 text-sm overflow-x-auto">
+          <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-green-500" />
+            After
+          </h4>
+          <pre className="bg-accent/50 rounded-lg p-4 text-sm overflow-x-auto border border-green-500/20">
             <code>{`model Customer {
   id        Int    @id
   email     String
@@ -242,6 +272,21 @@ function DiffTab() {
   created_at DateTime
 }`}</code>
           </pre>
+        </div>
+      </div>
+
+      {/* Change Summary */}
+      <div className="mt-6 p-4 bg-accent/30 rounded-lg">
+        <h4 className="text-sm font-medium mb-3">Changes Summary</h4>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2 text-red-400">
+            <span className="font-mono">-</span>
+            <span className="line-through opacity-70">customer_name String</span>
+          </div>
+          <div className="flex items-center gap-2 text-green-400">
+            <span className="font-mono">+</span>
+            <span>full_name String</span>
+          </div>
         </div>
       </div>
     </div>
@@ -255,14 +300,22 @@ function ImpactTab() {
         <h3 className="text-lg font-semibold mb-4">Affected Assets</h3>
         <div className="space-y-3">
           {[
-            { type: 'Dataset', name: 'customers', impact: 'high' },
-            { type: 'dbt Model', name: 'customer_orders', impact: 'medium' },
-            { type: 'dbt Model', name: 'customer_analytics', impact: 'medium' },
-            { type: 'Dashboard', name: 'Customer Overview', impact: 'low' },
+            { type: 'Dataset', name: 'customers', impact: 'high', urn: 'urn:li:dataset:(PROD,customers)' },
+            { type: 'dbt Model', name: 'customer_orders', impact: 'medium', urn: 'urn:li:dataset:(PROD,customer_orders)' },
+            { type: 'dbt Model', name: 'customer_analytics', impact: 'medium', urn: 'urn:li:dataset:(PROD,customer_analytics)' },
+            { type: 'Dashboard', name: 'Customer Overview', impact: 'low', urn: 'urn:li:dashboard:(PROD,customer_overview)' },
           ].map((asset, i) => (
-            <div key={i} className="flex items-center justify-between p-3 bg-accent/50 rounded-lg">
-              <div>
-                <p className="font-medium">{asset.name}</p>
+            <div key={i} className="flex items-center justify-between p-3 bg-accent/50 rounded-lg group hover:bg-accent/70 transition-colors">
+              <div className="flex-1">
+                <a
+                  href={`https://datahub.yourdomain.com${asset.urn}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium hover:text-primary transition-colors flex items-center gap-2"
+                >
+                  {asset.name}
+                  <GitPullRequest className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
                 <p className="text-sm text-muted-foreground">{asset.type}</p>
               </div>
               <span className={cn('px-2 py-1 rounded text-xs font-medium', getRiskBgColor(asset.impact === 'high' ? 'HIGH' : asset.impact === 'medium' ? 'MEDIUM' : 'LOW'))}>
@@ -270,6 +323,21 @@ function ImpactTab() {
               </span>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="glass-card rounded-xl p-6">
+        <h3 className="text-lg font-semibold mb-4">Downstream Lineage</h3>
+        <div className="text-sm text-muted-foreground">
+          <p className="mb-2">This change affects 4 downstream assets across your data platform.</p>
+          <a
+            href="https://datahub.yourdomain.com/lineage?urn=urn:li:dataset:(PROD,customers)"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            View full lineage graph in DataHub →
+          </a>
         </div>
       </div>
     </div>

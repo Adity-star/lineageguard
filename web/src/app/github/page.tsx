@@ -3,56 +3,18 @@
 import { motion } from 'framer-motion'
 import { GitBranch, GitPullRequest, CheckCircle, Clock, ExternalLink, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '@/lib/api-client'
 
 export default function GitHubPage() {
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Mock data
-  const pullRequests = [
-    {
-      id: '1',
-      number: 123,
-      title: 'feat: Rename customer_name to full_name',
-      status: 'merged',
-      author: 'alice@company.com',
-      createdAt: new Date(Date.now() - 1000 * 60 * 30),
-      branch: 'feat/rename-customer-name',
-      base: 'main',
-      additions: 15,
-      deletions: 8,
-      reviewers: ['john.doe@company.com'],
-    },
-    {
-      id: '2',
-      number: 122,
-      title: 'feat: Add index on email column',
-      status: 'open',
-      author: 'bob@company.com',
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      branch: 'feat/email-index',
-      base: 'main',
-      additions: 22,
-      deletions: 0,
-      reviewers: ['jane.smith@company.com'],
-    },
-    {
-      id: '3',
-      number: 121,
-      title: 'fix: Drop deprecated status column',
-      status: 'closed',
-      author: 'charlie@company.com',
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-      branch: 'fix/drop-status',
-      base: 'main',
-      additions: 5,
-      deletions: 12,
-      reviewers: ['john.doe@company.com'],
-    },
-  ]
+  const { data: prsData, isLoading, error } = useQuery({
+    queryKey: ['pull-requests'],
+    queryFn: () => apiClient.listPullRequests(),
+  })
 
-  const filteredPRs = pullRequests.filter(pr => 
-    pr.title.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const pullRequests = prsData?.data || []
 
   return (
     <div className="p-8">
@@ -90,67 +52,82 @@ export default function GitHubPage() {
       </motion.div>
 
       {/* PR Cards */}
-      <div className="space-y-4">
-        {filteredPRs.map((pr, index) => (
-          <motion.div
-            key={pr.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + index * 0.05 }}
-            className="bg-white/5 backdrop-blur-xl rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <GitPullRequest className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-gray-400">#{pr.number}</span>
-                  <span className={cn(
-                    'px-2 py-0.5 rounded text-xs font-medium',
-                    pr.status === 'merged' && 'bg-purple-500/10 text-purple-500',
-                    pr.status === 'open' && 'bg-green-500/10 text-green-500',
-                    pr.status === 'closed' && 'bg-red-500/10 text-red-500'
-                  )}>
-                    {pr.status}
-                  </span>
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">{pr.title}</h3>
-                <div className="flex items-center gap-4 text-sm text-gray-400">
-                  <span className="flex items-center gap-1">
-                    <GitBranch className="h-3 w-3" />
-                    {pr.branch} → {pr.base}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {new Date(pr.createdAt).toLocaleDateString()}
-                  </span>
-                  <span className="text-green-500">+{pr.additions}</span>
-                  <span className="text-red-500">-{pr.deletions}</span>
-                </div>
-              </div>
-              <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-                <ExternalLink className="h-4 w-4 text-gray-400" />
-              </button>
+      {isLoading ? (
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-white/5 backdrop-blur-xl rounded-xl p-6 animate-pulse">
+              <div className="h-5 w-3/4 bg-gray-600 rounded mb-2" />
+              <div className="h-4 w-1/2 bg-gray-600 rounded" />
             </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6">
+          <p className="text-red-500">Failed to load pull requests</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {pullRequests.map((pr: any, index: number) => (
+            <motion.div
+              key={pr.number}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + index * 0.05 }}
+              className="bg-white/5 backdrop-blur-xl rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <GitPullRequest className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm text-gray-400">#{pr.number}</span>
+                    <span className={cn(
+                      'px-2 py-0.5 rounded text-xs font-medium',
+                      pr.status === 'merged' && 'bg-purple-500/10 text-purple-500',
+                      pr.status === 'open' && 'bg-green-500/10 text-green-500',
+                      pr.status === 'closed' && 'bg-red-500/10 text-red-500'
+                    )}>
+                      {pr.status}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">{pr.title}</h3>
+                  <div className="flex items-center gap-4 text-sm text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <GitBranch className="h-3 w-3" />
+                      {pr.branch} → {pr.base}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {new Date(pr.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="text-green-500">+{pr.additions}</span>
+                    <span className="text-red-500">-{pr.deletions}</span>
+                  </div>
+                </div>
+                <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                  <ExternalLink className="h-4 w-4 text-gray-400" />
+                </button>
+              </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-white/10">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">Reviewers:</span>
-                {pr.reviewers.map((reviewer) => (
-                  <span key={reviewer} className="px-2 py-1 rounded bg-white/5 text-xs text-gray-300">
-                    {reviewer}
-                  </span>
-                ))}
-              </div>
-              {pr.status === 'merged' && (
-                <div className="flex items-center gap-2 text-green-500 text-sm">
-                  <CheckCircle className="h-4 w-4" />
-                  Merged by {pr.author}
+              <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400">Reviewers:</span>
+                  {pr.reviewers?.map((reviewer: string) => (
+                    <span key={reviewer} className="px-2 py-1 rounded bg-white/5 text-xs text-gray-300">
+                      {reviewer}
+                    </span>
+                  ))}
                 </div>
-              )}
-            </div>
-          </motion.div>
-        ))}
-      </div>
+                {pr.status === 'merged' && (
+                  <div className="flex items-center gap-2 text-green-500 text-sm">
+                    <CheckCircle className="h-4 w-4" />
+                    Merged by {pr.author}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* Connection Status */}
       <motion.div
