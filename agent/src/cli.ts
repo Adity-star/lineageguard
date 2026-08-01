@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import { logger } from '../config/logger.js';
-import { container } from '../container/container.js';
+import { createContainer } from '../container/index.js';
 import { ChangeRequest } from '../mcp/types.js';
 
 const program = new Command();
@@ -30,14 +30,15 @@ program
         priority: options.priority,
       };
 
+      const container = createContainer();
       const result = await container.orchestrator.execute(request);
 
       logger.info('Workflow completed successfully');
-      console.log('\n=== Workflow Result ===');
-      console.log(JSON.stringify(result, null, 2));
+      logger.info('\n=== Workflow Result ===');
+      logger.info(JSON.stringify(result, null, 2));
 
       if (result.github) {
-        console.log(`\nPull Request: ${result.github.url}`);
+        logger.info(`\nPull Request: ${result.github.url}`);
       }
     } catch (error: any) {
       logger.error('Workflow failed', error);
@@ -53,13 +54,13 @@ program
       logger.info('Checking system health');
 
       // Check MCP connection
-      console.log('MCP Connection: OK (configured)');
+      logger.info('MCP Connection: OK (configured)');
 
       // Check GitHub connection
-      console.log('GitHub Connection: OK (configured)');
+      logger.info('GitHub Connection: OK (configured)');
 
       // Check Anthropic connection
-      console.log('Anthropic Connection: OK (configured)');
+      logger.info('Anthropic Connection: OK (configured)');
 
       logger.info('Health check completed');
     } catch (error: any) {

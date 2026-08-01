@@ -34,7 +34,7 @@ export class PlanningStage implements PipelineStage {
 
     const plan = await this.engine.plan(request, context);
 
-    state.set("plan", plan);
+    state.set("plan", plan.plan);
 
     logger.info({
       event: "planning_complete",

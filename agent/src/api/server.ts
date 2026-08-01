@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { logger } from '../../config/logger.js';
-import { container } from '../../container/container.js';
+import { createContainer } from '../../container/index.js';
 import { ChangeRequest } from '../../mcp/types.js';
 import { 
   ChangeRequestSchema, 
@@ -116,6 +116,7 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
       requestedBy: request.requestedBy,
     }, 'Processing schema change request');
 
+    const container = createContainer();
     const result = await container.orchestrator.execute(request);
 
     // Store the request

@@ -22,13 +22,14 @@ import { MetadataWriter } from "../impact/metadata-writer.js";
 import { ContextStage, PlanningStage, RiskStage, GeneratorStage, ImpactStage, ApprovalStage, GitHubStage } from "../orchestration/stages/index.js";
 
 /**
- * Composition Root
+ * Development Container
  *
- * Every dependency in the application
- * is created here exactly once.
+ * Uses mock implementations for external dependencies.
+ * Intended for development and testing only.
+ * NEVER use in production.
  */
 
-export class ApplicationContainer {
+export class DevelopmentContainer {
 
   readonly context: ContextEngine;
 

@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { logger } from "../config/logger.js";
 
 async function main() {
   const transport = new StdioClientTransport({
@@ -20,7 +21,7 @@ async function main() {
 
   await client.connect(transport);
 
-  console.log("Connected\n");
+  logger.info("Connected\n");
 
   const result = await client.callTool({
     name: "search",
@@ -29,9 +30,9 @@ async function main() {
     },
   });
 
-  console.log(JSON.stringify(result, null, 2));
+  logger.info(JSON.stringify(result, null, 2));
 
   await client.close();
 }
 
-main().catch(console.error);
+main().catch((error) => logger.error(error));

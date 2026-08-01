@@ -26,12 +26,6 @@ export class DatasetResolverStage {
       );
     }
 
-    /**
-     * TODO:
-     * In future versions we will rank multiple candidates using
-     * semantic similarity + metadata scoring.
-     */
-
     const selected = results[0];
 
     if (!selected) {

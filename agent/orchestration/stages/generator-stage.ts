@@ -39,7 +39,7 @@ export class GeneratorStage implements PipelineStage {
 
     const generation = await this.generator.generate(
       "// Original schema placeholder",
-      plan.plan,
+      plan,
       risk
     );
 

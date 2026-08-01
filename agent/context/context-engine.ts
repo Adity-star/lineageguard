@@ -51,7 +51,7 @@ export class ContextEngine {
                     datasetUrn,
                     ageMs: Date.now() - cached.timestamp,
                 }, 'Context retrieved from cache');
-                return cached;
+                return cached.bundle;
             }
 
             const state = createContextState(request);
@@ -346,7 +346,7 @@ export class ContextEngine {
         }
     }
 
-    private getFromCache(datasetUrn: string): ContextBundle | null {
+    private getFromCache(datasetUrn: string): CacheEntry | null {
         const entry = this.cache.get(datasetUrn);
         if (!entry) return null;
 
@@ -361,7 +361,7 @@ export class ContextEngine {
             return null;
         }
 
-        return entry.bundle;
+        return entry;
     }
 
     private setCache(datasetUrn: string, bundle: ContextBundle): void {
