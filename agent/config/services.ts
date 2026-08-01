@@ -1,11 +1,9 @@
 export interface Services {
   mcp: unknown;
 
-  anthropic: unknown;
-
   github: unknown;
 
-  supabase: unknown;
+  anthropic: unknown;
 }
 
 export const services: Partial<Services> = {};
