@@ -51,7 +51,7 @@ export class ContextEngine {
                     datasetUrn,
                     ageMs: Date.now() - cached.timestamp,
                 }, 'Context retrieved from cache');
-                return cached.bundle;
+                return cached;
             }
 
             const state = createContextState(request);

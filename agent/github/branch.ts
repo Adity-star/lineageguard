@@ -4,16 +4,21 @@ import { logger } from "../config/logger.js";
 export class BranchBuilder {
 
   build(
-    plan: ExecutionPlan
+    plan: any
   ): string {
 
+    const executionPlan = plan.plan || plan;
+    const intent = executionPlan.intent || executionPlan.summary || "schema-change";
+    const affectedDataset = executionPlan.affectedDataset || executionPlan.summary?.split(" ").pop() || "dataset";
+
     const operation =
-      plan.intent
+      intent
         .replace(/_/g, "-")
+        .replace(/\s+/g, "-")
         .toLowerCase();
 
     const dataset =
-      plan.affectedDataset
+      affectedDataset
         .replace(/\./g, "-")
         .replace(/_/g, "-")
         .toLowerCase();

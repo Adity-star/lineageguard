@@ -4,30 +4,34 @@ import { logger } from "../config/logger.js";
 export class CommitBuilder {
 
   build(
-    plan: ExecutionPlan
+    plan: any
   ): string {
 
-    switch (plan.intent) {
+    const executionPlan = plan.plan || plan;
+    const intent = executionPlan.intent || executionPlan.summary || "schema change";
+    const affectedDataset = executionPlan.affectedDataset || executionPlan.summary?.split(" ").pop() || "dataset";
+
+    switch (intent) {
 
       case "rename_column":
 
-        return `Rename column in ${plan.affectedDataset}`;
+        return `Rename column in ${affectedDataset}`;
 
       case "drop_column":
 
-        return `Drop column from ${plan.affectedDataset}`;
+        return `Drop column from ${affectedDataset}`;
 
       case "add_column":
 
-        return `Add column to ${plan.affectedDataset}`;
+        return `Add column to ${affectedDataset}`;
 
       case "drop_table":
 
-        return `Drop table ${plan.affectedDataset}`;
+        return `Drop table ${affectedDataset}`;
 
       default:
 
-        return `Update schema for ${plan.affectedDataset}`;
+        return `Update schema for ${affectedDataset}`;
 
     }
 

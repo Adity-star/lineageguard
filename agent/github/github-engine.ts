@@ -2,6 +2,8 @@ import { ContextBundle } from "../context/type.js";
 import { ExecutionPlan } from "../planner/types.js";
 import { GenerationResult } from "../generators/types.js";
 import { ImpactReport } from "../impact/types.js";
+import { logger } from "../config/logger.js";
+import { withRetry, isRetryableError } from "../utils/retry.js";
 
 import { GitHubClient } from "./github-client.js";
 import { PullRequestBuilder } from "./pull-request.js";
@@ -63,43 +65,73 @@ export class GitHubEngine {
         pullRequest
       );
 
-    const result =
-      await this.client.createPullRequest({
+    const result = await withRetry(
+      async () => {
+        return await this.client.createPullRequest({
 
-        owner: request.owner,
+          owner: request.owner,
 
-        repository: request.repository,
+          repository: request.repository,
 
-        baseBranch: request.baseBranch,
+          baseBranch: request.baseBranch,
 
-        headBranch: validated.branch,
+          headBranch: validated.branch,
 
-        title: validated.title,
+          title: validated.title,
 
-        body: validated.body,
+          body: validated.body,
 
-        labels: validated.labels.map(
-          label => label.name
-        ),
+          labels: validated.labels.map(
+            label => label.name
+          ),
 
-        reviewers: validated.reviewers.map(
-          reviewer => reviewer.username
-        )
+          reviewers: validated.reviewers.map(
+            reviewer => reviewer.username
+          )
 
-      });
-
-    await this.client.addLabels(
-      result.number,
-      validated.labels.map(
-        label => label.name
-      )
+        });
+      },
+      {
+        maxAttempts: 3,
+        retryableErrors: isRetryableError,
+        onRetry: (attempt, error) => {
+          logger.warn({
+            event: 'github_pr_retry',
+            attempt,
+            error: error instanceof Error ? error.message : String(error),
+          }, 'Retrying pull request creation');
+        }
+      }
     );
 
-    await this.client.requestReviewers(
-      result.number,
-      validated.reviewers.map(
-        reviewer => reviewer.username
-      )
+    await withRetry(
+      async () => {
+        await this.client.addLabels(
+          result.number,
+          validated.labels.map(
+            label => label.name
+          )
+        );
+      },
+      {
+        maxAttempts: 2,
+        retryableErrors: isRetryableError,
+      }
+    );
+
+    await withRetry(
+      async () => {
+        await this.client.requestReviewers(
+          result.number,
+          validated.reviewers.map(
+            reviewer => reviewer.username
+          )
+        );
+      },
+      {
+        maxAttempts: 2,
+        retryableErrors: isRetryableError,
+      }
     );
 
     return {
