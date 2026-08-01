@@ -31,4 +31,6 @@ export interface WorkflowState {
 
   performance?: PerformanceMetrics;
 
+  runId?: string;
+
 }

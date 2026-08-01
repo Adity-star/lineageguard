@@ -22,8 +22,6 @@ export class ApprovalStage implements PipelineStage {
     perf?: PerformanceTracker
   ): Promise<void> {
 
-    logger.info({ event: "approval_started", autoApprove: this.autoApprove }, "Approval Process Started");
-
     const risk = state.get("risk");
     const impact = state.get("impact");
 
@@ -51,12 +49,15 @@ export class ApprovalStage implements PipelineStage {
       },
       async () => {
         if (this.autoApprove || !requiresApproval) {
+          const reason = this.autoApprove ? "Auto-approved: Testing mode" : "Auto-approved: Low risk change";
+          logger.info({ event: "approval_auto_approved", reason }, `✓ ${reason}`);
           return this.engine.processDecision(
             "APPROVED",
             "LineageGuard",
-            this.autoApprove ? "Auto-approved: Testing mode" : "Auto-approved: Low risk change"
+            reason
           );
         } else {
+          logger.info({ event: "approval_waiting" }, "✓ Waiting For Human Approval");
           return this.engine.processDecision(
             "PENDING",
             "LineageGuard",

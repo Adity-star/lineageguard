@@ -1,15 +1,13 @@
-import { PrismaClient } from '@prisma/client'
+import "dotenv/config";
+import { defineConfig } from "prisma/config";
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
   },
-})
+  datasource: {
+    url: process.env.DATABASE_URL ?? "postgresql://test:test@localhost:5432/test",
+  },
+});
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

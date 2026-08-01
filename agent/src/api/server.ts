@@ -11,50 +11,10 @@ import {
   isValidPriority,
   maskToken
 } from '../../utils/security.js';
-import { 
-  combinedRateLimiter,
-  apiRateLimiter,
-  webhookRateLimiter,
-  uploadRateLimiter,
-  ipRateLimiter
-} from '../middleware/rate-limit-middleware.js';
 
 const app = express();
 
 app.use(express.json());
-
-// Stricter rate limiting for specific endpoint groups (applied before general rate limiting)
-app.use('/api/v1/requests', apiRateLimiter('FREE', {
-  onLimitReached: (req, res) => {
-    logger.warn({
-      ip: req.ip,
-      path: req.path,
-      method: req.method,
-    }, 'API submission rate limit reached');
-  }
-}));
-
-// IP-based rate limiting for webhook endpoints
-app.use('/api/v1/webhooks', ipRateLimiter({
-  windowMs: 60 * 1000,
-  maxRequests: 200,
-}));
-
-// Upload endpoint rate limiting
-app.use('/api/v1/upload', uploadRateLimiter('FREE'));
-
-// Apply general combined rate limiting middleware (applied after specific limits)
-app.use(combinedRateLimiter({
-  onLimitReached: (req, res) => {
-    logger.warn({
-      ip: req.ip,
-      path: req.path,
-      method: req.method,
-      userId: (req as any).userId,
-      tenantId: (req as any).tenantId,
-    }, 'Rate limit reached');
-  }
-}));
 
 // In-memory store for demo purposes (replace with database in production)
 const requestStore = new Map<string, any>();
@@ -86,7 +46,7 @@ app.get('/health', (req: Request, res: Response) => {
     services: {
       mcp: 'configured',
       github: 'configured',
-      anthropic: 'configured',
+      grok: 'configured',
     },
   });
 });

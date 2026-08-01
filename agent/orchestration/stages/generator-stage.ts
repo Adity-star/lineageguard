@@ -21,8 +21,6 @@ export class GeneratorStage implements PipelineStage {
     perf?: PerformanceTracker
   ): Promise<void> {
 
-    logger.info({ event: "generation_started" }, "Migration Generation Started");
-
     const context = state.get("context");
     const plan = state.get("plan");
     const risk = state.get("risk");

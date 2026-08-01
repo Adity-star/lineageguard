@@ -21,8 +21,6 @@ export class PlanningStage implements PipelineStage {
     perf?: PerformanceTracker
   ): Promise<void> {
 
-    logger.info({ event: "planning_started" }, "Planning Started");
-
     const request = state.get("request");
     const context = state.get("context");
 

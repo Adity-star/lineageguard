@@ -59,8 +59,8 @@ program
       // Check GitHub connection
       logger.info('GitHub Connection: OK (configured)');
 
-      // Check Anthropic connection
-      logger.info('Anthropic Connection: OK (configured)');
+      // Check grok connection
+      logger.info('grok Connection: OK (configured)');
 
       logger.info('Health check completed');
     } catch (error: any) {

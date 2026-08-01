@@ -22,8 +22,6 @@ export class RiskStage
     perf?: PerformanceTracker
   ): Promise<void> {
 
-    logger.info({ event: "risk_started" }, "Risk Assessment Started");
-
     const context = state.get("context");
     const plan = state.get("plan");
 
@@ -55,6 +53,12 @@ export class RiskStage
       "risk",
       risk
     );
+
+    logger.info({
+      event: "risk_score",
+      overallRisk: risk.overallRisk,
+      score: risk.score,
+    }, `✓ Risk Score: ${risk.overallRisk} (${risk.score})`);
 
     logger.info({
       event: "risk_complete",

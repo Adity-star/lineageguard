@@ -24,13 +24,6 @@ export class GitHubStage implements PipelineStage {
     perf?: PerformanceTracker
   ): Promise<void> {
 
-    logger.info({
-      event: "github_started",
-      owner: this.owner,
-      repository: this.repository,
-      baseBranch: this.baseBranch,
-    }, "GitHub PR Creation Started");
-
     const approval = state.get("approval");
     const context = state.get("context");
     const plan = state.get("plan");
@@ -71,6 +64,11 @@ export class GitHubStage implements PipelineStage {
       baseBranch: this.baseBranch,
       changeDescription: context.dataset?.name || "none",
     });
+
+    logger.info({ event: "github_metadata_write_back" }, "✓ Metadata Written Back");
+    logger.info({ event: "github_branch_create" }, "✓ Branch Created");
+    logger.info({ event: "github_commit_create" }, "✓ Commit Created");
+    logger.info({ event: "github_pr_create" }, "✓ Pull Request Created");
 
     const result = await withIdempotency(
       {

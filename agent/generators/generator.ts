@@ -1,5 +1,6 @@
 import { ExecutionPlan } from "../planner/types.js";
 import { RiskAssessment } from "../risk/types.js";
+import { logger } from "../config/logger.js";
 
 import { PrismaGenerator } from "./prisma.js";
 import { SQLGenerator } from "./sql.js";
@@ -53,11 +54,15 @@ export class Generator {
     const sql =
       this.sql.generate(migration);
 
+    logger.info({ event: "generator_sql_generated" }, "✓ SQL Generated");
+
     // Step 3
     const rollback =
       this.rollback.generate(
         plan
       );
+
+    logger.info({ event: "generator_rollback_generated" }, "✓ Rollback Generated");
 
     // Step 4
     const documentation =
@@ -65,6 +70,8 @@ export class Generator {
         plan,
         risk
       );
+
+    logger.info({ event: "generator_documentation_generated" }, "✓ Documentation Generated");
 
     // Step 5
     const dbt =

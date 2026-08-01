@@ -21,8 +21,6 @@ export class ImpactStage implements PipelineStage {
     perf?: PerformanceTracker
   ): Promise<void> {
 
-    logger.info({ event: "impact_started" }, "Impact Analysis Started");
-
     const context = state.get("context");
     const plan = state.get("plan");
     const generation = state.get("generation");
@@ -62,6 +60,15 @@ export class ImpactStage implements PipelineStage {
     );
 
     state.set("impact", impact);
+
+    const datasets = impact.affectedAssets.filter(a => a.type === "DATASET").length;
+    const dashboards = impact.affectedAssets.filter(a => a.type === "DASHBOARD" || a.type === "CHART").length;
+    const pipelines = impact.affectedAssets.filter(a => a.type === "PIPELINE" || a.type === "JOB").length;
+
+    logger.info({ event: "impact_affected_datasets", count: datasets }, `✓ Affected Datasets: ${datasets}`);
+    logger.info({ event: "impact_dashboards", count: dashboards }, `✓ Dashboards: ${dashboards}`);
+    logger.info({ event: "impact_pipelines", count: pipelines }, `✓ Pipelines: ${pipelines}`);
+    logger.info({ event: "impact_report_created" }, "✓ Impact Report Created");
 
     logger.info({
       event: "impact_complete",

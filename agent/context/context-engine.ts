@@ -30,6 +30,14 @@ export class ContextEngine {
         private readonly dataHub: DataHubClient
     ) {}
 
+    isDataHubConnected(): boolean {
+        try {
+            return this.dataHub.isConnected();
+        } catch {
+            return false;
+        }
+    }
+
     async buildContext(
         request: ChangeRequest
     ): Promise<ContextBundle> {
@@ -51,6 +59,10 @@ export class ContextEngine {
                     datasetUrn,
                     ageMs: Date.now() - cached.timestamp,
                 }, 'Context retrieved from cache');
+                logger.info({ event: "context_dataset_resolved" }, "✓ Dataset Resolved");
+                logger.info({ event: "context_schema_retrieved" }, "✓ Schema Retrieved");
+                logger.info({ event: "context_lineage_retrieved" }, "✓ Lineage Retrieved");
+                logger.info({ event: "context_built" }, "✓ Context Built");
                 return cached.bundle;
             }
 
@@ -74,6 +86,8 @@ export class ContextEngine {
                     }
                 }
             );
+
+            logger.info({ event: "context_dataset_resolved" }, "✓ Dataset Resolved");
 
             await withRetry(
                 async () => {
@@ -99,6 +113,8 @@ export class ContextEngine {
                 }
             );
 
+            logger.info({ event: "context_schema_retrieved" }, "✓ Schema Retrieved");
+
             await withRetry(
                 async () => {
                     await new LineageCollectorStage(
@@ -110,6 +126,8 @@ export class ContextEngine {
                     retryableErrors: isRetryableError,
                 }
             );
+
+            logger.info({ event: "context_lineage_retrieved" }, "✓ Lineage Retrieved");
 
             await withRetry(
                 async () => {
@@ -223,6 +241,8 @@ export class ContextEngine {
                 retrievalDurationMs,
                 statistics: enrichedBundle.statistics,
             }, 'Context retrieval completed');
+
+            logger.info({ event: "context_built" }, "✓ Context Built");
 
             return enrichedBundle;
         } catch (error) {
@@ -341,6 +361,11 @@ export class ContextEngine {
 
             // Validate fallback bundle
             validateContextBundle(fallbackBundle);
+
+            logger.info({ event: "context_dataset_resolved" }, "✓ Dataset Resolved");
+            logger.info({ event: "context_schema_retrieved" }, "✓ Schema Retrieved");
+            logger.info({ event: "context_lineage_retrieved" }, "✓ Lineage Retrieved");
+            logger.info({ event: "context_built" }, "✓ Context Built (fallback)");
 
             return fallbackBundle;
         }

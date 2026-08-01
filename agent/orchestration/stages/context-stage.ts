@@ -21,8 +21,6 @@ export class ContextStage implements PipelineStage {
     perf?: PerformanceTracker
   ): Promise<void> {
 
-    logger.info({ event: "context_started" }, "Context Started");
-
     const request = state.get("request");
 
     if (!request) {

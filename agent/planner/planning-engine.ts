@@ -32,6 +32,8 @@ export class PlanningEngine {
 
     const validated = this.validator.validate(parsed);
 
+    logger.info({ event: "planning_execution_plan_created" }, "✓ Execution Plan Created");
+
     logger.info({
       event: "planning_engine_completed",
       confidence: validated.confidence,

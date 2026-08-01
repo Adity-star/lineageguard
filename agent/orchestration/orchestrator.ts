@@ -48,12 +48,13 @@ export class Orchestrator {
 
     logger.info({
       event: "run_started",
+      runId: requestId,
       requestId,
       description: request.description,
       datasetUrn: request.datasetUrn,
       requestedBy: request.requestedBy,
       priority: request.priority,
-    }, "Run Started");
+    }, `🚀 Run Started\nRun ID: ${requestId}\n──────────────────────────────────`);
 
     // Deriving a unique key from the inputs to ensure idempotency if not explicitly provided
     const idempotencyKey = customIdempotencyKey || IdempotencyService.generateKey({
@@ -67,6 +68,7 @@ export class Orchestrator {
       const state =
         new StateStore({
           request,
+          runId: requestId,
         });
 
       try {
@@ -91,9 +93,10 @@ export class Orchestrator {
 
         logger.info({
           event: "run_completed",
+          runId: requestId,
           requestId,
           performance: metrics,
-        }, "Run Completed");
+        }, `🎉 Workflow Complete\n\nTotal Runtime: ${(metrics.totalMs / 1000).toFixed(1)}s`);
 
         // Add performance metrics to state
         state.value.performance = metrics;
@@ -104,6 +107,7 @@ export class Orchestrator {
 
         logger.error({
           event: "run_failed",
+          runId: requestId,
           requestId,
           error: error instanceof Error ? error.message : String(error),
         }, "Run Failed");
