@@ -55,6 +55,7 @@ export class DataHubClient {
         await this.client.shutdown();
     }
 
+    // Search
     async searchDatasets(
         query: string,
         limit = 10
@@ -69,6 +70,7 @@ export class DataHubClient {
         return result.data;
     }
 
+    // Dataset
     async getDataset(
         urn: string
     ): Promise<Dataset> {
@@ -77,6 +79,55 @@ export class DataHubClient {
         return result;
     }
 
+    async getOwners(
+        urn: string
+    ): Promise<Array<{ urn: string; name: string; type: string }>> {
+        return this.entities.getOwners(urn);
+    }
+
+    async getGlossaryTerms(
+        urn: string
+    ): Promise<Array<{ urn: string; name: string; description?: string }>> {
+        return this.entities.getGlossaryTerms(urn);
+    }
+
+    async getTags(
+        urn: string
+    ): Promise<string[]> {
+        return this.entities.getTags(urn);
+    }
+
+    async getStructuredProperties(
+        urn: string
+    ): Promise<Record<string, any>> {
+        return this.entities.getStructuredProperties(urn);
+    }
+
+    async getDomain(
+        urn: string
+    ): Promise<{ urn: string; name: string; description?: string } | undefined> {
+        return this.entities.getDomain(urn);
+    }
+
+    async getRelatedDashboards(
+        urn: string
+    ): Promise<Array<{ urn: string; name: string; url?: string }>> {
+        return this.entities.getRelatedDashboards(urn);
+    }
+
+    async getRelatedPipelines(
+        urn: string
+    ): Promise<Array<{ urn: string; name: string; platform: string }>> {
+        return this.entities.getRelatedPipelines(urn);
+    }
+
+    async getRelatedDbtModels(
+        urn: string
+    ): Promise<Array<{ urn: string; name: string; package: string }>> {
+        return this.entities.getRelatedDbtModels(urn);
+    }
+
+    // Schema
     async getSchema(
         urn: string
     ): Promise<SchemaField[]> {
@@ -89,6 +140,7 @@ export class DataHubClient {
         return result.data;
     }
 
+    // Lineage
     async getLineage(
         urn: string
     ): Promise<Lineage> {
@@ -101,6 +153,7 @@ export class DataHubClient {
         return result.data;
     }
 
+    // Queries
     async getQueries(
         urn: string
     ): Promise<DatasetQuery[]> {
@@ -113,6 +166,7 @@ export class DataHubClient {
         return result.data;
     }
 
+    // Documentation
     async searchDocumentation(
         query: string
     ): Promise<Document[]> {
@@ -125,6 +179,7 @@ export class DataHubClient {
         return result.data;
     }
 
+    // Utility
     async resolveDataset(
         query: string
     ): Promise<Dataset | null> {

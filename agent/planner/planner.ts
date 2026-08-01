@@ -3,6 +3,7 @@ import { ChangeRequest } from "../mcp/types.js";
 import { ContextBundle } from "../context/type.js";
 import { ExecutionPlan } from "./types.js";
 import { PlanningPromptBuilder } from "./prompt.js";
+import { sanitizePrompt } from "../utils/security.js";
 
 export interface LLMClient {
   generate(
@@ -35,9 +36,13 @@ export class Planner {
     const started = performance.now();
 
     try {
+      // Sanitize prompts to prevent prompt injection
+      const sanitizedSystemPrompt = sanitizePrompt(prompts.system);
+      const sanitizedUserPrompt = sanitizePrompt(prompts.user);
+
       const response = await this.llm.generate(
-        prompts.system,
-        prompts.user
+        sanitizedSystemPrompt,
+        sanitizedUserPrompt
       );
 
       logger.info({

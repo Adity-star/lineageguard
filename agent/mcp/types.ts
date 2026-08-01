@@ -92,7 +92,11 @@ export const DatasetSchema = z.object({
 
   tags: z.array(z.string()).default([]),
 
-  glossaryTerms: z.array(z.string()).default([]),
+  glossaryTerms: z.array(z.object({
+    urn: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+  })).default([]),
 
   domain: z.string().optional()
 });
