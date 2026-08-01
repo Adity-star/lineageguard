@@ -5,13 +5,15 @@ import { StateStore } from "../state.js";
 import { MissingWorkflowStateError } from "../errors.js";
 import { logger } from "../../config/logger.js";
 import { PerformanceTracker } from "../../utils/performance.js";
+import { IdempotencyService, withIdempotency, OperationType } from "../../utils/idempotency.js";
 
 export class ContextStage implements PipelineStage {
 
   readonly name = "context";
 
   constructor(
-    private readonly engine: ContextEngine
+    private readonly engine: ContextEngine,
+    private readonly idempotencyService: IdempotencyService
   ) {}
 
   async execute(
@@ -29,8 +31,23 @@ export class ContextStage implements PipelineStage {
       );
     }
 
-    const context =
-      await this.engine.buildContext(request);
+    const idempotencyKey = IdempotencyService.generateKey({
+      description: request.description,
+      datasetUrn: request.datasetUrn || "none",
+      requestedBy: request.requestedBy,
+      priority: request.priority || "none",
+    });
+
+    const context = await withIdempotency(
+      {
+        key: idempotencyKey,
+        operationType: OperationType.CONTEXT_BUILD,
+      },
+      async () => {
+        return await this.engine.buildContext(request);
+      },
+      this.idempotencyService
+    );
 
     state.set(
       "context",

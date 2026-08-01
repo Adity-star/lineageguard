@@ -5,6 +5,7 @@ import { StateStore } from "../state.js";
 import { MissingWorkflowStateError } from "../errors.js";
 import { logger } from "../../config/logger.js";
 import { PerformanceTracker } from "../../utils/performance.js";
+import { IdempotencyService, withIdempotency, OperationType } from "../../utils/idempotency.js";
 
 export class RiskStage
   implements PipelineStage {
@@ -12,7 +13,8 @@ export class RiskStage
   readonly name = "risk";
 
   constructor(
-    private readonly engine: RiskEngine
+    private readonly engine: RiskEngine,
+    private readonly idempotencyService: IdempotencyService
   ) {}
 
   async execute(
@@ -33,7 +35,21 @@ export class RiskStage
       throw new MissingWorkflowStateError("plan");
     }
 
-    const risk = this.engine.assess(plan, context);
+    const idempotencyKey = IdempotencyService.generateKey({
+      planActions: plan.actions || [],
+      contextDatasetUrn: context.dataset?.urn || "none",
+    });
+
+    const risk = await withIdempotency(
+      {
+        key: idempotencyKey,
+        operationType: OperationType.RISK_ASSESSMENT,
+      },
+      async () => {
+        return this.engine.assess(plan, context);
+      },
+      this.idempotencyService
+    );
 
     state.set(
       "risk",

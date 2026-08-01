@@ -5,6 +5,7 @@ import { StateStore } from "../state.js";
 import { MissingWorkflowStateError } from "../errors.js";
 import { logger } from "../../config/logger.js";
 import { PerformanceTracker } from "../../utils/performance.js";
+import { IdempotencyService, withIdempotency, OperationType } from "../../utils/idempotency.js";
 
 export class GitHubStage implements PipelineStage {
 
@@ -14,7 +15,8 @@ export class GitHubStage implements PipelineStage {
     private readonly engine: GitHubEngine,
     private readonly owner: string,
     private readonly repository: string,
-    private readonly baseBranch: string
+    private readonly baseBranch: string,
+    private readonly idempotencyService: IdempotencyService
   ) {}
 
   async execute(
@@ -63,15 +65,32 @@ export class GitHubStage implements PipelineStage {
       return;
     }
 
-    const result = await this.engine.execute({
+    const idempotencyKey = IdempotencyService.generateKey({
       owner: this.owner,
       repository: this.repository,
       baseBranch: this.baseBranch,
-      context,
-      plan,
-      generation,
-      impact
+      changeDescription: context.dataset?.name || "none",
     });
+
+    const result = await withIdempotency(
+      {
+        key: idempotencyKey,
+        operationType: OperationType.GITHUB_PR_CREATION,
+      },
+      async () => {
+        return await this.engine.execute({
+          owner: this.owner,
+          repository: this.repository,
+          baseBranch: this.baseBranch,
+          context,
+          plan,
+          generation,
+          impact
+        });
+      },
+      this.idempotencyService,
+      (res) => res.number ? String(res.number) : undefined
+    );
 
     state.set("github", result);
 

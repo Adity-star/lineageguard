@@ -19,6 +19,7 @@ import {
 } from "./events.js";
 import { logger } from "../config/logger.js";
 import { PerformanceTracker } from "../utils/performance.js";
+import { IdempotencyService, withIdempotency, OperationType } from "../utils/idempotency.js";
 
 export class Orchestrator {
 
@@ -29,6 +30,7 @@ export class Orchestrator {
     private readonly owner: string,
     private readonly repository: string,
     private readonly baseBranch: string,
+    private readonly idempotencyService: IdempotencyService,
     private readonly listener?: WorkflowListener
   ) {
 
@@ -37,7 +39,8 @@ export class Orchestrator {
   }
 
   async execute(
-    request: ChangeRequest
+    request: ChangeRequest,
+    customIdempotencyKey?: string
   ): Promise<WorkflowState> {
 
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -52,67 +55,86 @@ export class Orchestrator {
       priority: request.priority,
     }, "Run Started");
 
-    const state =
-      new StateStore({
-        request,
-      });
+    // Deriving a unique key from the inputs to ensure idempotency if not explicitly provided
+    const idempotencyKey = customIdempotencyKey || IdempotencyService.generateKey({
+      description: request.description,
+      datasetUrn: request.datasetUrn || "none",
+      requestedBy: request.requestedBy,
+      priority: request.priority || "none",
+    });
 
-    try {
+    const executionBlock = async (): Promise<WorkflowState> => {
+      const state =
+        new StateStore({
+          request,
+        });
 
-      await this.listener?.(
-        WorkflowEvent.STARTED
-      );
+      try {
 
-      perf.start('total');
-      await this.pipeline.execute(
-        state,
-        perf
-      );
-      perf.end('total');
+        await this.listener?.(
+          WorkflowEvent.STARTED
+        );
 
-      await this.listener?.(
-        WorkflowEvent.COMPLETED,
-        state.value
-      );
+        perf.start('total');
+        await this.pipeline.execute(
+          state,
+          perf
+        );
+        perf.end('total');
 
-      const metrics = perf.getMetrics();
+        await this.listener?.(
+          WorkflowEvent.COMPLETED,
+          state.value
+        );
 
-      logger.info({
-        event: "run_completed",
-        requestId,
-        performance: metrics,
-      }, "Run Completed");
+        const metrics = perf.getMetrics();
 
-      // Add performance metrics to state
-      state.value.performance = metrics;
+        logger.info({
+          event: "run_completed",
+          requestId,
+          performance: metrics,
+        }, "Run Completed");
 
-      return state.value;
+        // Add performance metrics to state
+        state.value.performance = metrics;
 
-    } catch (error) {
+        return state.value;
 
-      logger.error({
-        event: "run_failed",
-        requestId,
-        error: error instanceof Error ? error.message : String(error),
-      }, "Run Failed");
+      } catch (error) {
 
-      await this.listener?.(
-        WorkflowEvent.FAILED,
-        error
-      );
+        logger.error({
+          event: "run_failed",
+          requestId,
+          error: error instanceof Error ? error.message : String(error),
+        }, "Run Failed");
 
-      throw new WorkflowError(
+        await this.listener?.(
+          WorkflowEvent.FAILED,
+          error
+        );
 
-        "Workflow execution failed.",
+        throw new WorkflowError(
 
-        "orchestrator",
+          "Workflow execution failed.",
 
-        error
+          "orchestrator",
 
-      );
+          error
 
-    }
+        );
 
+      }
+    };
+
+    return withIdempotency<WorkflowState>(
+      {
+        key: idempotencyKey,
+        operationType: OperationType.WORKFLOW_EXECUTION,
+      },
+      executionBlock,
+      this.idempotencyService,
+      (result) => result.github?.number ? String(result.github.number) : undefined
+    );
   }
 
 }

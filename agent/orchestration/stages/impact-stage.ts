@@ -5,13 +5,15 @@ import { StateStore } from "../state.js";
 import { MissingWorkflowStateError } from "../errors.js";
 import { logger } from "../../config/logger.js";
 import { PerformanceTracker } from "../../utils/performance.js";
+import { IdempotencyService, withIdempotency, OperationType } from "../../utils/idempotency.js";
 
 export class ImpactStage implements PipelineStage {
 
   readonly name = "impact";
 
   constructor(
-    private readonly engine: ImpactEngine
+    private readonly engine: ImpactEngine,
+    private readonly idempotencyService: IdempotencyService
   ) {}
 
   async execute(
@@ -42,7 +44,22 @@ export class ImpactStage implements PipelineStage {
       throw new MissingWorkflowStateError("risk");
     }
 
-    const impact = await this.engine.execute(context, plan, risk);
+    const idempotencyKey = IdempotencyService.generateKey({
+      datasetUrn: context.dataset?.urn || "none",
+      planActions: plan.actions || [],
+      riskLevel: risk.overallRisk,
+    });
+
+    const impact = await withIdempotency(
+      {
+        key: idempotencyKey,
+        operationType: OperationType.IMPACT_WRITEBACK,
+      },
+      async () => {
+        return await this.engine.execute(context, plan, risk);
+      },
+      this.idempotencyService
+    );
 
     state.set("impact", impact);
 

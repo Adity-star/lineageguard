@@ -26,7 +26,12 @@ const envSchema = z.object({
 
   GITHUB_BASE_BRANCH: z.string().default("main"),
 
-  DATABASE_URL: z.string()
+  DATABASE_URL: z.string(),
+
+  // Idempotency configuration
+  IDEMPOTENCY_CLEANUP_INTERVAL_MS: z.string().default("300000"),
+  IDEMPOTENCY_RETENTION_BUFFER_HOURS: z.string().default("1"),
+  IDEMPOTENCY_PENDING_TIMEOUT_MINUTES: z.string().default("10"),
 });
 
 export const env = envSchema.parse(process.env);
