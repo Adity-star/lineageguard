@@ -44,12 +44,42 @@ export default function Dashboard() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-12"
+        className="mb-8"
       >
-        <h1 className="text-4xl font-bold mb-2">Describe your schema change</h1>
-        <p className="text-gray-400 text-lg">
-          AI-powered governance built on DataHub
-        </p>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <Sparkles className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold mb-1">LineageGuard</h1>
+            <p className="text-gray-400 text-lg">AI-Powered Schema Change Governance</p>
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-xl p-6 mb-8">
+          <p className="text-xl text-white mb-2">
+            <span className="font-semibold">What is this?</span>
+          </p>
+          <p className="text-gray-300 text-lg leading-relaxed">
+            LineageGuard automatically analyzes your proposed database schema changes, 
+            assesses risk across your data pipeline, generates safe migrations, and creates 
+            pull requests with full impact documentation.
+          </p>
+          <div className="flex gap-4 mt-4">
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span>Auto-generates migrations</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span>Assesses downstream impact</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span>Creates GitHub PRs</span>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
       {/* AI Prompt Box */}
