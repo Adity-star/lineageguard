@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Database, Github, Bell, Shield, User, Key, Save } from 'lucide-react'
+import { Database, Bell, Shield, User, Key, Save } from 'lucide-react'
 import { useState } from 'react'
 
 export default function SettingsPage() {
@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: 'general', label: 'General', icon: User },
     { id: 'integrations', label: 'Integrations', icon: Database },
-    { id: 'github', label: 'GitHub', icon: Github },
+    { id: 'github', label: 'GitHub', icon: Shield },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Security', icon: Shield },
   ]

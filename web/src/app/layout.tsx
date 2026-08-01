@@ -4,6 +4,8 @@ import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Providers from "./providers";
+
 
 const inter = Inter({
   subsets: ["latin"],
@@ -32,13 +34,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} min-h-screen bg-black text-white antialiased`}>
-        <QueryClientProvider client={queryClient}>
+        <Providers>
           <Sidebar />
           <Header />
           <main className="ml-64 mt-16 min-h-screen">
             {children}
           </main>
-        </QueryClientProvider>
+        </Providers>
       </body>
     </html>
   );
