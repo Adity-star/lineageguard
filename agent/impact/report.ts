@@ -13,15 +13,17 @@ export class ReportBuilder {
 
   build(
     context: ContextBundle,
-    plan: ExecutionPlan,
+    plan: any,
     risk: RiskAssessment,
     impact: ImpactScore,
     recommendations: Recommendation[]
   ): ImpactReport {
 
+    const executionPlan = plan.plan || plan;
+
     return {
 
-      summary: plan.summary,
+      summary: executionPlan.summary || executionPlan.intent || "Schema change request",
 
       score: impact.score,
 
@@ -31,7 +33,7 @@ export class ReportBuilder {
         impact.requiresApproval,
 
       affectedColumns:
-        plan.affectedColumns,
+        executionPlan.affectedColumns || [],
 
       affectedAssets:
         this.collectAssets(context),
@@ -62,28 +64,23 @@ export class ReportBuilder {
 
     const assets: ImpactedAsset[] = [];
 
-    assets.push({
-
-      urn: context.dataset.urn,
-
-      name: context.dataset.name,
-
-      type: "DATASET",
-
-    });
-
-    for (const dataset of context.lineage.downstream) {
-
+    if (context.dataset?.urn && context.dataset?.name) {
       assets.push({
-
-        urn: dataset.urn,
-
-        name: dataset.name,
-
+        urn: context.dataset.urn,
+        name: context.dataset.name,
         type: "DATASET",
-
       });
+    }
 
+    const downstream = context.lineage?.downstream || [];
+    for (const dataset of downstream) {
+      if (dataset?.urn && dataset?.name) {
+        assets.push({
+          urn: dataset.urn,
+          name: dataset.name,
+          type: "DATASET",
+        });
+      }
     }
 
     return assets;

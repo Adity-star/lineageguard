@@ -31,4 +31,19 @@ export class LabelResolver {
 
   }
 
+  private getColorForLevel(level: string): string {
+    switch (level.toUpperCase()) {
+      case "LOW":
+        return "00cc00";
+      case "MEDIUM":
+        return "ffcc00";
+      case "HIGH":
+        return "ff6600";
+      case "CRITICAL":
+        return "ff0000";
+      default:
+        return "cccccc";
+    }
+  }
+
 }

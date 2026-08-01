@@ -1,4 +1,5 @@
 import { DataHubClient } from "../mcp/datahub-client.js";
+import { logger } from "../config/logger.js";
 
 import { MetadataWriter } from "./metadata-writer.js";
 import { ImpactReport } from "./types.js";
@@ -15,19 +16,21 @@ export class DataHubWriter
   ): Promise<void> {
     // In production, this would write to DataHub
     // For now, we log the impact report
-    console.log("Writing impact report to DataHub:");
-    console.log(`- Summary: ${report.summary}`);
-    console.log(`- Score: ${report.score}`);
-    console.log(`- Level: ${report.level}`);
-    console.log(`- Affected Columns: ${report.affectedColumns.join(", ")}`);
-    console.log(`- Affected Assets: ${report.affectedAssets.length}`);
-    console.log(`- Recommendations: ${report.recommendations.length}`);
-    
+    logger.info({
+      event: "datahub_write",
+      summary: report.summary,
+      score: report.score,
+      level: report.level,
+      affectedColumns: report.affectedColumns.join(", "),
+      affectedAssets: report.affectedAssets.length,
+      recommendations: report.recommendations.length,
+    }, "Writing impact report to DataHub");
+
     // In production, this would call DataHub's API to write:
     // - Impact report as a structured property on the dataset
     // - Tags for governance
     // - Comments documenting the change
-    
+
     // Placeholder for actual DataHub API calls
     // await this.client.updateDocumentation({...});
     // await this.client.updateStructuredProperties({...});
