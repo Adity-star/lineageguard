@@ -2,6 +2,15 @@ import express, { Request, Response } from 'express';
 import { logger } from '../../config/logger.js';
 import { container } from '../../container/container.js';
 import { ChangeRequest } from '../../mcp/types.js';
+import { 
+  ChangeRequestSchema, 
+  ApprovalRequestSchema,
+  sanitizeInput,
+  isValidEmail,
+  isValidUrn,
+  isValidPriority,
+  maskToken
+} from '../../utils/security.js';
 
 const app = express();
 
@@ -55,21 +64,57 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
   try {
     const { description, datasetUrn, requestedBy, priority } = req.body;
 
-    if (!description || !requestedBy) {
+    // Validate input using Zod schema
+    const validationResult = ChangeRequestSchema.safeParse({
+      description: sanitizeInput(description || ''),
+      datasetUrn: datasetUrn ? sanitizeInput(datasetUrn) : undefined,
+      requestedBy: sanitizeInput(requestedBy || ''),
+      priority: priority || 'medium',
+    });
+
+    if (!validationResult.success) {
       return res.status(400).json({
         status: 'error',
-        error: 'Missing required fields: description, requestedBy',
+        error: 'Invalid input: ' + validationResult.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', '),
+      });
+    }
+
+    const validatedData = validationResult.data;
+
+    // Additional validation
+    if (validatedData.datasetUrn && !isValidUrn(validatedData.datasetUrn)) {
+      return res.status(400).json({
+        status: 'error',
+        error: 'Invalid dataset URN format',
+      });
+    }
+
+    if (!isValidEmail(validatedData.requestedBy)) {
+      return res.status(400).json({
+        status: 'error',
+        error: 'Invalid email format for requestedBy',
+      });
+    }
+
+    if (validatedData.priority && !isValidPriority(validatedData.priority)) {
+      return res.status(400).json({
+        status: 'error',
+        error: 'Invalid priority value. Must be: low, medium, or high',
       });
     }
 
     const request: ChangeRequest = {
-      description,
-      datasetUrn,
-      requestedBy,
-      priority: priority || 'medium',
+      description: validatedData.description,
+      datasetUrn: validatedData.datasetUrn || '',
+      requestedBy: validatedData.requestedBy,
+      priority: validatedData.priority,
     };
 
-    logger.info('Processing schema change request');
+    logger.info({
+      event: 'processing_request',
+      description: request.description,
+      requestedBy: request.requestedBy,
+    }, 'Processing schema change request');
 
     const result = await container.orchestrator.execute(request);
 
@@ -79,7 +124,7 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
       id: requestId,
       request,
       result,
-      status: result.status || 'completed',
+      status: 'completed' as const,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -90,14 +135,61 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
 
     res.json({
       status: 'success',
-      data: { ...result, id: requestId },
+      data: { 
+        ...result, 
+        id: requestId,
+        performance: result.performance 
+      },
     });
   } catch (error: any) {
     logger.error('Failed to process request', error);
-    res.status(500).json({
+    logger.error('Raw error:', error as any);
+    logger.error('Error type:', typeof error as any);
+    logger.error('Error constructor:', error?.constructor?.name as any);
+    logger.error('Error keys:', error ? Object.keys(error) : 'No keys' as any);
+    logger.error('Error details:', {
+      message: error?.message || 'No message',
+      stack: error?.stack || 'No stack',
+      cause: error?.cause || 'No cause',
+      name: error?.name || 'No name',
+      toString: String(error),
+    } as any);
+
+    // Determine user-friendly error message
+    let userMessage = 'An unexpected error occurred while processing your request';
+    let statusCode = 500;
+
+    if (error?.message?.includes('Stage "context" failed')) {
+      userMessage = 'Unable to retrieve dataset metadata. Please check the dataset URN and try again.';
+      statusCode = 400;
+    } else if (error?.message?.includes('Stage "planning" failed')) {
+      userMessage = 'Unable to generate execution plan. The request description may be unclear.';
+      statusCode = 400;
+    } else if (error?.message?.includes('Stage "risk" failed')) {
+      userMessage = 'Unable to assess risk. Please try again.';
+      statusCode = 500;
+    } else if (error?.message?.includes('Stage "generator" failed')) {
+      userMessage = 'Unable to generate migration. The schema change may not be supported.';
+      statusCode = 400;
+    } else if (error?.message?.includes('Stage "impact" failed')) {
+      userMessage = 'Unable to analyze impact. Please try again.';
+      statusCode = 500;
+    } else if (error?.message?.includes('Stage "approval" failed')) {
+      userMessage = 'Unable to process approval. Please try again.';
+      statusCode = 500;
+    } else if (error?.message?.includes('Stage "github" failed')) {
+      userMessage = 'Unable to create pull request. Please check GitHub credentials and try again.';
+      statusCode = 500;
+    } else if (error?.message?.includes('Missing required fields')) {
+      userMessage = error.message;
+      statusCode = 400;
+    } else if (error?.message) {
+      userMessage = error.message;
+    }
+
+    res.status(statusCode).json({
       status: 'error',
-      error: 'Failed to process request',
-      message: error.message,
+      error: userMessage,
     });
   }
 });
@@ -105,6 +197,12 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
 // Get request status by ID
 app.get('/api/v1/requests/:id', (req: Request, res: Response) => {
   const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({
+      status: 'error',
+      error: 'Missing request ID',
+    });
+  }
   const storedRequest = requestStore.get(id);
 
   if (!storedRequest) {
@@ -152,7 +250,38 @@ app.get('/api/v1/requests', (req: Request, res: Response) => {
 // Approve or reject a request
 app.post('/api/v1/requests/:id/approval', (req: Request, res: Response) => {
   const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({
+      status: 'error',
+      error: 'Missing request ID',
+    });
+  }
+
   const { approved, reviewer, comment } = req.body;
+
+  // Validate approval request
+  const validationResult = ApprovalRequestSchema.safeParse({
+    approved,
+    reviewer: reviewer ? sanitizeInput(reviewer) : '',
+    comment: comment ? sanitizeInput(comment) : undefined,
+    decidedAt: req.body.decidedAt,
+  });
+
+  if (!validationResult.success) {
+    return res.status(400).json({
+      status: 'error',
+      error: 'Invalid approval input: ' + validationResult.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', '),
+    });
+  }
+
+  const validatedData = validationResult.data;
+
+  if (!isValidEmail(validatedData.reviewer)) {
+    return res.status(400).json({
+      status: 'error',
+      error: 'Invalid email format for reviewer',
+    });
+  }
 
   const storedRequest = requestStore.get(id);
 
@@ -165,20 +294,27 @@ app.post('/api/v1/requests/:id/approval', (req: Request, res: Response) => {
 
   // Update the request with approval decision
   storedRequest.approval = {
-    approved,
-    reviewer,
-    comment,
-    decidedAt: new Date().toISOString(),
+    approved: validatedData.approved,
+    reviewer: validatedData.reviewer,
+    comment: validatedData.comment,
+    decidedAt: validatedData.decidedAt || new Date().toISOString(),
   };
-  storedRequest.status = approved ? 'approved' : 'rejected';
+  storedRequest.status = validatedData.approved ? 'approved' : 'rejected';
   storedRequest.updatedAt = new Date().toISOString();
 
   requestStore.set(id, storedRequest);
 
   // Update metrics
-  if (approved) {
+  if (validatedData.approved) {
     metricsStore.pendingReviews--;
   }
+
+  logger.info({
+    event: 'approval_processed',
+    requestId: id,
+    approved: validatedData.approved,
+    reviewer: validatedData.reviewer,
+  }, 'Approval processed');
 
   res.json({
     status: 'success',
@@ -301,13 +437,19 @@ app.get('/api/v1/pull-requests', (req: Request, res: Response) => {
 
   res.json({
     status: 'success',
-    data: filteredPRs.slice(0, parseInt(limit as string)),
+    data: filteredPRs.slice(0, parseInt(limit as string) || 50),
   });
 });
 
 // Get pull request details
 app.get('/api/v1/pull-requests/:number', (req: Request, res: Response) => {
   const { number } = req.params;
+  if (!number) {
+    return res.status(400).json({
+      status: 'error',
+      error: 'Missing pull request number',
+    });
+  }
 
   // Mock data - replace with actual GitHub query
   const pullRequest = {

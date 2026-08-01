@@ -25,20 +25,20 @@ export class RiskCalculator {
     context: ContextBundle
   ): RiskMetrics {
     const upstreamDatasets =
-      context.lineage.upstream.length;
+      context.lineage?.upstream?.length || 0;
 
     const downstreamDatasets =
-      context.lineage.downstream.length;
+      context.lineage?.downstream?.length || 0;
 
     const queryCount =
-      context.queries.length;
+      context.queries?.length || 0;
 
     const documentCount =
-      context.documents.length;
+      context.documents?.length || 0;
 
     return {
       affectedColumns:
-        plan.affectedColumns.length,
+        plan.affectedColumns?.length || 0,
 
       upstreamDatasets,
 
@@ -52,10 +52,10 @@ export class RiskCalculator {
         documentCount > 0,
 
       hasOwner:
-        context.dataset.owners.length > 0,
+        context.dataset?.owners?.length > 0 || false,
 
       requiresApproval:
-        plan.requiresApproval,
+        plan.requiresApproval || false,
     };
   }
 }
