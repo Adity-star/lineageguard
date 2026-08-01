@@ -3,6 +3,8 @@ import { ContextEngine } from "../../context/context-engine.js";
 import { PipelineStage } from "../pipeline.js";
 import { StateStore } from "../state.js";
 import { MissingWorkflowStateError } from "../errors.js";
+import { logger } from "../../config/logger.js";
+import { PerformanceTracker } from "../../utils/performance.js";
 
 export class ContextStage implements PipelineStage {
 
@@ -13,8 +15,11 @@ export class ContextStage implements PipelineStage {
   ) {}
 
   async execute(
-    state: StateStore
+    state: StateStore,
+    perf?: PerformanceTracker
   ): Promise<void> {
+
+    logger.info({ event: "context_started" }, "Context Started");
 
     const request = state.get("request");
 
@@ -31,6 +36,13 @@ export class ContextStage implements PipelineStage {
       "context",
       context
     );
+
+    logger.info({
+      event: "context_complete",
+      datasetName: context.dataset?.name,
+      platform: context.dataset?.platform,
+      fieldCount: context.schema?.length || 0,
+    }, "Context Complete");
 
   }
 

@@ -1,10 +1,10 @@
 import { ApprovalEngine } from "../../approval/approval-engine.js";
-import { RiskAssessment } from "../../risk/types.js";
-import { ImpactReport } from "../../impact/types.js";
 
 import { PipelineStage } from "../pipeline.js";
 import { StateStore } from "../state.js";
 import { MissingWorkflowStateError } from "../errors.js";
+import { logger } from "../../config/logger.js";
+import { PerformanceTracker } from "../../utils/performance.js";
 
 export class ApprovalStage implements PipelineStage {
 
@@ -12,16 +12,18 @@ export class ApprovalStage implements PipelineStage {
 
   constructor(
     private readonly engine: ApprovalEngine,
-    private readonly autoApproveLowRisk: boolean = false
+    private readonly autoApprove: boolean = false
   ) {}
 
   async execute(
-    state: StateStore
+    state: StateStore,
+    perf?: PerformanceTracker
   ): Promise<void> {
+
+    logger.info({ event: "approval_started", autoApprove: this.autoApprove }, "Approval Process Started");
 
     const risk = state.get("risk");
     const impact = state.get("impact");
-    const plan = state.get("plan");
 
     if (!risk) {
       throw new MissingWorkflowStateError("risk");
@@ -31,51 +33,33 @@ export class ApprovalStage implements PipelineStage {
       throw new MissingWorkflowStateError("impact");
     }
 
-    if (!plan) {
-      throw new MissingWorkflowStateError("plan");
-    }
-
     const requiresApproval = this.engine.requiresApproval(risk, impact);
 
-    if (!requiresApproval && this.autoApproveLowRisk) {
-      // Auto-approve low-risk changes
-      const decision = this.engine.processDecision(
+    if (this.autoApprove || !requiresApproval) {
+      const approval = this.engine.processDecision(
         "APPROVED",
         "LineageGuard",
-        "Auto-approved: Low risk change"
+        this.autoApprove ? "Auto-approved: Testing mode" : "Auto-approved: Low risk change"
       );
-      state.set("approval", decision);
-      return;
-    }
-
-    if (requiresApproval) {
-      // Create approval request for manual review
-      const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const approvalRequest = this.engine.createApprovalRequest(
-        requestId,
-        risk,
-        impact,
-        state.get("context")?.dataset?.name || "unknown",
-        plan.plan.summary
-      );
-      state.set("approvalRequest", approvalRequest);
-      
-      // Set initial pending status
-      const decision = this.engine.processDecision(
+      state.set("approval", approval);
+    } else {
+      const approval = this.engine.processDecision(
         "PENDING",
         "LineageGuard",
         "Awaiting manual approval"
       );
-      state.set("approval", decision);
-    } else {
-      // Auto-approve
-      const decision = this.engine.processDecision(
-        "APPROVED",
-        "LineageGuard",
-        "Auto-approved: No approval required"
-      );
-      state.set("approval", decision);
+      state.set("approval", approval);
     }
+
+    const approval = state.get("approval");
+
+    logger.info({
+      event: "approval_complete",
+      approved: approval?.status === "APPROVED",
+      autoApproved: this.autoApprove,
+      requiresManualApproval: !this.autoApprove && approval?.status !== "APPROVED",
+    }, "Approval Process Complete");
+
   }
 
 }

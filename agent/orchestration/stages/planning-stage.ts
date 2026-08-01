@@ -3,9 +3,10 @@ import { PlanningEngine } from "../../planner/planning-engine.js";
 import { PipelineStage } from "../pipeline.js";
 import { StateStore } from "../state.js";
 import { MissingWorkflowStateError } from "../errors.js";
+import { logger } from "../../config/logger.js";
+import { PerformanceTracker } from "../../utils/performance.js";
 
-export class PlanningStage
-  implements PipelineStage {
+export class PlanningStage implements PipelineStage {
 
   readonly name = "planning";
 
@@ -14,8 +15,11 @@ export class PlanningStage
   ) {}
 
   async execute(
-    state: StateStore
+    state: StateStore,
+    perf?: PerformanceTracker
   ): Promise<void> {
+
+    logger.info({ event: "planning_started" }, "Planning Started");
 
     const request = state.get("request");
     const context = state.get("context");
@@ -28,13 +32,16 @@ export class PlanningStage
       throw new MissingWorkflowStateError("context");
     }
 
-    const plan =
-      await this.engine.plan(request, context);
+    const plan = await this.engine.plan(request, context);
 
-    state.set(
-      "plan",
-      plan
-    );
+    state.set("plan", plan);
+
+    logger.info({
+      event: "planning_complete",
+      confidence: plan.plan?.confidence,
+      requiresApproval: plan.plan?.requiresApproval,
+      affectedColumns: plan.plan?.affectedColumns?.length || 0,
+    }, "Planning Complete");
 
   }
 

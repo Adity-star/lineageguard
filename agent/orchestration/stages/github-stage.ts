@@ -3,6 +3,8 @@ import { GitHubEngine } from "../../github/github-engine.js";
 import { PipelineStage } from "../pipeline.js";
 import { StateStore } from "../state.js";
 import { MissingWorkflowStateError } from "../errors.js";
+import { logger } from "../../config/logger.js";
+import { PerformanceTracker } from "../../utils/performance.js";
 
 export class GitHubStage implements PipelineStage {
 
@@ -12,12 +14,20 @@ export class GitHubStage implements PipelineStage {
     private readonly engine: GitHubEngine,
     private readonly owner: string,
     private readonly repository: string,
-    private readonly baseBranch = "main"
+    private readonly baseBranch: string
   ) {}
 
   async execute(
-    state: StateStore
+    state: StateStore,
+    perf?: PerformanceTracker
   ): Promise<void> {
+
+    logger.info({
+      event: "github_started",
+      owner: this.owner,
+      repository: this.repository,
+      baseBranch: this.baseBranch,
+    }, "GitHub PR Creation Started");
 
     const approval = state.get("approval");
     const context = state.get("context");
@@ -27,12 +37,6 @@ export class GitHubStage implements PipelineStage {
 
     if (!approval) {
       throw new MissingWorkflowStateError("approval");
-    }
-
-    // Check if approved before proceeding to GitHub
-    if (approval.status !== "APPROVED") {
-      // Skip GitHub stage if not approved
-      return;
     }
 
     if (!context) {
@@ -51,28 +55,32 @@ export class GitHubStage implements PipelineStage {
       throw new MissingWorkflowStateError("impact");
     }
 
-    const github = await this.engine.execute({
+    if (approval.status !== "APPROVED") {
+      logger.info({
+        event: "github_skipped",
+        reason: "Not approved",
+      }, "GitHub PR Creation Skipped - Not Approved");
+      return;
+    }
 
+    const result = await this.engine.execute({
       owner: this.owner,
-
       repository: this.repository,
-
       baseBranch: this.baseBranch,
-
       context,
-
-      plan: plan.plan,
-
+      plan,
       generation,
-
       impact
-
     });
 
-    state.set(
-      "github",
-      github
-    );
+    state.set("github", result);
+
+    logger.info({
+      event: "github_complete",
+      prNumber: result.number,
+      prUrl: result.url,
+      branch: result.branch,
+    }, "GitHub PR Created Successfully");
 
   }
 

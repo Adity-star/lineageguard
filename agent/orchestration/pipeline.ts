@@ -1,4 +1,5 @@
 import { StateStore } from "./state";
+import { PerformanceTracker } from "../utils/performance.js";
 
 /**
  * A single executable workflow stage.
@@ -14,7 +15,8 @@ export interface PipelineStage {
    * Execute this stage.
    */
   execute(
-    state: StateStore
+    state: StateStore,
+    perf?: PerformanceTracker
   ): Promise<void>;
 
 }
@@ -29,13 +31,18 @@ export class Pipeline {
   ) {}
 
   async execute(
-    state: StateStore
+    state: StateStore,
+    perf?: PerformanceTracker
   ): Promise<void> {
 
     for (const stage of this.stages) {
-
-      await stage.execute(state);
-
+      try {
+        perf?.start(stage.name);
+        await stage.execute(state, perf);
+        perf?.end(stage.name);
+      } catch (error) {
+        throw new Error(`Stage "${stage.name}" failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
 
   }

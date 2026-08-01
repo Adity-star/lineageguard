@@ -3,6 +3,8 @@ import { RiskEngine } from "../../risk/risk-engine.js";
 import { PipelineStage } from "../pipeline.js";
 import { StateStore } from "../state.js";
 import { MissingWorkflowStateError } from "../errors.js";
+import { logger } from "../../config/logger.js";
+import { PerformanceTracker } from "../../utils/performance.js";
 
 export class RiskStage
   implements PipelineStage {
@@ -14,8 +16,11 @@ export class RiskStage
   ) {}
 
   async execute(
-    state: StateStore
+    state: StateStore,
+    perf?: PerformanceTracker
   ): Promise<void> {
+
+    logger.info({ event: "risk_started" }, "Risk Assessment Started");
 
     const context = state.get("context");
     const plan = state.get("plan");
@@ -34,6 +39,13 @@ export class RiskStage
       "risk",
       risk
     );
+
+    logger.info({
+      event: "risk_complete",
+      overallRisk: risk.overallRisk,
+      score: risk.score,
+      requiresApproval: risk.requiresApproval,
+    }, "Risk Assessment Complete");
 
   }
 

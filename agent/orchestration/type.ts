@@ -2,6 +2,7 @@ import { GitHubResult } from "../github/github-engine.js";
 import { ChangeRequest } from "../mcp/types.js";
 import { ApprovalDecision } from "../approval/types.js";
 import { ApprovalRequest } from "../approval/types.js";
+import { PerformanceMetrics } from "../utils/performance.js";
 
 export interface WorkflowState {
 
@@ -22,5 +23,7 @@ export interface WorkflowState {
   approvalRequest?: ApprovalRequest;
 
   github?: GitHubResult;
+
+  performance?: PerformanceMetrics;
 
 }
