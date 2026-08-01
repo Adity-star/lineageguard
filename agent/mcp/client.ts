@@ -23,6 +23,10 @@ export class MCPClient {
     await this.transport.disconnect();
   }
 
+  public isConnected(): boolean {
+    return this.transport.isConnected();
+  }
+
   async executeTool<T>(
     tool: string,
     args: Record<string, unknown>,

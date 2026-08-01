@@ -1,6 +1,7 @@
 import { config } from "../config/config.js";
 import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 import { ContextEngine } from "../context/context-engine.js";
 import { PlanningEngine } from "../planner/planning-engine.js";
@@ -10,19 +11,22 @@ import { ImpactEngine } from "../impact/impact-engine.js";
 import { ApprovalEngine } from "../approval/approval-engine.js";
 import { GitHubEngine } from "../github/github-engine.js";
 import { Orchestrator } from "../orchestration/orchestrator.js";
-import { AnthropicClient, AnthropicConfig } from "../llm/anthropic.js";
-import { AnthropicLLMAdapter } from "../llm/anthropic-adapter.js";
+// import { AnthropicLLMAdapter } from "../llm/anthropic-adapter.js";
 import { MCPTransport } from "../mcp/transport.js";
 import { MCPClient } from "../mcp/client.js";
 import { DataHubClient } from "../mcp/datahub-client.js";
 import { PrismaGenerator } from "../generators/prisma.js";
 import { Planner } from "../planner/planner.js";
-import { AnthropicSchemaEditor } from "../generators/anthropic-schema-editor.js";
+// import { AnthropicSchemaEditor } from "../generators/anthropic-schema-editor.js";
 import { PrismaCliRunner } from "../generators/prisma-cli-runner.js";
 import { DataHubRealWriter } from "../impact/datahub-real-writer.js";
 import { OctokitRealClient } from "../github/octokit-real-client.js";
 import { ContextStage, PlanningStage, RiskStage, GeneratorStage, ImpactStage, ApprovalStage, GitHubStage } from "../orchestration/stages/index.js";
-
+import { PrismaClient } from "@prisma/client";
+import { IdempotencyService } from "../utils/idempotency.js";
+import { GrokConfig, GrokClient } from "../llm/grok.js";
+import {GrokLLMAdapter} from "../llm/grok-adapter.js";
+import { LLMSchemaEditor } from "../generators/llm-scheme-editor.js";
 /**
  * Production Container
  *
@@ -62,16 +66,32 @@ export class ProductionContainer {
 
     const datahubClient = new DataHubClient(mcpClient);
 
-    // Real Anthropic client
-    const anthropicConfig: AnthropicConfig = {
-      apiKey: config.anthropic.apiKey,
-      model: "claude-3-5-sonnet-20241022",
+    // Idempotency
+    const adapter = new PrismaPg({
+      connectionString: env.DATABASE_URL,
+    });
+
+    const prismaClient = new PrismaClient({
+      adapter,
+    });
+    const idempotencyService = new IdempotencyService(prismaClient);
+
+    // Real Grok client
+    const grokConfig: GrokConfig = {
+      apiKey: config.grok.apiKey,
+      model: config.grok.model,
       maxTokens: 4096,
       temperature: 0,
     };
+    console.log("GROK DEBUG", {
+        exists: !!grokConfig.apiKey,
+        length: grokConfig.apiKey?.length,
+        start: grokConfig.apiKey?.substring(0, 5),
+        baseURL: grokConfig.baseURL,
+      });
 
-    const anthropicClient = new AnthropicClient(anthropicConfig);
-    const llmAdapter = new AnthropicLLMAdapter(anthropicClient);
+    const grokClient = new GrokClient(grokConfig);
+    const llmAdapter = new GrokLLMAdapter(grokConfig);
 
     // Real GitHub client
     const githubClient = new OctokitRealClient(
@@ -84,7 +104,7 @@ export class ProductionContainer {
      * Generators - Real implementations
      */
 
-    const llmEditor = new AnthropicSchemaEditor(anthropicClient, anthropicConfig);
+    const llmEditor = new LLMSchemaEditor(llmAdapter);
     const prismaRunner = new PrismaCliRunner();
     const prismaGenerator = new PrismaGenerator(llmEditor, prismaRunner);
 
@@ -114,17 +134,18 @@ export class ProductionContainer {
      * Application
      */
 
-    const contextStage = new ContextStage(this.context);
-    const planningStage = new PlanningStage(this.planning);
-    const riskStage = new RiskStage(this.risk);
-    const generatorStage = new GeneratorStage(this.generator);
-    const impactStage = new ImpactStage(this.impact);
-    const approvalStage = new ApprovalStage(this.approval, false);
+    const contextStage = new ContextStage(this.context, idempotencyService);
+    const planningStage = new PlanningStage(this.planning, idempotencyService);
+    const riskStage = new RiskStage(this.risk, idempotencyService);
+    const generatorStage = new GeneratorStage(this.generator, idempotencyService);
+    const impactStage = new ImpactStage(this.impact, idempotencyService);
+    const approvalStage = new ApprovalStage(this.approval, idempotencyService, false);
     const githubStage = new GitHubStage(
       this.github,
       config.github.owner,
       config.github.repository,
-      config.github.baseBranch
+      config.github.baseBranch,
+      idempotencyService
     );
 
     this.orchestrator = new Orchestrator(
@@ -144,7 +165,7 @@ export class ProductionContainer {
 
     logger.info({
       event: "production_container_initialized",
-      anthropicModel: anthropicConfig.model,
+      grokModel: grokConfig.model,
       githubOwner: config.github.owner,
       githubRepository: config.github.repository,
       datahubUrl: config.datahub.url,

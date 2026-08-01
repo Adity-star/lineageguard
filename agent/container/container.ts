@@ -1,6 +1,6 @@
 import { config } from "../config/config.js";
 import { logger } from "../config/logger.js";
-
+import { PrismaPg } from "@prisma/adapter-pg";
 import { ContextEngine } from "../context/context-engine.js";
 import { PlanningEngine } from "../planner/planning-engine.js";
 import { RiskEngine } from "../risk/risk-engine.js";
@@ -10,7 +10,6 @@ import { ApprovalEngine } from "../approval/approval-engine.js";
 import { GitHubClient } from "../github/github-client.js";
 import { GitHubEngine } from "../github/github-engine.js";
 import { Orchestrator } from "../orchestration/orchestrator.js";
-import { AnthropicClient } from "../llm/anthropic.js";
 import { MCPTransport } from "../mcp/transport.js";
 import { MCPClient } from "../mcp/client.js";
 import { DataHubClient } from "../mcp/datahub-client.js";
@@ -20,6 +19,7 @@ import { LLMEditor } from "../generators/llm-editor.js";
 import { PrismaRunner, PrismaValidationResult, PrismaMigrationResult } from "../generators/prisma-runner.js";
 import { MetadataWriter } from "../impact/metadata-writer.js";
 import { ContextStage, PlanningStage, RiskStage, GeneratorStage, ImpactStage, ApprovalStage, GitHubStage } from "../orchestration/stages/index.js";
+import { createContainer } from "./production-container.js";
 
 /**
  * Development Container
@@ -60,35 +60,6 @@ export class DevelopmentContainer {
     const mcpClient = new MCPClient(mcpTransport);
 
     const datahubClient = new DataHubClient(mcpClient);
-
-    const anthropicClient: LLMClient = {
-      generate: async (systemPrompt: string, userPrompt: string): Promise<string> => {
-        // Mock implementation for testing - return a mock execution plan
-        return JSON.stringify({
-          steps: [
-            {
-              description: "Add email column to users table",
-              type: "add_column",
-              table: "users",
-              column: {
-                name: "email",
-                type: "varchar(255)",
-                nullable: false,
-                default: null,
-              },
-            },
-          ],
-          rollbackSteps: [
-            {
-              description: "Remove email column from users table",
-              type: "drop_column",
-              table: "users",
-              column: "email",
-            },
-          ],
-        });
-      },
-    };
 
     const githubClient: GitHubClient = {
       createPullRequest: async (request) => {
@@ -270,4 +241,4 @@ model users {
 
 }
 
-export const container = new ApplicationContainer();
+export const container = createContainer();

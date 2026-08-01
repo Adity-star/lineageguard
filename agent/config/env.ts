@@ -1,15 +1,21 @@
 import dotenv from "dotenv";
 import { z } from "zod";
 
-dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env" });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]),
 
   LOG_LEVEL: z.string(),
 
-  ANTHROPIC_API_KEY: z.string(),
+  // Grok / xAI
+  GROK_API_KEY: z.string(),
 
+  GROK_MODEL: z.string().default("grok-4"),
+
+  GROK_BASE_URL: z.string().url().default("https://api.x.ai/v1"),
+
+  // DataHub
   DATAHUB_GMS_URL: z.string().url(),
 
   DATAHUB_GMS_TOKEN: z.string(),
@@ -18,6 +24,7 @@ const envSchema = z.object({
 
   DATAHUB_MCP_TOKEN: z.string(),
 
+  // GitHub
   GITHUB_TOKEN: z.string(),
 
   GITHUB_OWNER: z.string(),
@@ -26,11 +33,14 @@ const envSchema = z.object({
 
   GITHUB_BASE_BRANCH: z.string().default("main"),
 
+  // Database
   DATABASE_URL: z.string(),
 
-  // Idempotency configuration
+  // Idempotency
   IDEMPOTENCY_CLEANUP_INTERVAL_MS: z.string().default("300000"),
+
   IDEMPOTENCY_RETENTION_BUFFER_HOURS: z.string().default("1"),
+
   IDEMPOTENCY_PENDING_TIMEOUT_MINUTES: z.string().default("10"),
 });
 

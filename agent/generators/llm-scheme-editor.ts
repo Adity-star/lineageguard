@@ -1,19 +1,24 @@
-import { AnthropicClient, AnthropicConfig, MessageRequest } from "../llm/anthropic.js";
+import { MessageRequest } from "../llm/grok.js";
 import { logger } from "../config/logger.js";
 import { LLMEditor, SchemaEditorRequest, SchemaEditorResponse } from "./llm-editor.js";
 import { sanitizePrompt } from "../utils/security.js";
+import { LLMClient } from "../planner/planner.js";
 
 /**
- * Real LLM-based schema editor using Anthropic Claude
+ * Provider-agnostic schema editor.
+ * Works with Grok, Anthropic, OpenAI, Gemini, etc.
  */
-export class AnthropicSchemaEditor implements LLMEditor {
+export class LLMSchemaEditor implements LLMEditor {
   constructor(
-    private readonly client: AnthropicClient,
-    private readonly config: AnthropicConfig
+    private readonly client: LLMClient
   ) {}
 
-  async editSchema(request: SchemaEditorRequest): Promise<SchemaEditorResponse> {
-    const systemPrompt = `You are an expert Prisma schema editor. Your task is to modify a Prisma schema according to the requested changes.
+  async editSchema(
+    request: SchemaEditorRequest
+  ): Promise<SchemaEditorResponse> {
+    const systemPrompt = `You are an expert Prisma schema editor.
+
+Your task is to modify a Prisma schema according to the requested changes.
 
 Rules:
 - Return ONLY the updated Prisma schema
@@ -25,27 +30,17 @@ Rules:
 
     const userPrompt = sanitizePrompt(`
 Current Prisma Schema:
+
 \`\`\`prisma
 ${request.schema}
 \`\`\`
 
 Requested Changes:
+
 ${JSON.stringify(request.plan, null, 2)}
 
 Please modify the schema to implement these changes.
 `);
-
-    const anthropicRequest: MessageRequest = {
-      system: systemPrompt,
-      messages: [
-        {
-          role: "user",
-          content: userPrompt,
-        },
-      ],
-      maxTokens: 4096,
-      temperature: 0,
-    };
 
     try {
       logger.info({
@@ -53,10 +48,12 @@ Please modify the schema to implement these changes.
         schemaLength: request.schema.length,
       });
 
-      const response = await this.client.message(anthropicRequest);
-      
-      // Clean the response to extract just the schema
-      const cleanedSchema = this.extractSchema(response.content);
+      const updatedSchema = await this.client.generate(
+        systemPrompt,
+        userPrompt
+      );
+
+      const cleanedSchema = this.extractSchema(updatedSchema);
 
       logger.info({
         event: "schema_edit_success",
@@ -72,13 +69,14 @@ Please modify the schema to implement these changes.
         event: "schema_edit_failed",
         error: error instanceof Error ? error.message : String(error),
       });
+
       throw error;
     }
   }
 
   private extractSchema(content: string): string {
     let cleaned = content.trim();
-    
+
     if (cleaned.startsWith("```")) {
       cleaned = cleaned
         .replace(/^```(?:prisma)?/i, "")

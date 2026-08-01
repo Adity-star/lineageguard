@@ -5,7 +5,7 @@ export interface Services {
 
   github: unknown;
 
-  anthropic: unknown;
+  grok: unknown;
 
   idempotency: IdempotencyService;
 }
