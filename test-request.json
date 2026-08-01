@@ -1,0 +1,6 @@
+{
+  "description": "Add a new column email to the users table",
+  "datasetUrn": "urn:li:dataset:(urn:li:dataPlatform:mysql,users,PROD)",
+  "requestedBy": "test@example.com",
+  "priority": "medium"
+}
