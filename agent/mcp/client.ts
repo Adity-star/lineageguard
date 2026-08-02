@@ -3,8 +3,19 @@ import { z, ZodSchema } from "zod";
 import { logger } from "../config/logger.js";
 
 import { MCPToolError } from "./errors.js";
-import { MCPTransport } from "./transport.js";
 import { MCPToolResponse } from "./types.js";
+
+/**
+ * Common interface for any MCP transport (HTTP or STDIO).
+ * Both MCPTransport and StdioMCPTransport implement this shape.
+ */
+export interface IMCPTransport {
+  connect(): Promise<void>;
+  disconnect(): Promise<void>;
+  isConnected(): boolean;
+  getClient(): import("@modelcontextprotocol/sdk/client/index.js").Client;
+  execute<T>(fn: () => Promise<T>): Promise<T>;
+}
 
 export interface CallToolOptions {
   timeoutMs?: number;
@@ -12,7 +23,7 @@ export interface CallToolOptions {
 
 export class MCPClient {
   constructor(
-    private readonly transport: MCPTransport
+    private readonly transport: IMCPTransport
   ) {}
 
   async initialize(): Promise<void> {

@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import { logger } from '../../config/logger.js';
 import { createContainer } from '../../container/index.js';
 import { ChangeRequest } from '../../mcp/types.js';
@@ -13,6 +14,9 @@ import {
 } from '../../utils/security.js';
 
 const app = express();
+
+// Global container instance - initialized on server start
+let globalContainer: ReturnType<typeof createContainer> | null = null;
 
 app.use(express.json());
 
@@ -61,6 +65,8 @@ app.get('/api/v1/metrics', (req: Request, res: Response) => {
 
 // Submit schema change request
 app.post('/api/v1/requests', async (req: Request, res: Response) => {
+  let requestId: string | undefined;
+
   try {
     const { description, datasetUrn, requestedBy, priority } = req.body;
 
@@ -116,8 +122,11 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
       requestedBy: request.requestedBy,
     }, 'Processing schema change request');
 
-    const container = createContainer();
-    const result = await container.orchestrator.execute(request);
+    if (!globalContainer) {
+      throw new Error('Server not properly initialized: container is not available');
+    }
+
+    const result = await globalContainer.orchestrator.execute(request);
 
     // Store the request
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -143,18 +152,20 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    logger.error('Failed to process request', error);
-    logger.error('Raw error:', error as any);
-    logger.error('Error type:', typeof error as any);
-    logger.error('Error constructor:', error?.constructor?.name as any);
-    logger.error('Error keys:', error ? Object.keys(error) : 'No keys' as any);
-    logger.error('Error details:', {
-      message: error?.message || 'No message',
-      stack: error?.stack || 'No stack',
-      cause: error?.cause || 'No cause',
-      name: error?.name || 'No name',
-      toString: String(error),
-    } as any);
+    // Log full error details with proper error serialization
+    logger.error(
+      {
+        err: error,
+        requestId,
+        errorType: error?.constructor?.name,
+        errorMessage: error?.message,
+        errorStack: error?.stack,
+        errorCause: error?.cause,
+        errorName: error?.name,
+        rawError: String(error),
+      },
+      'Failed to process request'
+    );
 
     // Determine user-friendly error message
     let userMessage = 'An unexpected error occurred while processing your request';
@@ -485,6 +496,30 @@ app.use((err: any, req: Request, res: Response, next: any) => {
 });
 
 export async function startServer(port: number): Promise<void> {
+  // Create the container with all dependencies
+  globalContainer = createContainer();
+
+  // Initialize MCP client before starting server
+  try {
+    logger.info({
+      event: "mcp_initialization_started",
+    }, "🔌 Initializing MCP client...");
+    
+    await globalContainer.getMcpClient().initialize();
+    
+    logger.info({
+      event: "mcp_initialization_completed",
+      isConnected: globalContainer.getMcpClient().isConnected(),
+    }, "✅ MCP client initialized successfully");
+  } catch (error) {
+    logger.error({
+      event: "mcp_initialization_failed",
+      error: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
+    }, "❌ Failed to initialize MCP client");
+    throw error;
+  }
+
   return new Promise((resolve) => {
     const server = app.listen(port, () => {
       logger.info(`REST API server listening on port ${port}`);
