@@ -20,6 +20,8 @@ import { PrismaRunner, PrismaValidationResult, PrismaMigrationResult } from "../
 import { MetadataWriter } from "../impact/metadata-writer.js";
 import { ContextStage, PlanningStage, RiskStage, GeneratorStage, ImpactStage, ApprovalStage, GitHubStage } from "../orchestration/stages/index.js";
 import { createContainer } from "./production-container.js";
+import { IdempotencyService } from "../utils/idempotency.js";
+import { PrismaClient } from "@prisma/client";
 
 /**
  * Development Container
@@ -206,20 +208,34 @@ model users {
     this.github = new GitHubEngine(githubClient);
 
     /**
+     * Idempotency - Mock implementation for development
+     */
+    // For development, we create a mock idempotency service that bypasses DB
+    const mockIdempotencyService: IdempotencyService = {
+      check: async () => ({
+        isDuplicate: false,
+        status: undefined,
+        cachedResult: undefined,
+      }),
+      record: async () => undefined,
+    } as any;
+
+    /**
      * Application
      */
 
-    const contextStage = new ContextStage(this.context);
-    const planningStage = new PlanningStage(this.planning);
-    const riskStage = new RiskStage(this.risk);
-    const generatorStage = new GeneratorStage(this.generator);
-    const impactStage = new ImpactStage(this.impact);
-    const approvalStage = new ApprovalStage(this.approval, false);
+    const contextStage = new ContextStage(this.context, mockIdempotencyService);
+    const planningStage = new PlanningStage(this.planning, mockIdempotencyService);
+    const riskStage = new RiskStage(this.risk, mockIdempotencyService);
+    const generatorStage = new GeneratorStage(this.generator, mockIdempotencyService);
+    const impactStage = new ImpactStage(this.impact, mockIdempotencyService);
+    const approvalStage = new ApprovalStage(this.approval, mockIdempotencyService, false);
     const githubStage = new GitHubStage(
       this.github,
       config.github.owner,
       config.github.repository,
-      config.github.baseBranch
+      config.github.baseBranch,
+      mockIdempotencyService
     );
 
     this.orchestrator = new Orchestrator(
@@ -234,7 +250,8 @@ model users {
       ],
       config.github.owner,
       config.github.repository,
-      config.github.baseBranch
+      config.github.baseBranch,
+      mockIdempotencyService
     );
 
   }

@@ -11,13 +11,11 @@ import { ImpactEngine } from "../impact/impact-engine.js";
 import { ApprovalEngine } from "../approval/approval-engine.js";
 import { GitHubEngine } from "../github/github-engine.js";
 import { Orchestrator } from "../orchestration/orchestrator.js";
-// import { AnthropicLLMAdapter } from "../llm/anthropic-adapter.js";
-import { MCPTransport } from "../mcp/transport.js";
+import { StdioMCPTransport } from "../mcp/studio-transport.js";
 import { MCPClient } from "../mcp/client.js";
 import { DataHubClient } from "../mcp/datahub-client.js";
 import { PrismaGenerator } from "../generators/prisma.js";
 import { Planner } from "../planner/planner.js";
-// import { AnthropicSchemaEditor } from "../generators/anthropic-schema-editor.js";
 import { PrismaCliRunner } from "../generators/prisma-cli-runner.js";
 import { DataHubRealWriter } from "../impact/datahub-real-writer.js";
 import { OctokitRealClient } from "../github/octokit-real-client.js";
@@ -52,19 +50,28 @@ export class ProductionContainer {
 
   readonly orchestrator: Orchestrator;
 
+  private readonly mcpClient: MCPClient;
+
   constructor() {
 
     /**
      * Infrastructure - Real implementations only
      */
 
-    const mcpTransport = new MCPTransport({
+    // Use STDIO transport to launch mcp-server-datahub as a subprocess.
+    // This avoids HTTP entirely and communicates over stdin/stdout.
+    const mcpTransport = new StdioMCPTransport({
+      command: "mcp-server-datahub",
       timeoutMs: 30000,
+      env: {
+        DATAHUB_GMS_URL: env.DATAHUB_GMS_URL,
+        DATAHUB_GMS_TOKEN: env.DATAHUB_GMS_TOKEN,
+      },
     });
 
-    const mcpClient = new MCPClient(mcpTransport);
+    this.mcpClient = new MCPClient(mcpTransport);
 
-    const datahubClient = new DataHubClient(mcpClient);
+    const datahubClient = new DataHubClient(this.mcpClient);
 
     // Idempotency
     const adapter = new PrismaPg({
@@ -160,7 +167,8 @@ export class ProductionContainer {
       ],
       config.github.owner,
       config.github.repository,
-      config.github.baseBranch
+      config.github.baseBranch,
+      idempotencyService
     );
 
     logger.info({
@@ -171,6 +179,10 @@ export class ProductionContainer {
       datahubUrl: config.datahub.url,
     }, "Production container initialized with real implementations");
 
+  }
+
+  getMcpClient(): MCPClient {
+    return this.mcpClient;
   }
 
 }

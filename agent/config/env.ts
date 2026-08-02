@@ -20,9 +20,10 @@ const envSchema = z.object({
 
   DATAHUB_GMS_TOKEN: z.string(),
 
-  DATAHUB_MCP_URL: z.string().url(),
+  // HTTP transport fields kept optional - STDIO transport is now used instead
+  DATAHUB_MCP_URL: z.string().url().optional(),
 
-  DATAHUB_MCP_TOKEN: z.string(),
+  DATAHUB_MCP_TOKEN: z.string().optional(),
 
   // GitHub
   GITHUB_TOKEN: z.string(),
