@@ -168,12 +168,34 @@ export interface MCPToolResponse<T> {
 }
 
 /* -------------------------------------------------- */
-/* Change Request */
+/* Change Request                                      */
 /* -------------------------------------------------- */
 
 export interface ChangeRequest {
+  /** Human-readable description of the change, e.g. "Add discount_pct column to SampleHdfsDataset" */
   description: string;
+
+  /** DataHub dataset URN to operate on, e.g. "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)" */
   datasetUrn?: string;
+
+  /** Email / identifier of the person requesting the change */
   requestedBy: string;
-  priority?: 'low' | 'medium' | 'high';
+
+  /** Change priority – drives approval threshold */
+  priority?: "low" | "medium" | "high";
+
+  /** Type of schema change: add_column | remove_column | rename_column | modify_column | create_table | drop_table */
+  changeType?: "add_column" | "remove_column" | "rename_column" | "modify_column" | "create_table" | "drop_table";
+
+  /** URN of the schema entity if different from the dataset URN */
+  schemaUrn?: string;
+
+  /** Raw SQL DDL to apply (optional – agent can generate this if omitted) */
+  sql?: string;
+
+  /** Additional documentation or context to attach to the change */
+  documentation?: string;
+
+  /** Tags to apply to the change request for tracking / filtering */
+  tags?: string[];
 }

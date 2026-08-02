@@ -173,7 +173,7 @@ Performance Breakdown:`);
         }
 
         logger.info({
-          runId,
+          runId: requestId,
           stateSummary: {
             hasGithub: !!state.value.github,
             hasDatabase: !!state.value.database,

@@ -56,14 +56,23 @@ export class EntityTool {
   ) {}
 
   public async getDataset(
-    urn: string
+      urn: string
   ): Promise<Dataset> {
-    const raw = await this.client.executeTool<any>(
-      "get_dataset",
-      { urn },
-      EntityResponseSchema
-    );
-    return raw.data;
+
+      const client = (this.client as any)["transport"].getClient();
+
+      const response:any = await client.callTool({
+          name:"get_dataset",
+          arguments:{ urn }
+      });
+
+      const raw = response.structuredContent;
+
+      const dataset = Array.isArray(raw)
+          ? raw[0]
+          : raw;
+
+      return DatasetSchema.parse(dataset);
   }
 
   public async getOwners(

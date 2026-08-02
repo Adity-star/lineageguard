@@ -61,7 +61,7 @@ export class ImpactEngine {
       this.validator.validate(report);
 
     // Step 5 - Persist to DataHub
-    await this.writer.write(validated);
+    await this.writer.write(validated, context);
 
     return validated;
   }
