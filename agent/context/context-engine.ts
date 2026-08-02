@@ -247,12 +247,61 @@ export class ContextEngine {
 
             return enrichedBundle;
         } catch (error) {
+            // Diagnose the specific failure before falling back
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const errorStack = error instanceof Error ? error.stack : undefined;
+            
+            const isConnectionError = 
+                errorMessage.includes('ECONNREFUSED') ||
+                errorMessage.includes('connection') ||
+                errorMessage.includes('socket') ||
+                errorMessage.includes('timeout');
+            
+            const isAuthError =
+                errorMessage.includes('401') ||
+                errorMessage.includes('403') ||
+                errorMessage.includes('unauthorized') ||
+                errorMessage.includes('forbidden');
+            
+            const errorCategory = isConnectionError 
+                ? 'CONNECTION_FAILURE'
+                : isAuthError
+                ? 'AUTHENTICATION_FAILURE'
+                : 'UNKNOWN_FAILURE';
+
+            // Log detailed diagnostic information
+            logger.error({
+                event: 'context_retrieval_failed',
+                datasetUrn,
+                errorCategory,
+                errorMessage,
+                errorStack,
+                isConnected: this.isDataHubConnected(),
+            }, `Context retrieval failed with ${errorCategory}: ${errorMessage}`);
+
+            // Attempt to check DataHub connection explicitly
+            let connectionHealthy = false;
+            try {
+                connectionHealthy = await this.dataHub.ping();
+                logger.info({
+                    event: 'datahub_connection_check',
+                    isConnected: connectionHealthy,
+                }, 'DataHub connection health check completed');
+            } catch (healthCheckError) {
+                logger.error({
+                    event: 'datahub_connection_check_failed',
+                    error: healthCheckError instanceof Error ? healthCheckError.message : String(healthCheckError),
+                }, 'DataHub connection health check failed');
+            }
+
             // Return mock context for testing when DataHub is unavailable
             logger.warn({
                 event: 'context_fallback',
                 datasetUrn,
-                error: error instanceof Error ? error.message : String(error),
-            }, 'Using fallback mock context due to DataHub failure');
+                error: errorMessage,
+                errorCategory,
+                connectionHealthy,
+            }, `Using fallback mock context due to ${errorCategory}`);
 
             const retrievalDurationMs = performance.now() - startTime;
 

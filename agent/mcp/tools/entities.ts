@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { MCPClient } from "../client.js";
+import { logger } from "../../config/logger.js";
 
 import {
   Dataset,
@@ -58,21 +59,53 @@ export class EntityTool {
   public async getDataset(
       urn: string
   ): Promise<Dataset> {
+      try {
+          logger.info({
+              event: "entity_tool_get_dataset_start",
+              urn,
+          }, `EntityTool.getDataset() calling MCP tool for URN: ${urn}`);
 
-      const client = (this.client as any)["transport"].getClient();
+          const result = await this.client.executeTool<Dataset>(
+              "get_dataset",
+              { urn },
+              DatasetSchema
+          );
 
-      const response:any = await client.callTool({
-          name:"get_dataset",
-          arguments:{ urn }
+          logger.info({
+              event: "entity_tool_get_dataset_success",
+              urn,
+              datasetName: result.data.name,
+              durationMs: result.durationMs,
+          }, `EntityTool.getDataset() succeeded: ${result.data.name} (${result.durationMs}ms)`);
+
+          return result.data;
+      } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorType = error instanceof Error ? error.constructor.name : typeof error;
+
+          logger.error({
+              event: "entity_tool_get_dataset_failed",
+              urn,
+              error: errorMessage,
+              errorType,
+              stack: error instanceof Error ? error.stack : undefined,
+          }, `EntityTool.getDataset() failed for URN ${urn}: ${errorMessage}`);
+
+          throw error;
+      }
+  }
+
+  private async callToolDirect(toolName: string, args: Record<string, unknown>): Promise<any> {
+      // Fallback direct call if needed (not recommended)
+      const client = (this.client as any)["transport"]?.getClient();
+      if (!client) {
+          throw new Error("Transport client not available");
+      }
+      const response: any = await client.callTool({
+          name: toolName,
+          arguments: args
       });
-
-      const raw = response.structuredContent;
-
-      const dataset = Array.isArray(raw)
-          ? raw[0]
-          : raw;
-
-      return DatasetSchema.parse(dataset);
+      return response;
   }
 
   public async getOwners(

@@ -42,6 +42,13 @@ export class DataHubClient {
     async initialize() { await this.client.initialize(); }
     async shutdown()   { await this.client.shutdown();   }
     isConnected(): boolean { return this.client.isConnected(); }
+    
+    /**
+     * Check if DataHub is reachable by attempting a ping
+     */
+    async ping(): Promise<boolean> {
+        return this.client.ping();
+    }
 
     // ----------------------------------------------------------------
     // Read methods
@@ -61,14 +68,33 @@ export class DataHubClient {
     }
 
     async getDataset(urn: string): Promise<Dataset> {
-        logger.info({ event: "datahub_get_dataset_start", urn }, `Getting dataset: "${urn}"...`);
+        logger.info({ 
+            event: "datahub_get_dataset_start", 
+            urn,
+            isConnected: this.isConnected(),
+        }, `Getting dataset: "${urn}"...`);
         const start = performance.now();
         try {
             const result = await this.entities.getDataset(urn);
-            logger.info({ event: "datahub_get_dataset_success", durationMs: (performance.now() - start).toFixed(0) }, `Retrieved dataset`);
+            logger.info({ 
+                event: "datahub_get_dataset_success", 
+                durationMs: (performance.now() - start).toFixed(0),
+                datasetName: result.name,
+                datasetUrn: result.urn,
+            }, `Retrieved dataset: ${result.name}`);
             return result;
         } catch (error) {
-            logger.error({ event: "datahub_get_dataset_failed", error: error instanceof Error ? error.message : String(error) }, `Getting dataset failed`);
+            const durationMs = (performance.now() - start).toFixed(0);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            
+            logger.error({ 
+                event: "datahub_get_dataset_failed", 
+                urn,
+                durationMs,
+                error: errorMessage,
+                errorType: error instanceof Error ? error.constructor.name : typeof error,
+                isConnected: this.isConnected(),
+            }, `Getting dataset failed: ${errorMessage}`);
             throw error;
         }
     }

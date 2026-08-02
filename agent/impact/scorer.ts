@@ -100,6 +100,9 @@ export class ImpactScorer {
     risk: RiskAssessment
   ): ImpactScore {
 
+    // Derive score from Risk Engine (source of truth)
+    const baseScore = risk.score;
+
     const triggeredRules = IMPACT_RULES.filter(rule =>
       rule.applies(
         context,
@@ -108,16 +111,26 @@ export class ImpactScorer {
       )
     );
 
-    let score = triggeredRules.reduce(
+    // Calculate additional impact-specific factors
+    // These are used for detailed reporting but don't override the risk score
+    const impactFactorScore = triggeredRules.reduce(
       (sum, rule) => sum + rule.weight,
       0
     );
 
-    /*
-     * Never exceed the Risk Engine score.
-     * The Risk Engine remains the source of truth.
-     */
-    score = Math.min(score, risk.score);
+    // Log the impact factors for transparency
+    if (impactFactorScore > 0) {
+      console.log({
+        event: "impact_factors_calculated",
+        baseRiskScore: baseScore,
+        impactFactorsTotal: impactFactorScore,
+        finalScore: baseScore,
+        triggeredRulesCount: triggeredRules.length,
+      });
+    }
+
+    // Use Risk Engine score as the authoritative score
+    const score = baseScore;
 
     const level = this.determineLevel(score);
 

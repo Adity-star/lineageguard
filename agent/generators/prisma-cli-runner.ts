@@ -40,11 +40,6 @@ export class PrismaCliRunner implements PrismaRunner {
         errors.push("Schema must define at least one model");
       }
 
-      // Check for basic syntax issues
-      if (schema.includes("  ")) {
-        errors.push("Schema contains inconsistent indentation (spaces instead of tabs)");
-      }
-
       if (errors.length > 0) {
         logger.info({
           event: "prisma_validate_failed",

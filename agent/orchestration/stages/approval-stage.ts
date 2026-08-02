@@ -35,6 +35,16 @@ export class ApprovalStage implements PipelineStage {
 
     const requiresApproval = this.engine.requiresApproval(risk, impact);
 
+    logger.info({
+      event: "approval_evaluation",
+      requiresApproval,
+      riskScore: risk.score,
+      riskLevel: risk.overallRisk,
+      impactScore: impact.score,
+      impactLevel: impact.level,
+      autoApprove: this.autoApprove,
+    }, `Evaluating approval requirement: requiresApproval=${requiresApproval}`);
+
     const idempotencyKey = IdempotencyService.generateKey({
       requiresApproval,
       riskScore: risk.score,
@@ -50,14 +60,25 @@ export class ApprovalStage implements PipelineStage {
       async () => {
         if (this.autoApprove || !requiresApproval) {
           const reason = this.autoApprove ? "Auto-approved: Testing mode" : "Auto-approved: Low risk change";
-          logger.info({ event: "approval_auto_approved", reason }, `✓ ${reason}`);
+          logger.info({ 
+            event: "approval_auto_approved", 
+            reason,
+            riskScore: risk.score,
+            impactScore: impact.score,
+          }, `✓ ${reason}`);
           return this.engine.processDecision(
             "APPROVED",
             "LineageGuard",
             reason
           );
         } else {
-          logger.info({ event: "approval_waiting" }, "✓ Waiting For Human Approval");
+          logger.info({ 
+            event: "approval_pending",
+            riskScore: risk.score,
+            impactScore: impact.score,
+            riskLevel: risk.overallRisk,
+            impactLevel: impact.level,
+          }, "✓ Waiting For Human Approval");
           return this.engine.processDecision(
             "PENDING",
             "LineageGuard",
@@ -72,10 +93,13 @@ export class ApprovalStage implements PipelineStage {
 
     logger.info({
       event: "approval_complete",
+      status: approval?.status,
       approved: approval?.status === "APPROVED",
+      pending: approval?.status === "PENDING",
+      rejected: approval?.status === "REJECTED",
       autoApproved: this.autoApprove,
       requiresManualApproval: !this.autoApprove && approval?.status !== "APPROVED",
-    }, "Approval Process Complete");
+    }, `Approval Process Complete: status=${approval?.status}`);
 
   }
 

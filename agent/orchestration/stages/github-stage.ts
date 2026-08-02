@@ -52,11 +52,19 @@ export class GitHubStage implements PipelineStage {
 
     if (approval.status !== "APPROVED") {
       logger.info({
-        event: "github_skipped",
-        reason: "Not approved",
-      }, "GitHub PR Creation Skipped - Not Approved");
+        event: "github_skipped_not_approved",
+        approvalStatus: approval.status,
+        reason: `Approval status is ${approval.status}, not APPROVED`,
+      }, `GitHub PR Creation Skipped - Approval Status: ${approval.status}`);
       return;
     }
+
+    logger.info({
+      event: "github_execution_starting",
+      approvalStatus: approval.status,
+      datasetName: context.dataset?.name,
+      changeType: plan.intent,
+    }, "GitHub PR Creation - Starting execution after approval");
 
     const idempotencyKey = IdempotencyService.generateKey({
       owner: this.owner,
@@ -97,7 +105,8 @@ export class GitHubStage implements PipelineStage {
       prNumber: result.number,
       prUrl: result.url,
       branch: result.branch,
-    }, "GitHub PR Created Successfully");
+      datasetName: context.dataset?.name,
+    }, `GitHub PR Created Successfully - PR #${result.number}: ${result.url}`);
 
   }
 

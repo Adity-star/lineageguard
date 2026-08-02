@@ -21,6 +21,15 @@ export class ReportBuilder {
 
     const executionPlan = plan.plan || plan;
 
+    // Log score alignment for debugging
+    console.log({
+      event: "impact_report_building",
+      riskScore: risk.score,
+      impactScore: impact.score,
+      scoresAligned: risk.score === impact.score,
+      level: impact.level,
+    });
+
     return {
 
       summary: executionPlan.summary || executionPlan.intent || "Schema change request",

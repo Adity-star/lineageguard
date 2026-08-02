@@ -40,30 +40,43 @@ export class DatasetResolverStage {
         event: "dataset_resolver_using_provided_urn",
         originalUrn: request.datasetUrn,
         normalizedUrn,
-      }, `Using provided dataset URN directly (normalized from invalid format)`);
+      }, `Attempting to retrieve dataset by URN: ${normalizedUrn}`);
 
       try {
         const dataset = await this.dataHub.getDataset(normalizedUrn);
+        
+        logger.info({
+          event: "dataset_resolver_urn_lookup_success",
+          urn: normalizedUrn,
+          datasetName: dataset.name,
+        }, `Successfully retrieved dataset by URN: ${dataset.name}`);
+        
         state.dataset = dataset;
         return;
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
         logger.warn({
           event: "dataset_resolver_urn_lookup_failed",
           urn: normalizedUrn,
-          error: error instanceof Error ? error.message : String(error),
-        }, `Failed to lookup dataset by URN, falling back to search by description`);
+          errorMessage,
+          errorType: error instanceof Error ? error.constructor.name : typeof error,
+        }, `Failed to lookup dataset by URN: ${errorMessage}. Falling back to search by description.`);
       }
     }
 
     // Fallback: search by description if URN is not provided or lookup failed
     if (!request.description?.trim()) {
-      throw new Error("Change request does not contain a valid description or datasetUrn.");
+      throw new Error(
+        "Change request does not contain a valid description or datasetUrn. " +
+        "Please provide either a datasetUrn or a description to search for the dataset."
+      );
     }
 
     logger.info({
       event: "dataset_resolver_searching_by_description",
       query: request.description,
-    }, `Searching dataset by description since URN was not provided or failed`);
+    }, `Searching for dataset by description: "${request.description}"`);
 
     const results = await this.dataHub.searchDatasets(
       request.description,
@@ -72,20 +85,50 @@ export class DatasetResolverStage {
 
     if (results.length === 0) {
       throw new Error(
-        `No matching dataset found for "${request.description}".`
+        `No matching dataset found for "${request.description}". ` +
+        `Verify that the dataset exists in DataHub and the description is accurate.`
       );
     }
+
+    logger.info({
+      event: "dataset_resolver_search_results",
+      query: request.description,
+      resultCount: results.length,
+      topResults: results.slice(0, 3).map(r => ({ urn: r.urn, name: r.name })),
+    }, `Found ${results.length} matching dataset(s), selecting first result`);
 
     const selected = results[0];
 
     if (!selected) {
-      throw new Error("No dataset selected from search results.");
+      throw new Error("No dataset selected from search results - unexpected state.");
     }
 
-    const dataset = await this.dataHub.getDataset(
-      selected.urn
-    );
+    logger.info({
+      event: "dataset_resolver_retrieving_selected",
+      selectedUrn: selected.urn,
+      selectedName: selected.name,
+    }, `Retrieving full dataset details for: ${selected.name}`);
 
-    state.dataset = dataset;
+    try {
+      const dataset = await this.dataHub.getDataset(selected.urn);
+      
+      logger.info({
+        event: "dataset_resolver_selected_success",
+        urn: selected.urn,
+        datasetName: dataset.name,
+      }, `Successfully retrieved selected dataset: ${dataset.name}`);
+      
+      state.dataset = dataset;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      logger.error({
+        event: "dataset_resolver_selected_failed",
+        selectedUrn: selected.urn,
+        errorMessage,
+      }, `Failed to retrieve selected dataset: ${errorMessage}`);
+      
+      throw error;
+    }
   }
 }

@@ -157,12 +157,18 @@ Request Details:
           performance: metrics,
           stateKeys: Object.keys(state.value),
           hasGithub: !!state.value.github,
+          githubPrNumber: state.value.github?.number,
+          githubPrUrl: state.value.github?.url,
+          githubBranch: state.value.github?.branch,
           hasDatabase: !!state.value.database,
           hasDocumentation: !!state.value.documentation,
         }, `🎉 Workflow Complete
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Total Runtime:  ${(metrics.totalMs / 1000).toFixed(2)}s
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${state.value.github ? `GitHub PR:     #${state.value.github.number}
+GitHub URL:    ${state.value.github.url}
+GitHub Branch: ${state.value.github.branch}
+` : "GitHub:        Not created (approval not granted)"}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Performance Breakdown:`);
 
         // Log each metric
@@ -176,12 +182,14 @@ Performance Breakdown:`);
           runId: requestId,
           stateSummary: {
             hasGithub: !!state.value.github,
+            githubPrNumber: state.value.github?.number,
+            githubPrUrl: state.value.github?.url,
+            githubBranch: state.value.github?.branch,
             hasDatabase: !!state.value.database,
             hasDocumentation: !!state.value.documentation,
-            githubPR: state.value.github?.number,
-            databaseChanges: state.value.database?.length || 0,
+            approvalStatus: state.value.approval?.status,
           },
-        }, `State Summary: github=${!!state.value.github}, database=${!!state.value.database}, documentation=${!!state.value.documentation}`);
+        }, `State Summary: approval=${state.value.approval?.status}, github=${!!state.value.github}${state.value.github ? ` (PR #${state.value.github.number})` : ""}, database=${!!state.value.database}, documentation=${!!state.value.documentation}`);
 
         // Add performance metrics to state
         state.value.performance = metrics;
