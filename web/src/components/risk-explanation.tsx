@@ -1,10 +1,20 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { AlertTriangle, CheckCircle, Info, XCircle } from 'lucide-react'
+import { AlertTriangle, ArrowDown, CheckCircle, Info, XCircle } from 'lucide-react'
 import { cn, getRiskBgColor } from '@/lib/utils'
 
 interface RiskExplanationProps {
+  request?: {
+    description: string
+    // Example: "Rename customer_name to full_name"
+    // Could include other metadata
+  }
+  impact?: {
+    datasets?: number
+    dashboards?: number
+    pipelines?: number
+  }
   risk?: {
     overallRisk: string
     score: number
@@ -14,11 +24,14 @@ interface RiskExplanationProps {
       message: string
       impact: 'high' | 'medium' | 'low'
     }>
+    evidencePaths?: Array<{
+      nodes: string[]
+    }>
   }
   className?: string
 }
 
-export function RiskExplanation({ risk, className }: RiskExplanationProps) {
+export function RiskExplanation({ request, impact, risk, className }: RiskExplanationProps) {
   if (!risk) {
     return null
   }
@@ -51,7 +64,17 @@ export function RiskExplanation({ risk, className }: RiskExplanationProps) {
     },
   ]
 
+  const mockEvidencePaths = [
+    {
+      nodes: ['orders', 'sales_dashboard', 'executive_metrics'],
+    },
+    {
+      nodes: ['customers', 'customer_analytics', 'marketing_sync_job'],
+    }
+  ]
+
   const factors = risk.factors || mockFactors
+  const evidencePaths = risk.evidencePaths || mockEvidencePaths
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -83,6 +106,22 @@ export function RiskExplanation({ risk, className }: RiskExplanationProps) {
 
   return (
     <div className={cn('glass-card rounded-xl p-6', className)}>
+      {request && (
+        <div className="mb-4">
+          <h3 className="text-lg font-medium">Request</h3>
+          <p className="text-sm text-muted-foreground">{request.description}</p>
+        </div>
+      )}
+      {impact && (
+        <div className="mb-4">
+          <h3 className="text-lg font-medium">Impact</h3>
+          <ul className="list-disc list-inside space-y-1">
+            {impact.datasets !== undefined && <li>{impact.datasets} datasets affected</li>}
+            {impact.dashboards !== undefined && <li>{impact.dashboards} dashboards affected</li>}
+            {impact.pipelines !== undefined && <li>{impact.pipelines} pipelines affected</li>}
+          </ul>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold">Risk Assessment Explanation</h3>
         <div className={cn('px-3 py-1.5 rounded-lg text-sm font-bold', getRiskBgColor(risk.overallRisk as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'))}>
@@ -122,13 +161,37 @@ export function RiskExplanation({ risk, className }: RiskExplanationProps) {
         ))}
       </div>
 
-      {/* Approval Status */}
+      {/* Evidence Paths */}
       <div className="mt-6 pt-4 border-t border-border/50">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Manual Approval Required</span>
-          <span className={cn('text-sm font-medium', risk.requiresApproval ? 'text-red-400' : 'text-green-400')}>
-            {risk.requiresApproval ? 'Yes' : 'No'}
-          </span>
+        <h4 className="text-sm font-medium text-muted-foreground mb-3">Evidence Paths</h4>
+        <div className="space-y-4">
+          {evidencePaths.map((path, pIdx) => (
+            <div key={pIdx} className="bg-accent/30 rounded-lg p-4 border border-border/20">
+              <div className="text-xs text-muted-foreground mb-2 font-medium">Evidence Path #{pIdx + 1}</div>
+              <div className="flex flex-col items-center gap-1.5">
+                {path.nodes.map((node, nIdx) => (
+                  <div key={nIdx} className="flex flex-col items-center w-full">
+                    <div className="px-3 py-1 bg-background rounded border border-border/30 text-sm font-mono w-full text-center truncate max-w-md shadow-sm">
+                      {node}
+                    </div>
+                    {nIdx < path.nodes.length - 1 && (
+                      <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/60 my-1 animate-pulse" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recommendation & Approval */}
+      <div className="mt-6 pt-4 border-t border-border/50">
+        <h4 className="text-sm font-medium text-muted-foreground mb-3">Recommendation</h4>
+        <p className="text-sm mb-2">Manual approval required.</p>
+        <div className="flex gap-4">
+          <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">Approve</button>
+          <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">Reject</button>
         </div>
       </div>
     </div>

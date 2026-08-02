@@ -19,27 +19,62 @@ export class SearchTool {
   constructor(private readonly client: MCPClient) {}
 
   public async searchDatasets(
-    query: string,
-    limit = 10
-  ): Promise<MCPToolResponse<SearchResult[]>> {
-    const start = performance.now();
+  query: string,
+  limit = 10
+): Promise<MCPToolResponse<SearchResult[]>> {
 
-    const raw = await this.client.executeTool<any>(
-      "search",
-      {
-        query,
-        entityTypes: ["dataset"],
-        limit,
-      } as unknown as Record<string, unknown>,
-      SearchResponseSchema
-    );
+  const start = performance.now();
 
-    return {
-      tool: "search",
-      durationMs: performance.now() - start,
-      data: raw.data,
-    };
-  }
+  const client = this.client["transport"].getClient();
+
+  const response: any = await client.callTool({
+    name: "search",
+    arguments: {
+      query,
+    },
+  });
+
+  const structured = response.structuredContent;
+
+  const results: SearchResult[] =
+    (structured.searchResults ?? [])
+      .map((item: any) => {
+
+        const urn = item.entity?.urn;
+
+        const name =
+          item.entity?.properties?.name ??
+          urn?.split(",")[1]?.replace(")", "") ??
+          "Unknown";
+
+        const entityType =
+          urn?.includes(":dataset:")
+            ? "dataset"
+            : urn?.includes(":dashboard:")
+            ? "dashboard"
+            : urn?.includes(":chart:")
+            ? "chart"
+            : urn?.includes(":dataJob:")
+            ? "dataJob"
+            : urn?.includes(":mlModel:")
+            ? "mlModel"
+            : "dataset";
+
+        return {
+          urn,
+          name,
+          entityType,
+          score: 1,
+        };
+      })
+      .slice(0, limit);
+
+  return {
+    tool: "search",
+    durationMs: performance.now() - start,
+    data: results,
+  };
+}
 
   public async searchWithResponse(
     options: SearchOptions
