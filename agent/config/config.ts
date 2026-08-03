@@ -42,9 +42,9 @@ export const config: AppConfig = {
   },
 
   grok: {
-    apiKey: env.GROK_API_KEY,
-    model: env.GROK_MODEL,
-    baseURL: env.GROK_BASE_URL,
+    apiKey: env.GROQ_API_KEY,
+    model: env.GROQ_MODEL,
+    baseURL: env.GROQ_BASE_URL,
   },
 
   logging: {

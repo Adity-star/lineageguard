@@ -66,6 +66,8 @@ export class ProductionContainer {
       env: {
         DATAHUB_GMS_URL: env.DATAHUB_GMS_URL,
         DATAHUB_GMS_TOKEN: env.DATAHUB_GMS_TOKEN,
+        // Enable mutation tools so the agent can write back to DataHub
+        TOOLS_IS_MUTATION_ENABLED: env.TOOLS_IS_MUTATION_ENABLED,
       },
     });
 

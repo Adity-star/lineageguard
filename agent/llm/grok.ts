@@ -38,10 +38,10 @@ export class GrokClient {
   constructor(config: GrokConfig) {
     this.client = new OpenAI({
       apiKey: config.apiKey,
-      baseURL: config.baseURL ?? "https://api.x.ai/v1",
+      baseURL: config.baseURL ?? "https://api.groq.com/openai/v1",
     });
 
-    this.model = config.model ?? "grok-4";
+    this.model = config.model ?? "llama-3.3-70b-versatile";
     this.maxTokens = config.maxTokens ?? 4096;
     this.temperature = config.temperature ?? 0;
   }

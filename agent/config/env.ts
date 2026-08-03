@@ -8,17 +8,21 @@ const envSchema = z.object({
 
   LOG_LEVEL: z.string(),
 
-  // Grok / xAI
-  GROK_API_KEY: z.string(),
+  // Groq
+  GROQ_API_KEY: z.string(),
 
-  GROK_MODEL: z.string().default("grok-4"),
+  GROQ_MODEL: z.string().default("llama-3.3-70b-versatile"),
 
-  GROK_BASE_URL: z.string().url().default("https://api.x.ai/v1"),
+  GROQ_BASE_URL: z.string().url().default("https://api.groq.com/openai/v1"),
 
   // DataHub
   DATAHUB_GMS_URL: z.string().url(),
 
   DATAHUB_GMS_TOKEN: z.string(),
+
+  // Enable DataHub mutation tools (add_tags, update_description, etc.)
+  // Must be true for the agent to write back to DataHub after analysis.
+  TOOLS_IS_MUTATION_ENABLED: z.string().default("true"),
 
   // HTTP transport fields kept optional - STDIO transport is now used instead
   DATAHUB_MCP_URL: z.string().url().optional(),
