@@ -28,7 +28,7 @@ export class PullRequestBuilder {
     branch: string;
     title: string;
     body: string;
-    labels: string[];
+      labels: Array<{name:string;color: string;}>; 
     reviewers: Array<{ username: string }>;
   } {
 
