@@ -18,7 +18,7 @@ export type MutationResult = z.infer<typeof MutationResultSchema>;
 
 /* ------------------------------------------------------------------ */
 /* MutationTool                                                         */
-/* 
+/* ------------------------------------------------------------------ */
 
 export class MutationTool {
   private readonly validator: MutationValidator;

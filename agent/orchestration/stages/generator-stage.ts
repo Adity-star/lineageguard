@@ -49,8 +49,9 @@ export class GeneratorStage implements PipelineStage {
         operationType: OperationType.GENERATION,
       },
       async () => {
+        // Pass full context instead of placeholder schema
         return await this.generator.generate(
-          "// Original schema placeholder",
+          context,
           plan,
           risk
         );
@@ -62,8 +63,10 @@ export class GeneratorStage implements PipelineStage {
 
     logger.info({
       event: "generation_complete",
-      schemaGenerated: !!generation.prisma?.schema,
-      migrationGenerated: !!generation.prisma?.migration,
+      platform: generation.ddl?.platform,
+      tableName: generation.ddl?.tableName,
+      fieldCount: generation.ddl?.fieldCount,
+      ddlGenerated: !!generation.ddl?.ddl,
     }, "Migration Generation Complete");
 
   }
