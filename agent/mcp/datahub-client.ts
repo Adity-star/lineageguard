@@ -36,7 +36,7 @@ export class DataHubClient {
         this.lineage   = new LineageTool(client);
         this.queries   = new QueryTool(client);
         this.documents = new DocumentTool(client);
-        this.mutations = new MutationTool(client);
+        this.mutations = new MutationTool(client, client.getMutationRegistry());
     }
 
     async initialize() { await this.client.initialize(); }

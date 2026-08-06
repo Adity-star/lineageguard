@@ -31,6 +31,10 @@ export const ExecutionPlanSchema = z.object({
   confidence: z.number().min(0).max(1),
 
   requiresApproval: z.boolean(),
+
+  platform: z.string().optional(),
+
+  schemaName: z.string().optional(),
 });
 
 export type ExecutionPlan = z.infer<typeof ExecutionPlanSchema>;
