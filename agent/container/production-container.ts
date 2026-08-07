@@ -14,17 +14,14 @@ import { Orchestrator } from "../orchestration/orchestrator.js";
 import { StdioMCPTransport } from "../mcp/studio-transport.js";
 import { MCPClient } from "../mcp/client.js";
 import { DataHubClient } from "../mcp/datahub-client.js";
-import { PrismaGenerator } from "../generators/prisma.js";
 import { Planner } from "../planner/planner.js";
-import { PrismaCliRunner } from "../generators/prisma-cli-runner.js";
 import { DataHubRealWriter } from "../impact/datahub-real-writer.js";
 import { OctokitRealClient } from "../github/octokit-real-client.js";
 import { ContextStage, PlanningStage, RiskStage, GeneratorStage, ImpactStage, ApprovalStage, GitHubStage } from "../orchestration/stages/index.js";
 import { PrismaClient } from "@prisma/client";
 import { IdempotencyService } from "../utils/idempotency.js";
 import { GrokConfig, GrokClient } from "../llm/grok.js";
-import {GrokLLMAdapter} from "../llm/grok-adapter.js";
-import { LLMSchemaEditor } from "../generators/llm-scheme-editor.js";
+import { GrokLLMAdapter } from "../llm/grok-adapter.js";
 /**
  * Production Container
  *
@@ -110,12 +107,11 @@ export class ProductionContainer {
     );
 
     /**
-     * Generators - Real implementations
+     * Generator - Now uses PlatformAwareSQLGenerator internally
+     * Prisma is only for agent's internal persistence (Run, GeneratedArtifact, ImpactReport, Writeback)
+     * No longer used for external entity migration generation
      */
-
-    const llmEditor = new LLMSchemaEditor(llmAdapter);
-    const prismaRunner = new PrismaCliRunner();
-    const prismaGenerator = new PrismaGenerator(llmEditor, prismaRunner);
+    this.generator = new Generator();
 
     /**
      * Engines
@@ -130,8 +126,6 @@ export class ProductionContainer {
     this.planning = new PlanningEngine(planner);
 
     this.risk = new RiskEngine();
-
-    this.generator = new Generator(prismaGenerator);
 
     this.impact = new ImpactEngine(metadataWriter);
 
