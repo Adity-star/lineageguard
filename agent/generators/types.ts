@@ -14,6 +14,9 @@ export const DDLArtifactSchema = z.object({
   /** Table/entity name being modified */
   tableName: z.string(),
 
+  /** Operation type: create_table, add_column, drop_column, rename_column */
+  operationType: z.string().optional(),
+
   /** Validation status: "validated" if tested, "generated" if not yet validated */
   validationStatus: z.enum(["validated", "generated", "unvalidated"]),
 

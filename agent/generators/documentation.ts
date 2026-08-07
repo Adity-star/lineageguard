@@ -9,6 +9,15 @@ export class DocumentationGenerator {
     risk: RiskAssessment
   ): DocumentationArtifact {
 
+    // Log current plan data for debugging
+    console.log({
+      event: "documentation_generation",
+      currentPlanSummary: plan.summary,
+      currentPlanIntent: plan.intent,
+      currentAffectedColumns: plan.affectedColumns,
+      currentRequiredChanges: plan.requiredChanges,
+    });
+
     const markdown = [
       "# LineageGuard Change Report",
       "",
@@ -21,6 +30,9 @@ export class DocumentationGenerator {
       "## Risk",
       `- Level: ${risk.overallRisk}`,
       `- Score: ${risk.score}/100`,
+      "",
+      "## Affected Columns",
+      plan.affectedColumns?.join(", ") || "None",
       "",
       "## Required Changes",
       ...plan.requiredChanges.map(

@@ -181,10 +181,15 @@ export class EntityTool {
       // Default name if still missing
       if (!name) {
           // Try to extract from URN as last resort
+          // URN format: urn:li:dataset:(urn:li:dataPlatform:<platform>,<datasetName>,<env>)
           if (urn) {
               const parts = urn.split(",");
-              if (parts.length > 0) {
-                  name = parts[parts.length - 1].split(")")[0].trim();
+              if (parts.length >= 2) {
+                  // The dataset name is typically the second part after the platform
+                  // parts[0] = "urn:li:dataset:(urn:li:dataPlatform:hdfs"
+                  // parts[1] = "SampleHdfsDataset"
+                  // parts[2] = "PROD)"
+                  name = parts[1].trim();
               }
           }
           if (!name) {
@@ -232,6 +237,15 @@ export class EntityTool {
       const tags = this.extractTags(entity);
       const glossaryTerms = this.extractGlossaryTerms(entity);
 
+      // Extract quality metrics
+      const quality = this.extractQuality(entity);
+
+      // Extract certification status
+      const certification = this.extractCertification(entity);
+
+      // Extract deprecation status
+      const deprecation = this.extractDeprecation(entity);
+
       // Map to internal Dataset schema
       const dataset: Dataset = {
           urn,
@@ -241,6 +255,9 @@ export class EntityTool {
           owners: owners.length > 0 ? owners : undefined,
           tags: tags.length > 0 ? tags : undefined,
           glossaryTerms: glossaryTerms.length > 0 ? glossaryTerms : undefined,
+          quality,
+          certification,
+          deprecation,
       };
 
       logger.debug({
@@ -309,6 +326,72 @@ export class EntityTool {
       }
 
       return terms;
+  }
+
+  /**
+   * Extract quality metrics from DataHub entity.
+   */
+  private extractQuality(entity: any): { passedChecks: number; failedChecks: number } | undefined {
+      if (entity.quality) {
+          return {
+              passedChecks: entity.quality.passedChecks || 0,
+              failedChecks: entity.quality.failedChecks || 0,
+          };
+      }
+      
+      // Try alternative field names
+      if (entity.passedChecks !== undefined || entity.failedChecks !== undefined) {
+          return {
+              passedChecks: entity.passedChecks || 0,
+              failedChecks: entity.failedChecks || 0,
+          };
+      }
+      
+      return undefined;
+  }
+
+  /**
+   * Extract certification status from DataHub entity.
+   */
+  private extractCertification(entity: any): { certified: boolean } | undefined {
+      if (entity.certification) {
+          return {
+              certified: entity.certification.certified || false,
+          };
+      }
+      
+      // Try alternative field names
+      if (entity.certified !== undefined) {
+          return {
+              certified: entity.certified,
+          };
+      }
+      
+      return undefined;
+  }
+
+  /**
+   * Extract deprecation status from DataHub entity.
+   */
+  private extractDeprecation(entity: any): { deprecated: boolean; note?: string; decommissionDate?: string } | undefined {
+      if (entity.deprecation) {
+          return {
+              deprecated: entity.deprecation.deprecated || false,
+              note: entity.deprecation.note,
+              decommissionDate: entity.deprecation.decommissionDate,
+          };
+      }
+      
+      // Try alternative field names
+      if (entity.deprecated !== undefined) {
+          return {
+              deprecated: entity.deprecated,
+              note: entity.deprecationNote,
+              decommissionDate: entity.decommissionDate,
+          };
+      }
+      
+      return undefined;
   }
 
   public async searchDatasets(
@@ -452,14 +535,51 @@ export class EntityTool {
         z.any()
       );
 
+      console.dir(raw, { depth: null });
+
       const resultCount = Array.isArray(raw.data) ? raw.data.length : 0;
       logger.debug({
         event: "entity_tool_get_owners_response",
         urn,
         ownerCount: resultCount,
+        responseType: typeof raw.data,
+        dataKeys: raw.data ? Object.keys(raw.data) : [],
       }, `get_owners response received`);
 
-      return raw.data || [];
+      // Try to parse the response in different possible formats
+      let owners: Array<{ urn: string; name: string; type: string }> = [];
+
+      if (Array.isArray(raw.data)) {
+        // Direct array format
+        owners = raw.data.map((owner: any) => ({
+          urn: owner.urn || owner.ownerUrn || owner.id || "",
+          name: owner.name || owner.displayName || owner.email || "",
+          type: owner.type || owner.ownershipType || owner.ownership_type || "UNKNOWN",
+        }));
+      } else if (raw.data && typeof raw.data === "object") {
+        // Object format - might have nested arrays
+        if (raw.data.owners && Array.isArray(raw.data.owners)) {
+          owners = raw.data.owners.map((owner: any) => ({
+            urn: owner.urn || owner.ownerUrn || owner.id || "",
+            name: owner.name || owner.displayName || owner.email || "",
+            type: owner.type || owner.ownershipType || owner.ownership_type || "UNKNOWN",
+          }));
+        } else if (raw.data.entities && Array.isArray(raw.data.entities)) {
+          owners = raw.data.entities.map((owner: any) => ({
+            urn: owner.urn || owner.ownerUrn || owner.id || "",
+            name: owner.name || owner.displayName || owner.email || "",
+            type: owner.type || owner.ownershipType || owner.ownership_type || "UNKNOWN",
+          }));
+        }
+      }
+
+      logger.info({
+        event: "entity_tool_get_owners_parsed",
+        urn,
+        parsedOwnerCount: owners.length,
+      }, `Parsed ${owners.length} owners`);
+
+      return owners;
     } catch (error) {
       logger.warn({
         event: "entity_tool_unavailable",

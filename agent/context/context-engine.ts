@@ -158,6 +158,12 @@ export class ContextEngine {
 
             // Enrich with extended metadata
             const urn = baseBundle.dataset.urn;
+            
+            logger.info({
+                event: "context_enrichment_start",
+                urn,
+            }, "Starting context enrichment with extended metadata");
+
             const [
                 owners,
                 glossaryTerms,
@@ -177,6 +183,18 @@ export class ContextEngine {
                 this.dataHub.getRelatedPipelines(urn),
                 this.dataHub.getRelatedDbtModels(urn),
             ]);
+
+            logger.info({
+                event: "context_enrichment_results",
+                ownersCount: owners.length,
+                glossaryTermsCount: glossaryTerms.length,
+                tagsCount: tags.length,
+                structuredPropertiesKeys: Object.keys(structuredProperties).length,
+                hasDomain: !!domain,
+                relatedDashboardsCount: relatedDashboards.length,
+                relatedPipelinesCount: relatedPipelines.length,
+                relatedDbtModelsCount: relatedDbtModels.length,
+            }, "Context enrichment completed");
 
             const retrievalDurationMs = performance.now() - startTime;
 
@@ -201,15 +219,17 @@ export class ContextEngine {
                 usage: {
                     queryCount: baseBundle.queries?.length || 0,
                 },
-                quality: {
+                quality: baseBundle.dataset?.quality || {
                     passedChecks: 0,
                     failedChecks: 0,
                 },
-                certification: {
+                certification: baseBundle.dataset?.certification || {
                     certified: false,
                 },
-                deprecation: {
+                deprecation: baseBundle.dataset?.deprecation || {
                     deprecated: false,
+                    note: undefined,
+                    decommissionDate: undefined,
                 },
                 statistics: {
                     ...baseBundle.statistics,
@@ -321,6 +341,18 @@ export class ContextEngine {
                     ],
                     tags: ["core", "pii"],
                     glossaryTerms: [],
+                    quality: {
+                        passedChecks: 0,
+                        failedChecks: 0,
+                    },
+                    certification: {
+                        certified: false,
+                    },
+                    deprecation: {
+                        deprecated: false,
+                        note: undefined,
+                        decommissionDate: undefined,
+                    },
                 },
                 schema: [
                     {
@@ -381,6 +413,8 @@ export class ContextEngine {
                 },
                 deprecation: {
                     deprecated: false,
+                    note: undefined,
+                    decommissionDate: undefined,
                 },
                 relatedDashboards: [],
                 relatedPipelines: [],

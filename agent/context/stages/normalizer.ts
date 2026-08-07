@@ -74,17 +74,19 @@ export class ContextNormalizerStage {
                 queryCount: state.queries?.length ?? 0,
             },
 
-            quality: {
+            quality: state.dataset?.quality || {
                 passedChecks: 0,
                 failedChecks: 0,
             },
 
-            certification: {
+            certification: state.dataset?.certification || {
                 certified: false,
             },
 
-            deprecation: {
+            deprecation: state.dataset?.deprecation || {
                 deprecated: false,
+                note: undefined,
+                decommissionDate: undefined,
             },
 
             relatedDashboards: [],

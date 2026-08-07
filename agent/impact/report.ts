@@ -21,13 +21,17 @@ export class ReportBuilder {
 
     const executionPlan = plan.plan || plan;
 
-    // Log score alignment for debugging
+    // Log current plan data for debugging
     console.log({
       event: "impact_report_building",
       riskScore: risk.score,
       impactScore: impact.score,
       scoresAligned: risk.score === impact.score,
       level: impact.level,
+      currentPlanSummary: executionPlan.summary,
+      currentPlanIntent: executionPlan.intent,
+      currentAffectedColumns: executionPlan.affectedColumns,
+      currentRequiredChanges: executionPlan.requiredChanges,
     });
 
     return {
@@ -53,6 +57,8 @@ export class ReportBuilder {
 
       generatedAt:
         new Date().toISOString(),
+
+      approvedAt: risk.requiresApproval ? new Date().toISOString() : undefined,
 
       metadata: {
 
@@ -82,6 +88,13 @@ export class ReportBuilder {
     }
 
     const downstream = context.lineage?.downstream || [];
+    
+    console.log({
+      event: "collecting_downstream_assets",
+      downstreamCount: downstream.length,
+      downstreamSample: downstream.slice(0, 3).map(d => ({ urn: d.urn, name: d.name })),
+    }, "Collecting downstream assets from context");
+
     for (const dataset of downstream) {
       if (dataset?.urn && dataset?.name) {
         assets.push({
@@ -91,6 +104,12 @@ export class ReportBuilder {
         });
       }
     }
+
+    console.log({
+      event: "collected_assets",
+      totalAssets: assets.length,
+      assets: assets.map(a => ({ name: a.name, type: a.type })),
+    }, "Collected impacted assets");
 
     return assets;
   }

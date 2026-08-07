@@ -44,7 +44,7 @@ export class ImpactStage implements PipelineStage {
 
     const idempotencyKey = IdempotencyService.generateKey({
       datasetUrn: context.dataset?.urn || "none",
-      planActions: plan.actions || [],
+      planActions: plan.requiredChanges || [],
       riskLevel: risk.overallRisk,
     });
 

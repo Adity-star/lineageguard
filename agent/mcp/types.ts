@@ -98,7 +98,22 @@ export const DatasetSchema = z.object({
     description: z.string().optional(),
   })).default([]),
 
-  domain: z.string().optional()
+  domain: z.string().optional(),
+
+  quality: z.object({
+    passedChecks: z.number().default(0),
+    failedChecks: z.number().default(0),
+  }).optional(),
+
+  certification: z.object({
+    certified: z.boolean().default(false),
+  }).optional(),
+
+  deprecation: z.object({
+    deprecated: z.boolean().default(false),
+    note: z.string().optional(),
+    decommissionDate: z.string().optional(),
+  }).optional(),
 });
 
 export type Dataset = z.infer<typeof DatasetSchema>;

@@ -32,7 +32,7 @@ export class PlatformAwareSQLGenerator {
    *
    * @param context The ContextBundle containing schema and platform metadata
    * @param plan The execution plan with platform information
-   * @returns DDLArtifact with platform-specific CREATE TABLE statement
+   * @returns DDLArtifact with platform-specific DDL statement
    */
   public async generate(
     context: ContextBundle,
@@ -47,6 +47,7 @@ export class PlatformAwareSQLGenerator {
           datasetName: context.dataset.name,
           platform: plan.platform || context.dataset.platform,
           fieldCount: context.schema.length,
+          planActions: plan.requiredChanges?.length || 0,
         },
         `PlatformAwareSQLGenerator starting for ${context.dataset.name}`
       );
@@ -64,17 +65,88 @@ export class PlatformAwareSQLGenerator {
         );
       }
 
-      // Build DDL generation options
-      const options: DDLGenerationOptions = {
-        platform,
-        tableName,
-        schemaName,
-        ifNotExists: true,
-        validationStatus: "generated", // Will update after validation
-      };
+      // Determine operation type from execution plan
+      const operationType = this.determineOperationType(plan);
+      
+      logger.info({
+        event: "operation_type_determined",
+        operationType,
+        planActions: plan.requiredChanges,
+        actualSchemaFields: context.schema?.length || 0,
+        actualSchemaSample: context.schema?.slice(0, 3).map(f => f.fieldPath) || [],
+      }, `Determined operation type: ${operationType}`);
 
-      // Generate platform-specific DDL
-      let artifact = this.ddl.generate(context.schema, options);
+      let ddlStatement: string;
+      let fieldCount: number;
+
+      // Generate DDL based on operation type
+      switch (operationType) {
+        case "add_column":
+          // Generate ALTER TABLE ADD COLUMN statements
+          const columnNames = this.extractColumnNames(plan);
+          logger.info({
+            event: "generating_add_column",
+            columnNames,
+            schemaFields: context.schema.map(f => f.fieldPath),
+          }, `Generating ADD COLUMN for: ${columnNames.join(", ")}`);
+          
+          const alterStatements = columnNames.map(columnName => 
+            this.generateAlterAddColumn(context, plan, columnName)
+          );
+          ddlStatement = alterStatements.join("\n\n");
+          fieldCount = columnNames.length;
+          break;
+
+        case "drop_column":
+          // Generate ALTER TABLE DROP COLUMN statements
+          const dropColumnNames = this.extractColumnNames(plan);
+          logger.info({
+            event: "generating_drop_column",
+            columnNames: dropColumnNames,
+          }, `Generating DROP COLUMN for: ${dropColumnNames.join(", ")}`);
+          
+          const dropStatements = dropColumnNames.map(columnName =>
+            this.generateAlterDropColumn(context, plan, columnName)
+          );
+          ddlStatement = dropStatements.join("\n\n");
+          fieldCount = dropColumnNames.length;
+          break;
+
+        case "create_table":
+        default:
+          // Generate CREATE TABLE statement
+          logger.info({
+            event: "generating_create_table",
+            schemaFields: context.schema.map(f => f.fieldPath),
+          }, `Generating CREATE TABLE with ${context.schema.length} fields`);
+          
+          const options: DDLGenerationOptions = {
+            platform,
+            tableName,
+            schemaName,
+            ifNotExists: true,
+            validationStatus: "generated",
+          };
+          const createArtifact = this.ddl.generate(context.schema, options);
+          ddlStatement = createArtifact.ddl;
+          fieldCount = createArtifact.fieldCount;
+          break;
+      }
+
+      // Create artifact
+      const artifact: DDLArtifact = {
+        ddl: ddlStatement,
+        formatted: ddlStatement,
+        platform: platform as any,
+        tableName,
+        operationType,
+        validationStatus: "generated",
+        fieldCount,
+        notes: [
+          `Generated ${operationType} DDL for ${platform.toUpperCase()}`,
+          `Affected columns: ${plan.affectedColumns.join(", ")}`,
+        ],
+      };
 
       // Validate the generated DDL
       const validationResult = this.validator.validate(
@@ -141,9 +213,10 @@ export class PlatformAwareSQLGenerator {
           tableName: artifact.tableName,
           fieldCount: artifact.fieldCount,
           validationStatus: artifact.validationStatus,
+          operationType,
           durationMs: performance.now() - startTime,
         },
-        `✓ Platform-aware SQL Generated (${artifact.platform})`
+        `✓ Platform-aware SQL Generated (${artifact.platform}, ${operationType})`
       );
 
       return artifact;
@@ -167,6 +240,42 @@ export class PlatformAwareSQLGenerator {
   }
 
   /**
+   * Determine the operation type from the execution plan.
+   */
+  private determineOperationType(plan: ExecutionPlan): string {
+    if (!plan.requiredChanges || plan.requiredChanges.length === 0) {
+      return "create_table"; // Default to CREATE TABLE
+    }
+
+    const firstChange = plan.requiredChanges[0];
+    const changeType = firstChange.type?.toLowerCase() || "";
+
+    if (changeType.includes("add") && changeType.includes("column")) {
+      return "add_column";
+    }
+    if (changeType.includes("drop") && changeType.includes("column")) {
+      return "drop_column";
+    }
+    if (changeType.includes("create") && changeType.includes("table")) {
+      return "create_table";
+    }
+
+    // Default to CREATE TABLE for unknown operations
+    logger.warn({
+      event: "unknown_operation_type",
+      changeType,
+    }, `Unknown operation type, defaulting to create_table`);
+    return "create_table";
+  }
+
+  /**
+   * Extract column names from the execution plan.
+   */
+  private extractColumnNames(plan: ExecutionPlan): string[] {
+    return plan.affectedColumns || [];
+  }
+
+  /**
    * Generate ALTER TABLE statements for column additions.
    * Used for schema evolution.
    */
@@ -178,6 +287,13 @@ export class PlatformAwareSQLGenerator {
     const platform = plan.platform || context.dataset.platform || "unknown";
     const tableName = context.dataset.name;
 
+    logger.info({
+      event: "alter_add_column_lookup",
+      tableName,
+      columnName,
+      availableFields: context.schema.map(f => f.fieldPath),
+    }, `Looking for column ${columnName} in schema`);
+
     // Find the column in the schema to get its type
     const field = context.schema.find((f) => f.fieldPath === columnName);
     if (!field) {
@@ -186,11 +302,19 @@ export class PlatformAwareSQLGenerator {
           event: "column_not_found_in_schema",
           tableName,
           columnName,
+          availableFields: context.schema.map(f => f.fieldPath),
         },
-        `Column ${columnName} not found in schema for ${tableName}`
+        `Column ${columnName} not found in schema for ${tableName}. Available fields: ${context.schema.map(f => f.fieldPath).join(", ")}`
       );
-      return `-- Column ${columnName} not found in schema`;
+      return `-- Column ${columnName} not found in schema. Available fields: ${context.schema.map(f => f.fieldPath).join(", ")}`;
     }
+
+    logger.info({
+      event: "column_found_in_schema",
+      columnName,
+      fieldType: field.type,
+      fieldNullable: field.nullable,
+    }, `Found column ${columnName} with type ${field.type}`);
 
     return this.ddl.generateAlterAddColumn(
       tableName,

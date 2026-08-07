@@ -82,6 +82,8 @@ export const ImpactReportSchema = z.object({
 
   generatedAt: z.string(),
 
+  approvedAt: z.string().optional(),
+
   metadata: z.object({
     generatedBy: z.literal("LineageGuard"),
 
