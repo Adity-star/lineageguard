@@ -3,26 +3,6 @@ import { ChangeRequest } from "../../mcp/types.js";
 import { ContextState } from "../state.js";
 import { logger } from "../../config/logger.js";
 
-/**
- * Normalizes DataHub URN format to correct syntax
- * Invalid: urn:li:dataset:urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD
- * Valid:   urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)
- */
-function normalizeDataHubUrn(urn: string): string {
-  // Check if URN is already in correct format with parentheses
-  if (urn.includes("urn:li:dataset:(")) {
-    return urn;
-  }
-
-  // Fix malformed URN: urn:li:dataset:urn:li:dataPlatform:... -> urn:li:dataset:(urn:li:dataPlatform:...)
-  if (urn.startsWith("urn:li:dataset:urn:li:dataPlatform:")) {
-    const compositeKey = urn.substring("urn:li:dataset:".length);
-    return `urn:li:dataset:(${compositeKey})`;
-  }
-
-  return urn;
-}
-
 export class DatasetResolverStage {
   constructor(
     private readonly dataHub: DataHubClient
@@ -34,31 +14,30 @@ export class DatasetResolverStage {
   ): Promise<void> {
     // If datasetUrn is provided, use it directly instead of searching
     if (request.datasetUrn?.trim()) {
-      const normalizedUrn = normalizeDataHubUrn(request.datasetUrn);
+      const urn = request.datasetUrn;
 
       logger.info({
         event: "dataset_resolver_using_provided_urn",
-        originalUrn: request.datasetUrn,
-        normalizedUrn,
-      }, `Attempting to retrieve dataset by URN: ${normalizedUrn}`);
+        urn,
+      }, `Attempting to retrieve dataset by URN: ${urn}`);
 
       try {
-        const dataset = await this.dataHub.getDataset(normalizedUrn);
-        
+        const dataset = await this.dataHub.getDataset(urn);
+
         logger.info({
           event: "dataset_resolver_urn_lookup_success",
-          urn: normalizedUrn,
+          urn,
           datasetName: dataset.name,
         }, `Successfully retrieved dataset by URN: ${dataset.name}`);
-        
+
         state.dataset = dataset;
         return;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        
+
         logger.warn({
           event: "dataset_resolver_urn_lookup_failed",
-          urn: normalizedUrn,
+          urn,
           errorMessage,
           errorType: error instanceof Error ? error.constructor.name : typeof error,
         }, `Failed to lookup dataset by URN: ${errorMessage}. Falling back to search by description.`);

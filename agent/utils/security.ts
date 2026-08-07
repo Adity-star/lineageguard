@@ -25,6 +25,20 @@ export function isValidUrn(urn: string): boolean {
   return urn.startsWith('urn:li:') && urn.length > 10 && urn.length < 500;
 }
 
+// Sanitize URN specifically - preserves parentheses which are valid in DataHub URNs
+export function sanitizeUrn(urn: string): string {
+  if (typeof urn !== 'string') return '';
+
+  return urn
+    // Remove only truly dangerous characters for URNs
+    .replace(/['";\\]/g, '')
+    // Remove command injection chars EXCEPT parentheses (valid in URNs)
+    .replace(/[;&|`$]/g, '')
+    // Limit length
+    .slice(0, 500)
+    .trim();
+}
+
 // Validate priority values
 export function isValidPriority(priority: string): boolean {
   return ['low', 'medium', 'high'].includes(priority);

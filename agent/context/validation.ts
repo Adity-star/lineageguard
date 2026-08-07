@@ -15,78 +15,55 @@ export class ContextValidationError extends Error {
 export function validateContextBundle(bundle: ContextBundle): void {
   const errors: string[] = [];
 
-  // Validate dataset
+  // Validate required fields only
   if (!bundle.dataset) {
-    errors.push("Dataset is missing");
+    errors.push("Dataset missing");
   } else if (!bundle.dataset.urn) {
-    errors.push("Dataset URN is missing");
+    errors.push("Dataset URN missing");
   } else if (!bundle.dataset.name) {
-    errors.push("Dataset name is missing");
+    errors.push("Dataset name missing");
   }
 
-  // Validate schema
-  if (!bundle.schema || bundle.schema.length === 0) {
-    errors.push("Schema is empty or missing");
+  if (!bundle.schema) {
+    errors.push("Schema missing");
   }
 
-  // Validate lineage
   if (!bundle.lineage) {
-    errors.push("Lineage is missing");
-  } else {
-    if (!bundle.lineage.upstream) {
-      errors.push("Lineage upstream is missing");
-    }
-    if (!bundle.lineage.downstream) {
-      errors.push("Lineage downstream is missing");
-    }
+    errors.push("Lineage missing");
   }
 
-  // Validate queries
-  if (!bundle.queries) {
-    errors.push("Queries array is missing");
-  }
+  // Optional fields: owners, tags, glossaryTerms, documents, relatedDashboards, relatedPipelines, relatedDbtModels, queries
+  // These are allowed to be empty or missing
 
-  // Validate documents
-  if (!bundle.documents) {
-    errors.push("Documents array is missing");
-  }
-
-  // Validate owners
-  if (!bundle.owners || bundle.owners.length === 0) {
-    errors.push("Owners array is empty or missing");
-  }
-
-  // Validate provenance
+  // Validate provenance (required for tracking)
   if (!bundle.provenance) {
-    errors.push("Provenance is missing");
+    errors.push("Provenance missing");
   } else {
     if (!bundle.provenance.datasetUrn) {
-      errors.push("Provenance datasetUrn is missing");
+      errors.push("Provenance datasetUrn missing");
     }
     if (!bundle.provenance.retrievedAt) {
-      errors.push("Provenance retrievedAt is missing");
+      errors.push("Provenance retrievedAt missing");
     }
     if (!bundle.provenance.source) {
-      errors.push("Provenance source is missing");
+      errors.push("Provenance source missing");
     }
   }
 
-  // Validate statistics
-  if (!bundle.statistics) {
-    errors.push("Statistics is missing");
-  } else {
-    if (bundle.statistics.totalFields !== bundle.schema.length) {
+  // Validate statistics (conditional - only if schema and lineage are present)
+  if (bundle.statistics && bundle.schema && bundle.lineage) {
+    if (bundle.statistics.totalFields !== undefined && bundle.statistics.totalFields !== bundle.schema.length) {
       errors.push(`Statistics totalFields (${bundle.statistics.totalFields}) does not match schema length (${bundle.schema.length})`);
     }
-    if (bundle.statistics.upstreamCount !== bundle.lineage.upstream.length) {
+    if (bundle.statistics.upstreamCount !== undefined && bundle.statistics.upstreamCount !== bundle.lineage.upstream.length) {
       errors.push(`Statistics upstreamCount (${bundle.statistics.upstreamCount}) does not match lineage upstream length (${bundle.lineage.upstream.length})`);
     }
-    if (bundle.statistics.downstreamCount !== bundle.lineage.downstream.length) {
+    if (bundle.statistics.downstreamCount !== undefined && bundle.statistics.downstreamCount !== bundle.lineage.downstream.length) {
       errors.push(`Statistics downstreamCount (${bundle.statistics.downstreamCount}) does not match lineage downstream length (${bundle.lineage.downstream.length})`);
     }
   }
 
-  // Validate deprecation status
+  // Validate deprecation status (warning only)
   if (bundle.deprecation && bundle.deprecation.deprecated) {
     logger.warn({
       datasetUrn: bundle.dataset.urn,

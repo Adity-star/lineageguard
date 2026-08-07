@@ -104,7 +104,11 @@ export class DataHubClient {
         const start = performance.now();
         try {
             const result = await this.entities.getOwners(urn);
-            logger.info({ event: "datahub_get_owners_success", durationMs: (performance.now() - start).toFixed(0) }, `Retrieved owners`);
+            if (result.length === 0) {
+                logger.info({ event: "datahub_get_owners_empty", durationMs: (performance.now() - start).toFixed(0) }, `Owners unavailable, using empty array`);
+            } else {
+                logger.info({ event: "datahub_get_owners_success", durationMs: (performance.now() - start).toFixed(0), count: result.length }, `Retrieved ${result.length} owners`);
+            }
             return result;
         } catch (error) {
             logger.error({ event: "datahub_get_owners_failed", error: error instanceof Error ? error.message : String(error) }, `Getting owners failed`);
@@ -117,7 +121,11 @@ export class DataHubClient {
         const start = performance.now();
         try {
             const result = await this.entities.getGlossaryTerms(urn);
-            logger.info({ event: "datahub_get_glossary_terms_success", durationMs: (performance.now() - start).toFixed(0) }, `Retrieved glossary terms`);
+            if (result.length === 0) {
+                logger.info({ event: "datahub_get_glossary_terms_empty", durationMs: (performance.now() - start).toFixed(0) }, `Glossary terms unavailable, using empty array`);
+            } else {
+                logger.info({ event: "datahub_get_glossary_terms_success", durationMs: (performance.now() - start).toFixed(0), count: result.length }, `Retrieved ${result.length} glossary terms`);
+            }
             return result;
         } catch (error) {
             logger.error({ event: "datahub_get_glossary_terms_failed", error: error instanceof Error ? error.message : String(error) }, `Getting glossary terms failed`);
@@ -130,7 +138,11 @@ export class DataHubClient {
         const start = performance.now();
         try {
             const result = await this.entities.getTags(urn);
-            logger.info({ event: "datahub_get_tags_success", durationMs: (performance.now() - start).toFixed(0) }, `Retrieved tags`);
+            if (result.length === 0) {
+                logger.info({ event: "datahub_get_tags_empty", durationMs: (performance.now() - start).toFixed(0) }, `Tags unavailable, using empty array`);
+            } else {
+                logger.info({ event: "datahub_get_tags_success", durationMs: (performance.now() - start).toFixed(0), count: result.length }, `Retrieved ${result.length} tags`);
+            }
             return result;
         } catch (error) {
             logger.error({ event: "datahub_get_tags_failed", error: error instanceof Error ? error.message : String(error) }, `Getting tags failed`);
@@ -139,11 +151,38 @@ export class DataHubClient {
     }
 
     async getStructuredProperties(urn: string): Promise<Record<string, any>> {
-        return this.entities.getStructuredProperties(urn);
+        logger.info({ event: "datahub_get_structured_properties_start", urn }, `Getting structured properties...`);
+        const start = performance.now();
+        try {
+            const result = await this.entities.getStructuredProperties(urn);
+            const propCount = Object.keys(result).length;
+            if (propCount === 0) {
+                logger.info({ event: "datahub_get_structured_properties_empty", durationMs: (performance.now() - start).toFixed(0) }, `Structured properties unavailable, using empty object`);
+            } else {
+                logger.info({ event: "datahub_get_structured_properties_success", durationMs: (performance.now() - start).toFixed(0), count: propCount }, `Retrieved ${propCount} structured properties`);
+            }
+            return result;
+        } catch (error) {
+            logger.error({ event: "datahub_get_structured_properties_failed", error: error instanceof Error ? error.message : String(error) }, `Getting structured properties failed`);
+            throw error;
+        }
     }
 
     async getDomain(urn: string): Promise<{ urn: string; name: string; description?: string } | undefined> {
-        return this.entities.getDomain(urn);
+        logger.info({ event: "datahub_get_domain_start", urn }, `Getting domain...`);
+        const start = performance.now();
+        try {
+            const result = await this.entities.getDomain(urn);
+            if (!result) {
+                logger.info({ event: "datahub_get_domain_empty", durationMs: (performance.now() - start).toFixed(0) }, `Domain unavailable, using undefined`);
+            } else {
+                logger.info({ event: "datahub_get_domain_success", durationMs: (performance.now() - start).toFixed(0) }, `Retrieved domain: ${result.name}`);
+            }
+            return result;
+        } catch (error) {
+            logger.error({ event: "datahub_get_domain_failed", error: error instanceof Error ? error.message : String(error) }, `Getting domain failed`);
+            throw error;
+        }
     }
 
     async getRelatedDashboards(urn: string): Promise<Array<{ urn: string; name: string; url?: string }>> {
@@ -151,7 +190,11 @@ export class DataHubClient {
         const start = performance.now();
         try {
             const result = await this.entities.getRelatedDashboards(urn);
-            logger.info({ event: "datahub_get_related_dashboards_success", durationMs: (performance.now() - start).toFixed(0) }, `Retrieved dashboards`);
+            if (result.length === 0) {
+                logger.info({ event: "datahub_get_related_dashboards_empty", durationMs: (performance.now() - start).toFixed(0) }, `Related dashboards unavailable, using empty array`);
+            } else {
+                logger.info({ event: "datahub_get_related_dashboards_success", durationMs: (performance.now() - start).toFixed(0), count: result.length }, `Retrieved ${result.length} dashboards`);
+            }
             return result;
         } catch (error) {
             logger.error({ event: "datahub_get_related_dashboards_failed", error: error instanceof Error ? error.message : String(error) }, `Getting dashboards failed`);
@@ -164,7 +207,11 @@ export class DataHubClient {
         const start = performance.now();
         try {
             const result = await this.entities.getRelatedPipelines(urn);
-            logger.info({ event: "datahub_get_related_pipelines_success", durationMs: (performance.now() - start).toFixed(0) }, `Retrieved pipelines`);
+            if (result.length === 0) {
+                logger.info({ event: "datahub_get_related_pipelines_empty", durationMs: (performance.now() - start).toFixed(0) }, `Related pipelines unavailable, using empty array`);
+            } else {
+                logger.info({ event: "datahub_get_related_pipelines_success", durationMs: (performance.now() - start).toFixed(0), count: result.length }, `Retrieved ${result.length} pipelines`);
+            }
             return result;
         } catch (error) {
             logger.error({ event: "datahub_get_related_pipelines_failed", error: error instanceof Error ? error.message : String(error) }, `Getting pipelines failed`);
@@ -173,7 +220,20 @@ export class DataHubClient {
     }
 
     async getRelatedDbtModels(urn: string): Promise<Array<{ urn: string; name: string; package: string }>> {
-        return this.entities.getRelatedDbtModels(urn);
+        logger.info({ event: "datahub_get_related_dbt_models_start", urn }, `Getting related dbt models...`);
+        const start = performance.now();
+        try {
+            const result = await this.entities.getRelatedDbtModels(urn);
+            if (result.length === 0) {
+                logger.info({ event: "datahub_get_related_dbt_models_empty", durationMs: (performance.now() - start).toFixed(0) }, `Related dbt models unavailable, using empty array`);
+            } else {
+                logger.info({ event: "datahub_get_related_dbt_models_success", durationMs: (performance.now() - start).toFixed(0), count: result.length }, `Retrieved ${result.length} dbt models`);
+            }
+            return result;
+        } catch (error) {
+            logger.error({ event: "datahub_get_related_dbt_models_failed", error: error instanceof Error ? error.message : String(error) }, `Getting dbt models failed`);
+            throw error;
+        }
     }
 
     async getSchema(urn: string): Promise<SchemaField[]> {
@@ -223,8 +283,8 @@ export class DataHubClient {
             logger.info({ event: "datahub_search_documentation_success", durationMs: (performance.now() - start).toFixed(0) }, `Retrieved documentation`);
             return result.data;
         } catch (error) {
-            logger.error({ event: "datahub_search_documentation_failed", error: error instanceof Error ? error.message : String(error) }, `Searching documentation failed`);
-            throw error;
+            logger.warn({ event: "datahub_search_documentation_failed", error: error instanceof Error ? error.message : String(error) }, `Searching documentation failed, returning empty array`);
+            return [];
         }
     }
 
@@ -267,9 +327,44 @@ export class DataHubClient {
     ): Promise<MutationResult> {
         const start = performance.now();
         try {
-            const result = await this.mutations.updateDescription(urn, description, fieldPath, mode);
-            logger.info({ event: "datahub_update_description_success", urn, fieldPath, mode, durationMs: (performance.now() - start).toFixed(0) }, `✏️ Description updated on ${urn}`);
-            return result;
+            // For dataset-level updates (no fieldPath), use updateDatasetDescription
+            if (!fieldPath) {
+                // Handle mode by getting current description and modifying it
+                let finalDescription = description;
+                if (mode === "append") {
+                    try {
+                        const dataset = await this.getDataset(urn);
+                        const currentDescription = dataset.description || "";
+                        finalDescription = currentDescription + description;
+                    } catch {
+                        // If we can't get the current description, just use the new one
+                        logger.warn({ event: "datahub_update_description_append_no_current", urn }, `Could not fetch current description for append, using new description only`);
+                    }
+                } else if (mode === "remove") {
+                    // Remove mode - remove the specified text from current description
+                    try {
+                        const dataset = await this.getDataset(urn);
+                        const currentDescription = dataset.description || "";
+                        finalDescription = currentDescription.replace(description, "");
+                    } catch {
+                        // If we can't get the current description, just set to empty
+                        logger.warn({ event: "datahub_update_description_remove_no_current", urn }, `Could not fetch current description for remove, setting to empty`);
+                        finalDescription = "";
+                    }
+                }
+                // overwrite mode uses the description as-is
+
+                const result = await this.mutations.updateDatasetDescription(urn, finalDescription);
+                logger.info({ event: "datahub_update_description_success", urn, fieldPath, mode, durationMs: (performance.now() - start).toFixed(0) }, `✏️ Description updated on ${urn}`);
+                return { success: true };
+            } else {
+                // For field-level updates, use updateFieldDescription
+                // Note: mode handling for fields would be similar but more complex
+                // For now, we'll pass through to the mutation tool
+                const result = await this.mutations.updateFieldDescription(urn, fieldPath, description);
+                logger.info({ event: "datahub_update_description_success", urn, fieldPath, mode, durationMs: (performance.now() - start).toFixed(0) }, `✏️ Description updated on ${urn}`);
+                return result;
+            }
         } catch (error) {
             logger.error({ event: "datahub_update_description_failed", urn, error: error instanceof Error ? error.message : String(error) }, `Updating description failed`);
             throw error;
@@ -310,10 +405,10 @@ export class DataHubClient {
 
     /**
      * Add owners to a dataset.
-     * owners: array of { ownerUrn, ownershipType? }
-     * ownershipType: "TECHNICAL_OWNER" | "BUSINESS_OWNER" | "DATA_STEWARD" | "NONE"
+     * owners: array of { owner_urn, ownership_type? }
+     * ownership_type: "TECHNICAL_OWNER" | "BUSINESS_OWNER" | "DATA_STEWARD" | "NONE"
      */
-    async addOwners(urn: string, owners: Array<{ ownerUrn: string; ownershipType?: string }>): Promise<MutationResult> {
+    async addOwners(urn: string, owners: Array<{ owner_urn: string; ownership_type?: string }>): Promise<MutationResult> {
         const start = performance.now();
         try {
             const result = await this.mutations.addOwners(urn, owners);

@@ -1,12 +1,12 @@
 import express, { Request, Response } from 'express';
-import express, { Request, Response } from 'express';
 import { logger } from '../../config/logger.js';
 import { createContainer } from '../../container/index.js';
 import { ChangeRequest } from '../../mcp/types.js';
-import { 
-  ChangeRequestSchema, 
+import {
+  ChangeRequestSchema,
   ApprovalRequestSchema,
   sanitizeInput,
+  sanitizeUrn,
   isValidEmail,
   isValidUrn,
   isValidPriority,
@@ -73,7 +73,7 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
     // Validate input using Zod schema
     const validationResult = ChangeRequestSchema.safeParse({
       description: sanitizeInput(description || ''),
-      datasetUrn: datasetUrn ? sanitizeInput(datasetUrn) : undefined,
+      datasetUrn: datasetUrn ? sanitizeUrn(datasetUrn) : undefined,
       requestedBy: sanitizeInput(requestedBy || ''),
       priority: priority || 'medium',
     });

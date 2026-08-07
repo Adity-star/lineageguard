@@ -462,10 +462,11 @@ export class EntityTool {
       return raw.data || [];
     } catch (error) {
       logger.warn({
-        event: "entity_tool_get_owners_failed",
+        event: "entity_tool_unavailable",
+        tool: "get_owners",
         urn,
-        toolName: "get_owners",
-      }, `get_owners not available`);
+        error: error instanceof Error ? error.message : String(error)
+      }, `Owners unavailable, using empty array`);
       return [];
     }
   }
@@ -496,10 +497,11 @@ export class EntityTool {
       return raw.data || [];
     } catch (error) {
       logger.warn({
-        event: "entity_tool_get_glossary_terms_failed",
+        event: "entity_tool_unavailable",
+        tool: "get_glossary_terms",
         urn,
-        toolName: "get_glossary_terms",
-      }, `get_glossary_terms not available`);
+        error: error instanceof Error ? error.message : String(error)
+      }, `Glossary terms unavailable, using empty array`);
       return [];
     }
   }
@@ -530,10 +532,11 @@ export class EntityTool {
       return raw.data || [];
     } catch (error) {
       logger.warn({
-        event: "entity_tool_get_tags_failed",
+        event: "entity_tool_unavailable",
+        tool: "get_tags",
         urn,
-        toolName: "get_tags",
-      }, `get_tags not available`);
+        error: error instanceof Error ? error.message : String(error)
+      }, `Tags unavailable, using empty array`);
       return [];
     }
   }
@@ -564,10 +567,11 @@ export class EntityTool {
       return raw.data || {};
     } catch (error) {
       logger.warn({
-        event: "entity_tool_get_structured_properties_failed",
+        event: "entity_tool_unavailable",
+        tool: "get_structured_properties",
         urn,
-        toolName: "get_structured_properties",
-      }, `get_structured_properties not available`);
+        error: error instanceof Error ? error.message : String(error)
+      }, `Structured properties unavailable, using empty object`);
       return {};
     }
   }
@@ -597,10 +601,11 @@ export class EntityTool {
       return raw.data || undefined;
     } catch (error) {
       logger.warn({
-        event: "entity_tool_get_domain_failed",
+        event: "entity_tool_unavailable",
+        tool: "get_domain",
         urn,
-        toolName: "get_domain",
-      }, `get_domain not available`);
+        error: error instanceof Error ? error.message : String(error)
+      }, `Domain unavailable, using undefined`);
       return undefined;
     }
   }
@@ -631,10 +636,11 @@ export class EntityTool {
       return raw.data || [];
     } catch (error) {
       logger.warn({
-        event: "entity_tool_get_related_dashboards_failed",
+        event: "entity_tool_unavailable",
+        tool: "get_related_dashboards",
         urn,
-        toolName: "get_related_dashboards",
-      }, `get_related_dashboards not available`);
+        error: error instanceof Error ? error.message : String(error)
+      }, `Related dashboards unavailable, using empty array`);
       return [];
     }
   }
@@ -665,10 +671,11 @@ export class EntityTool {
       return raw.data || [];
     } catch (error) {
       logger.warn({
-        event: "entity_tool_get_related_pipelines_failed",
+        event: "entity_tool_unavailable",
+        tool: "get_related_pipelines",
         urn,
-        toolName: "get_related_pipelines",
-      }, `get_related_pipelines not available`);
+        error: error instanceof Error ? error.message : String(error)
+      }, `Related pipelines unavailable, using empty array`);
       return [];
     }
   }
@@ -699,10 +706,11 @@ export class EntityTool {
       return raw.data || [];
     } catch (error) {
       logger.warn({
-        event: "entity_tool_get_related_dbt_models_failed",
+        event: "entity_tool_unavailable",
+        tool: "get_related_dbt_models",
         urn,
-        toolName: "get_related_dbt_models",
-      }, `get_related_dbt_models not available`);
+        error: error instanceof Error ? error.message : String(error)
+      }, `Related dbt models unavailable, using empty array`);
       return [];
     }
   }

@@ -42,6 +42,17 @@ export class DataHubRealWriter implements MetadataWriter {
       affectedAssets: report.affectedAssets.length,
     }, `📤 Writing impact report back to DataHub for ${urn}`);
 
+    // Verify dataset exists before attempting writeback
+    let datasetExists = false;
+    try {
+      await this.datahub.getDataset(urn);
+      datasetExists = true;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.warn({ event: "datahub_writeback_dataset_not_found", urn, error: msg }, `⚠️ Dataset ${urn} not found in DataHub - skipping writeback`);
+      return;
+    }
+
     const results: Record<string, "ok" | "skipped" | string> = {};
 
     // ── 1. Append impact summary to the dataset description ──────────────

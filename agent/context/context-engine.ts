@@ -189,12 +189,17 @@ export class ContextEngine {
 
             const enrichedBundle: ContextBundle = {
                 ...baseBundle,
-                owners: owners.length > 0 ? owners : baseBundle.dataset.owners || [],
-                glossaryTerms,
-                tags,
-                structuredProperties,
+                owners: owners.length > 0 ? owners : (baseBundle.owners ?? []),
+                glossaryTerms: glossaryTerms ?? [],
+                tags: tags ?? [],
+                structuredProperties: structuredProperties ?? {},
+                domain: domain ?? undefined,
+                relatedDashboards: relatedDashboards ?? [],
+                relatedPipelines: relatedPipelines ?? [],
+                relatedDbtModels: relatedDbtModels ?? [],
+                queries: baseBundle.queries ?? [],
                 usage: {
-                    queryCount: baseBundle.queries.length,
+                    queryCount: baseBundle.queries?.length || 0,
                 },
                 quality: {
                     passedChecks: 0,
@@ -206,28 +211,21 @@ export class ContextEngine {
                 deprecation: {
                     deprecated: false,
                 },
-                relatedDashboards,
-                relatedPipelines,
-                relatedDbtModels,
                 statistics: {
                     ...baseBundle.statistics,
-                    ownerCount: owners.length,
-                    glossaryTermCount: glossaryTerms.length,
-                    tagCount: tags.length,
-                    dashboardCount: relatedDashboards.length,
-                    pipelineCount: relatedPipelines.length,
-                    dbtModelCount: relatedDbtModels.length,
+                    ownerCount: (owners.length > 0 ? owners : (baseBundle.owners ?? [])).length,
+                    glossaryTermCount: glossaryTerms?.length || 0,
+                    tagCount: tags?.length || 0,
+                    dashboardCount: relatedDashboards?.length || 0,
+                    pipelineCount: relatedPipelines?.length || 0,
+                    dbtModelCount: relatedDbtModels?.length || 0,
                 },
                 provenance,
             };
 
             // Add optional fields if available
-            if (baseBundle.queries[0]?.lastSeen) {
+            if (baseBundle.queries?.[0]?.lastSeen) {
                 enrichedBundle.usage.lastQueried = baseBundle.queries[0].lastSeen;
-            }
-
-            if (domain) {
-                enrichedBundle.domain = domain;
             }
 
             // Validate the bundle
@@ -363,20 +361,14 @@ export class ContextEngine {
                         lastSeen: new Date().toISOString(),
                     },
                 ],
-                documents: [
-                    {
-                        id: "doc1",
-                        title: "User accounts documentation",
-                        snippet: "User accounts table documentation",
-                        url: "http://docs.example.com/users",
-                    },
-                ],
+                documents: [],
                 owners: [
                     { urn: "urn:li:corpuser:admin", name: "admin@example.com", type: "TECHNICAL_OWNER" },
                 ],
                 glossaryTerms: [],
                 tags: ["core", "pii"],
                 structuredProperties: {},
+                domain: undefined,
                 usage: {
                     queryCount: 1,
                 },
@@ -398,7 +390,7 @@ export class ContextEngine {
                     upstreamCount: 1,
                     downstreamCount: 2,
                     queryCount: 1,
-                    documentCount: 1,
+                    documentCount: 0,
                     ownerCount: 1,
                     glossaryTermCount: 0,
                     tagCount: 2,

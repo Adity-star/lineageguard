@@ -1,5 +1,7 @@
 import { ContextStage } from "./base-stage.js";
 import { ContextState } from "../state.js";
+import { Document } from "../../mcp/types.js";
+import { logger } from "../../config/logger.js";
 
 export class DocumentationCollectorStage extends ContextStage {
 
@@ -15,10 +17,19 @@ export class DocumentationCollectorStage extends ContextStage {
             );
         }
 
-        const documents =
-            await this.dataHub.searchDocumentation(
-                state.dataset.name
+        let documents: Document[] = [];
+
+        try {
+            documents =
+                await this.dataHub.searchDocumentation(
+                    state.dataset.name
+                );
+        } catch (err) {
+            logger.warn(
+                { error: err instanceof Error ? err.message : String(err) },
+                "Documentation unavailable. Continuing without documentation."
             );
+        }
 
         state.documents = documents;
     }

@@ -16,6 +16,12 @@ const MutationResultSchema = z.object({
 
 export type MutationResult = z.infer<typeof MutationResultSchema>;
 
+export const UpdateDatasetResponseSchema = z.object({
+  urn: z.string(),
+});
+
+export type UpdateDatasetResponse = z.infer<typeof UpdateDatasetResponseSchema>;
+
 /* ------------------------------------------------------------------ */
 /* MutationTool                                                         */
 /* ------------------------------------------------------------------ */
@@ -441,12 +447,61 @@ export class MutationTool {
   // ----------------------------------------------------------------
 
   /**
-   * Update the description of a dataset or a specific schema field.
+   * Update the description of a dataset (entity-level).
+   * Uses the update_dataset mutation which is correct for dataset-level descriptions.
    */
-  async updateDescription(
+  async updateDatasetDescription(
+    urn: string,
+    description: string
+  ): Promise<UpdateDatasetResponse> {
+    const toolName = "update_dataset";
+    const startTime = performance.now();
+
+    try {
+      const payload = {
+        urn,
+        input: {
+          editableProperties: {
+            description,
+          },
+        },
+      };
+
+      MutationLogger.logMutationStart(toolName, payload, {
+        descriptionLength: description.length,
+      });
+
+      const client = (this.client as any).transport.getClient();
+      const rawResponse = await client.callTool({
+        name: toolName,
+        arguments: payload,
+      });
+
+      // Parse the response - expect { urn: string }
+      const result = UpdateDatasetResponseSchema.parse(rawResponse);
+
+      const durationMs = performance.now() - startTime;
+      MutationLogger.logMutationSuccess(toolName, payload, result, durationMs, {
+        descriptionLength: description.length,
+      });
+
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const durationMs = performance.now() - startTime;
+      MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
+      throw error;
+    }
+  }
+
+  /**
+   * Update the description of a specific schema field (column).
+   * Uses the update_description mutation which is correct for field-level descriptions.
+   */
+  async updateFieldDescription(
     entityUrn: string,
-    description: string,
-    fieldPath?: string
+    fieldPath: string,
+    description: string
   ): Promise<MutationResult> {
     const toolName = "update_description";
     const startTime = performance.now();
@@ -467,6 +522,7 @@ export class MutationTool {
 
       MutationLogger.logMutationStart(toolName, payload, {
         descriptionLength: description.length,
+        fieldPath,
       });
 
       const response = await this.client.executeTool(
@@ -478,6 +534,7 @@ export class MutationTool {
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
         descriptionLength: description.length,
+        fieldPath,
       });
 
       return response.data;
@@ -486,6 +543,25 @@ export class MutationTool {
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
+    }
+  }
+
+  /**
+   * @deprecated Use updateDatasetDescription for datasets, updateFieldDescription for fields
+   * Update the description of a dataset or a specific schema field.
+   */
+  async updateDescription(
+    entityUrn: string,
+    description: string,
+    fieldPath?: string
+  ): Promise<MutationResult> {
+    if (fieldPath) {
+      return this.updateFieldDescription(entityUrn, fieldPath, description);
+    } else {
+      // For dataset-level, we need to use updateDatasetDescription
+      // But for backward compatibility, we'll try to call it and return a compatible result
+      const result = await this.updateDatasetDescription(entityUrn, description);
+      return { success: true };
     }
   }
 

@@ -60,13 +60,15 @@ export class ContextNormalizerStage {
 
             },
 
-            owners: state.dataset?.owners || [],
+            owners: state.dataset?.owners ?? [],
 
             glossaryTerms: [],
 
-            tags: state.dataset?.tags || [],
+            tags: state.dataset?.tags ?? [],
 
             structuredProperties: {},
+
+            domain: undefined,
 
             usage: {
                 queryCount: state.queries?.length ?? 0,
