@@ -18,6 +18,9 @@ export class DocumentationGenerator {
       currentRequiredChanges: plan.requiredChanges,
     });
 
+    // Determine operation type from required changes
+    const operationType = plan.requiredChanges?.[0]?.type || "unknown";
+
     const markdown = [
       "# LineageGuard Change Report",
       "",
@@ -26,6 +29,9 @@ export class DocumentationGenerator {
       "",
       "## Intent",
       plan.intent,
+      "",
+      "## Operation Type",
+      operationType,
       "",
       "## Risk",
       `- Level: ${risk.overallRisk}`,
@@ -36,7 +42,7 @@ export class DocumentationGenerator {
       "",
       "## Required Changes",
       ...plan.requiredChanges.map(
-        c => `- ${c.description}`
+        c => `- ${c.type}: ${c.description}`
       ),
       "",
       "## Recommendations",

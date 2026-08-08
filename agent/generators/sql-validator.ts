@@ -8,7 +8,7 @@ export interface SQLValidationResult {
   errors: string[];
   warnings: string[];
   statement?: string;
-  platform?: string;
+  platform?: string | undefined;
 }
 
 /**
@@ -30,7 +30,9 @@ export class SQLValidator {
    */
   public validate(
     ddl: string,
-    platform?: string
+    platform?: string,
+    expectedOperation?: string,
+    expectedColumns?: string[]
   ): SQLValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -41,14 +43,12 @@ export class SQLValidator {
 
       if (!statement) {
         errors.push("DDL statement is empty");
-        return { valid: false, errors, warnings, statement, platform };
+        return { valid: false, errors, warnings, statement, platform: platform || undefined };
       }
 
-      // Check for CREATE TABLE
-      if (!statement.toUpperCase().includes("CREATE TABLE")) {
-        errors.push(
-          "Statement does not contain CREATE TABLE - expected DDL to start with CREATE TABLE"
-        );
+      // Semantic validation: Check if the operation matches what was requested
+      if (expectedOperation && expectedColumns) {
+        this.validateSemanticRequirements(statement, expectedOperation, expectedColumns, errors, warnings);
       }
 
       // Check for balanced parentheses
@@ -79,12 +79,79 @@ export class SQLValidator {
         errors,
         warnings,
         statement,
-        platform,
+        platform: platform || undefined,
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       errors.push(`Validation failed with error: ${msg}`);
-      return { valid: false, errors, warnings, statement: ddl, platform };
+      return { valid: false, errors, warnings, statement: ddl, platform: platform || undefined };
+    }
+  }
+
+  /**
+   * Semantic validation: Check if the generated SQL matches the requested operation.
+   * This ensures the SQL actually does what the user requested.
+   */
+  private validateSemanticRequirements(
+    statement: string,
+    expectedOperation: string,
+    expectedColumns: string[],
+    errors: string[],
+    warnings: string[]
+  ): void {
+    const upperStatement = statement.toUpperCase();
+
+    switch (expectedOperation) {
+      case "add_column":
+        // For ADD COLUMN, verify the SQL contains ALTER TABLE and ADD COLUMN
+        if (!upperStatement.includes("ALTER TABLE")) {
+          errors.push("Semantic validation failed: Expected ALTER TABLE for add_column operation, but got CREATE TABLE");
+        }
+        if (!upperStatement.includes("ADD COLUMN") && !upperStatement.includes("ADD")) {
+          errors.push("Semantic validation failed: Expected ADD COLUMN clause for add_column operation");
+        }
+
+        // Verify all expected columns are present in the SQL
+        for (const column of expectedColumns) {
+          if (!upperStatement.includes(column.toUpperCase())) {
+            errors.push(`Semantic validation failed: Expected column '${column}' not found in generated SQL`);
+          }
+        }
+        break;
+
+      case "drop_column":
+        // For DROP COLUMN, verify the SQL contains ALTER TABLE and DROP COLUMN
+        if (!upperStatement.includes("ALTER TABLE")) {
+          errors.push("Semantic validation failed: Expected ALTER TABLE for drop_column operation");
+        }
+        if (!upperStatement.includes("DROP COLUMN") && !upperStatement.includes("DROP")) {
+          errors.push("Semantic validation failed: Expected DROP COLUMN clause for drop_column operation");
+        }
+
+        // Verify all expected columns are present in the SQL
+        for (const column of expectedColumns) {
+          if (!upperStatement.includes(column.toUpperCase())) {
+            errors.push(`Semantic validation failed: Expected column '${column}' not found in generated SQL`);
+          }
+        }
+        break;
+
+      case "create_table":
+        // For CREATE TABLE, verify the SQL contains CREATE TABLE
+        if (!upperStatement.includes("CREATE TABLE")) {
+          errors.push("Semantic validation failed: Expected CREATE TABLE for create_table operation");
+        }
+
+        // Verify all expected columns are present in the SQL
+        for (const column of expectedColumns) {
+          if (!upperStatement.includes(column.toUpperCase())) {
+            errors.push(`Semantic validation failed: Expected column '${column}' not found in generated SQL`);
+          }
+        }
+        break;
+
+      default:
+        warnings.push(`Unknown operation type '${expectedOperation}' - semantic validation skipped`);
     }
   }
 
@@ -141,7 +208,9 @@ export class SQLValidator {
     let match;
 
     while ((match = columnPattern.exec(statement)) !== null) {
-      dataTypes.push(match[1]);
+      if (match[1]) {
+        dataTypes.push(match[1]);
+      }
     }
 
     // Check for obviously invalid types
@@ -215,9 +284,11 @@ export class SQLValidator {
   ): void {
     if (!platform) return;
 
+    const platformStr = platform;
+
     const upper = statement.toUpperCase();
 
-    switch (platform.toLowerCase()) {
+    switch (platformStr.toLowerCase()) {
       case "bigquery":
         // BigQuery doesn't support IF NOT EXISTS in some contexts
         if (upper.includes("IF NOT EXISTS")) {
@@ -281,7 +352,7 @@ export class SQLValidator {
     ddlStatements: string[],
     platform?: string
   ): SQLValidationResult[] {
-    return ddlStatements.map((stmt) => this.validate(stmt, platform));
+    return ddlStatements.map((stmt) => this.validate(stmt, platform, undefined, undefined));
   }
 
   /**
@@ -289,7 +360,7 @@ export class SQLValidator {
    */
   public extractTableName(ddl: string): string | null {
     const match = ddl.match(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"`\[]?(\w+)[`"`\]]?/i);
-    return match ? match[1] : null;
+    return match && match[1] ? match[1] : null;
   }
 
   /**
@@ -303,7 +374,8 @@ export class SQLValidator {
 
     let match;
     while ((match = pattern.exec(ddl)) !== null) {
-      let colName = match[0].split(/\s+/)[0]; // Get first part (column name)
+      let colName = match[0]?.split(/\s+/)[0]; // Get first part (column name)
+      if (!colName) continue;
       // Remove quotes/brackets
       colName = colName.replace(/[`"\[\]]/g, "");
       if (colName && colName.length > 0) {

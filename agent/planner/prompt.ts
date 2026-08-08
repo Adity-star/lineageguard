@@ -31,8 +31,27 @@ Rules:
 - Do not invent datasets or columns.
 - Use only the supplied context.
 - If information is missing, include it under "missingInformation".
-- Set requiresApproval=true for potentially breaking changes.
+- Set requiresApproval=false (let the risk engine determine approval requirements)
 - Confidence must be between 0 and 1.
+
+IMPORTANT FOR ADD COLUMN OPERATIONS:
+- When the request asks to "add" or "create" a column, set type to "add_column"
+- Include the NEW column name in "affectedColumns" array
+- If datatype is not specified in the request, include "datatype" in "missingInformation"
+- DO NOT invent default datatypes in requiredChanges description - if datatype is missing, state "with unknown datatype"
+- DO NOT assume data migration is required for adding nullable columns
+- Only include data migration in requiredChanges if explicitly requested or if the column is NOT NULL and needs data
+
+OPERATION TYPES:
+- "add_column" - Adding a new column to an existing table
+- "drop_column" - Removing a column from an existing table
+- "create_table" - Creating a new table
+
+ASSUMPTIONS TO AVOID:
+- Do NOT assume data migration is needed for nullable columns
+- Do NOT assume business logic or validation rules unless specified
+- Do NOT assume column relationships or constraints unless specified
+- Do NOT assume default values unless specified
 
 Return JSON matching this structure:
 
@@ -40,13 +59,13 @@ Return JSON matching this structure:
   "summary": "...",
   "intent": "...",
   "affectedDataset": "...",
-  "affectedColumns": [],
+  "affectedColumns": ["new_column_name"],
   "assumptions": [],
-  "missingInformation": [],
+  "missingInformation": ["datatype if not specified"],
   "requiredChanges": [
     {
-      "type": "...",
-      "description": "..."
+      "type": "add_column",
+      "description": "Add column <actual_column_name> with unknown datatype"
     }
   ],
   "confidence": 0.95,

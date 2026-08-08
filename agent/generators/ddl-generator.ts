@@ -79,7 +79,26 @@ export class DDLGenerator {
     if (lower === "tsql" || lower === "mssql" || lower === "sqlserver")
       return "tsql";
 
+    // HDFS/Hive/Spark SQL platforms - map to Hive SQL (similar syntax)
+    if (lower === "hdfs") {
+      logger.warn({
+        event: "hdfs_platform_resolved",
+        original: platform,
+        resolved: "hive",
+      }, `HDFS platform resolved to Hive SQL for DDL generation`);
+      return "postgres"; // Use Hive/Postgres-like syntax as fallback
+    }
+    if (lower === "hive" || lower === "spark" ||
+        lower === "sparksql" || lower === "impala" || lower === "trino" ||
+        lower === "iceberg" || lower === "delta") {
+      return "postgres"; // Use Hive/Postgres-like syntax as fallback
+    }
+
     // Fallback to unknown
+    logger.warn({
+      event: "unknown_platform",
+      platform,
+    }, `Unknown platform '${platform}' defaulting to unknown`);
     return "unknown";
   }
 
