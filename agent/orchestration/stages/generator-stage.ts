@@ -38,10 +38,12 @@ export class GeneratorStage implements PipelineStage {
     }
 
     const idempotencyKey = IdempotencyService.generateKey({
-      planActions: plan.actions || [],
+      planActions: plan.requiredChanges || [],
       riskLevel: risk.overallRisk,
       riskScore: risk.score,
     });
+
+    perf?.start('generation');
 
     const generation = await withIdempotency(
       {
@@ -59,6 +61,8 @@ export class GeneratorStage implements PipelineStage {
       this.idempotencyService
     );
 
+    perf?.end('generation');
+
     state.set("generation", generation);
 
     logger.info({
@@ -67,6 +71,7 @@ export class GeneratorStage implements PipelineStage {
       tableName: generation.ddl?.tableName,
       fieldCount: generation.ddl?.fieldCount,
       ddlGenerated: !!generation.ddl?.ddl,
+      generationMs: perf?.get('generation'),
     }, "Migration Generation Complete");
 
   }

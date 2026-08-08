@@ -6,6 +6,88 @@ import { MissingWorkflowStateError } from "../errors.js";
 import { logger } from "../../config/logger.js";
 import { PerformanceTracker } from "../../utils/performance.js";
 import { IdempotencyService, withIdempotency, OperationType } from "../../utils/idempotency.js";
+import { createHash } from "crypto";
+
+/**
+ * Generate a canonical, change-specific idempotency key for GitHub PR creation
+ */
+function generateGitHubPRImpotencyKey(params: {
+  owner: string;
+  repository: string;
+  baseBranch: string;
+  datasetUrn: string;
+  changeType: string;
+  affectedColumns: string[];
+  changeDescription: string;
+}): string {
+  // Sort affected columns to ensure deterministic ordering
+  const sortedColumns = [...params.affectedColumns].sort();
+  
+  // Create a canonical representation
+  const canonical = {
+    repository: `${params.owner}/${params.repository}`,
+    baseBranch: params.baseBranch,
+    datasetUrn: params.datasetUrn,
+    changeType: params.changeType,
+    affectedColumns: sortedColumns,
+    changeDescription: params.changeDescription.toLowerCase().trim(),
+  };
+  
+  return IdempotencyService.generateKey(canonical);
+}
+
+/**
+ * Generate a change-specific branch name
+ */
+function generateBranchName(params: {
+  changeType: string;
+  datasetName: string;
+  affectedColumns: string[];
+}): string {
+  // Normalize change type
+  const normalizedChangeType = params.changeType
+    .replace(/_/g, '-')
+    .replace(/\s+/g, '-')
+    .toLowerCase();
+  
+  // Normalize dataset name
+  const normalizedDataset = params.datasetName
+    .replace(/\./g, '-')
+    .replace(/_/g, '-')
+    .toLowerCase();
+  
+  // Normalize and sort affected columns
+  const normalizedColumns = params.affectedColumns
+    .map(col => col.replace(/_/g, '-').toLowerCase())
+    .sort();
+  
+  // Create base branch name
+  const baseBranch = `${normalizedChangeType}/${normalizedDataset}`;
+  
+  // Add columns if present
+  if (normalizedColumns.length > 0) {
+    const columnsPart = normalizedColumns.join('-');
+    const columnsBranch = `${baseBranch}/${columnsPart}`;
+    
+    // Truncate if too long (Git refs have a limit)
+    if (columnsBranch.length > 240) {
+      // Use a hash of the full name
+      const hash = createHash('sha256')
+        .update(columnsBranch)
+        .digest('hex')
+        .substring(0, 8);
+      return `${baseBranch}/${hash}`;
+    }
+    return columnsBranch;
+  }
+  
+  // Add a hash for uniqueness if no columns
+  const hash = createHash('sha256')
+    .update(baseBranch)
+    .digest('hex')
+    .substring(0, 8);
+  return `${baseBranch}/${hash}`;
+}
 
 export class GitHubStage implements PipelineStage {
 
@@ -59,44 +141,129 @@ export class GitHubStage implements PipelineStage {
       return;
     }
 
-    logger.info({
-      event: "github_execution_starting",
-      approvalStatus: approval.status,
-      datasetName: context.dataset?.name,
-      changeType: plan.intent,
-    }, "GitHub PR Creation - Starting execution after approval");
+    // Extract plan details for idempotency and branch naming
+    const executionPlan = plan.plan || plan;
+    const changeType = executionPlan.intent || executionPlan.summary || "schema-change";
+    const affectedColumns = executionPlan.affectedColumns || [];
+    const datasetUrn = context.dataset?.urn || context.provenance?.datasetUrn || "unknown";
+    const datasetName = context.dataset?.name || executionPlan.affectedDataset || "unknown-dataset";
+    const changeDescription = executionPlan.summary || `${changeType} on ${datasetName}`;
 
-    const idempotencyKey = IdempotencyService.generateKey({
+    // Generate change-specific branch name
+    const branchName = generateBranchName({
+      changeType,
+      datasetName,
+      affectedColumns,
+    });
+
+    // Generate change-specific idempotency key
+    const idempotencyKey = generateGitHubPRImpotencyKey({
       owner: this.owner,
       repository: this.repository,
       baseBranch: this.baseBranch,
-      changeDescription: context.dataset?.name || "none",
+      datasetUrn,
+      changeType,
+      affectedColumns,
+      changeDescription,
     });
 
-    logger.info({ event: "github_metadata_write_back" }, "✓ Metadata Written Back");
-    logger.info({ event: "github_branch_create" }, "✓ Branch Created");
-    logger.info({ event: "github_commit_create" }, "✓ Commit Created");
-    logger.info({ event: "github_pr_create" }, "✓ Pull Request Created");
+    logger.info({
+      event: "github_pr_creation_identity",
+      repository: `${this.owner}/${this.repository}`,
+      baseBranch: this.baseBranch,
+      datasetUrn,
+      changeType,
+      affectedColumns,
+      branchName,
+      idempotencyKey,
+      changeDescription,
+    }, "GitHub PR Creation - Operation identity");
 
-    const result = await withIdempotency(
-      {
-        key: idempotencyKey,
-        operationType: OperationType.GITHUB_PR_CREATION,
-      },
-      async () => {
-        return await this.engine.execute({
-          owner: this.owner,
-          repository: this.repository,
-          baseBranch: this.baseBranch,
-          context,
-          plan,
-          generation,
-          impact
-        });
-      },
-      this.idempotencyService,
-      (res) => res.number ? String(res.number) : undefined
-    );
+    logger.info({
+      event: "github_execution_starting",
+      approvalStatus: approval.status,
+      datasetName,
+      changeType,
+    }, "GitHub PR Creation - Starting execution after approval");
+
+    let result;
+    try {
+      result = await withIdempotency(
+        {
+          key: idempotencyKey,
+          operationType: OperationType.GITHUB_PR_CREATION,
+        },
+        async () => {
+          return await this.engine.execute({
+            owner: this.owner,
+            repository: this.repository,
+            baseBranch: this.baseBranch,
+            context,
+            plan,
+            generation,
+            impact,
+            branchName, // Pass the pre-generated branch name
+          });
+        },
+        this.idempotencyService,
+        (res) => res.number ? String(res.number) : undefined,
+        // Add custom callback for idempotency hit logging
+        (cachedResult) => {
+          logger.info({
+            event: "github_pr_idempotency_hit",
+            currentOperation: {
+              repository: `${this.owner}/${this.repository}`,
+              baseBranch: this.baseBranch,
+              datasetUrn,
+              changeType,
+              affectedColumns,
+              branchName,
+            },
+            cachedOperation: {
+              prNumber: cachedResult.number,
+              prUrl: cachedResult.url,
+              branch: cachedResult.branch,
+            },
+          }, "GitHub PR creation idempotency hit - returning cached PR");
+        }
+      );
+    } catch (error) {
+      // Log the detailed error before re-throwing
+      logger.error({
+        event: "github_stage_error",
+        owner: this.owner,
+        repository: this.repository,
+        baseBranch: this.baseBranch,
+        datasetName,
+        datasetUrn,
+        changeType,
+        affectedColumns,
+        branchName,
+        errorName: error instanceof Error ? error.name : 'Unknown',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        // Preserve the original error details
+        ...(error instanceof Error && {
+          stack: error.stack,
+        }),
+        // Extract GitHub-specific error details if available
+        ...(error.status && { status: error.status }),
+        ...(error.statusText && { statusText: error.statusText }),
+        ...(error.response?.data && { responseData: error.response.data }),
+        // For RetryError, extract underlying error
+        ...(error.name === 'RetryError' && {
+          retryAttempts: error.attempts,
+          underlyingError: error.lastError ? {
+            name: error.lastError?.name,
+            message: error.lastError?.message,
+            status: error.lastError?.status,
+            statusText: error.lastError?.statusText,
+          } : undefined,
+        }),
+      }, `GitHub stage failed - preserving original error details`);
+
+      // Re-throw the original error (RetryError with cause)
+      throw error;
+    }
 
     state.set("github", result);
 
@@ -105,7 +272,10 @@ export class GitHubStage implements PipelineStage {
       prNumber: result.number,
       prUrl: result.url,
       branch: result.branch,
-      datasetName: context.dataset?.name,
+      datasetName,
+      datasetUrn,
+      changeType,
+      affectedColumns,
     }, `GitHub PR Created Successfully - PR #${result.number}: ${result.url}`);
 
   }

@@ -34,7 +34,7 @@ export class RiskStage
     }
 
     const idempotencyKey = IdempotencyService.generateKey({
-      planActions: plan.actions || [],
+      planActions: plan.requiredChanges || [],
       contextDatasetUrn: context.dataset?.urn || "none",
     });
 
