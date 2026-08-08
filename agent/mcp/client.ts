@@ -189,7 +189,7 @@ export class MCPClient {
       }
 
       // Log response details (structured, not raw JSON dumps)
-      const responseContent = response.content ?? response;
+      const responseContent = (response as any).structuredContent ?? response.content ?? response;
       logger.debug(
         {
           event: "mcp_tool_response",
@@ -304,8 +304,9 @@ export class MCPClient {
         );
       }
 
-      // Extract raw content and return WITHOUT validation
-      const rawContent = response.content ?? response;
+      // Extract structuredContent if available (DataHub provides parsed objects there)
+      // Otherwise extract raw content and return WITHOUT validation
+      const rawContent = (response as any).structuredContent ?? response.content ?? response;
 
       logger.debug(
         {

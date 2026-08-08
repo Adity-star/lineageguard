@@ -16,11 +16,18 @@ const MutationResultSchema = z.object({
 
 export type MutationResult = z.infer<typeof MutationResultSchema>;
 
-export const UpdateDatasetResponseSchema = z.object({
+/* ------------------------------------------------------------------ */
+/* Update Description Response Schema                                   */
+/* ------------------------------------------------------------------ */
+
+const UpdateDescriptionResponseSchema = z.object({
+  success: z.boolean(),
   urn: z.string(),
+  column_path: z.string().nullable(),
+  message: z.string(),
 });
 
-export type UpdateDatasetResponse = z.infer<typeof UpdateDatasetResponseSchema>;
+export type UpdateDescriptionResponse = z.infer<typeof UpdateDescriptionResponseSchema>;
 
 /* ------------------------------------------------------------------ */
 /* MutationTool                                                         */
@@ -448,44 +455,45 @@ export class MutationTool {
 
   /**
    * Update the description of a dataset (entity-level).
-   * Uses the update_dataset mutation which is correct for dataset-level descriptions.
+   * Uses the update_description mutation which is correct for dataset-level descriptions.
    */
   async updateDatasetDescription(
     urn: string,
     description: string
-  ): Promise<UpdateDatasetResponse> {
-    const toolName = "update_dataset";
+  ): Promise<UpdateDescriptionResponse> {
+    const toolName = "update_description";
     const startTime = performance.now();
 
     try {
-      const payload = {
+      const result = this.validator.buildUpdateDescriptionPayload(
         urn,
-        input: {
-          editableProperties: {
-            description,
-          },
-        },
-      };
+        description,
+        undefined // No fieldPath for dataset-level description
+      );
+
+      if (!result.valid) {
+        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
+        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+      }
+
+      const payload = result.payload!;
 
       MutationLogger.logMutationStart(toolName, payload, {
         descriptionLength: description.length,
       });
 
-      const client = (this.client as any).transport.getClient();
-      const rawResponse = await client.callTool({
-        name: toolName,
-        arguments: payload,
-      });
-
-      // Parse the response - expect { urn: string }
-      const result = UpdateDatasetResponseSchema.parse(rawResponse);
+      const response = await this.client.executeTool(
+        toolName,
+        payload,
+        UpdateDescriptionResponseSchema
+      );
 
       const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, result, durationMs, {
+      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
         descriptionLength: description.length,
       });
 
-      return result;
+      return response.data;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
@@ -502,7 +510,7 @@ export class MutationTool {
     entityUrn: string,
     fieldPath: string,
     description: string
-  ): Promise<MutationResult> {
+  ): Promise<UpdateDescriptionResponse> {
     const toolName = "update_description";
     const startTime = performance.now();
 
@@ -528,7 +536,7 @@ export class MutationTool {
       const response = await this.client.executeTool(
         toolName,
         payload,
-        MutationResultSchema
+        UpdateDescriptionResponseSchema
       );
 
       const durationMs = performance.now() - startTime;
@@ -554,14 +562,12 @@ export class MutationTool {
     entityUrn: string,
     description: string,
     fieldPath?: string
-  ): Promise<MutationResult> {
+  ): Promise<UpdateDescriptionResponse> {
     if (fieldPath) {
       return this.updateFieldDescription(entityUrn, fieldPath, description);
     } else {
-      // For dataset-level, we need to use updateDatasetDescription
-      // But for backward compatibility, we'll try to call it and return a compatible result
-      const result = await this.updateDatasetDescription(entityUrn, description);
-      return { success: true };
+      // For dataset-level, use updateDatasetDescription
+      return this.updateDatasetDescription(entityUrn, description);
     }
   }
 
@@ -574,7 +580,7 @@ export class MutationTool {
    */
   async addStructuredProperties(
     entityUrns: string | string[],
-    propertyValues: Record<string, any>
+    propertyValues: Record<string, unknown[]>
   ): Promise<MutationResult> {
     const toolName = "add_structured_properties";
     const startTime = performance.now();

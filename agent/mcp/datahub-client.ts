@@ -5,7 +5,8 @@ import { SchemaTool } from "./tools/schema.js";
 import { LineageTool } from "./tools/lineage.js";
 import { QueryTool } from "./tools/queries.js";
 import { DocumentTool } from "./tools/documents.js";
-import { MutationTool, MutationResult } from "./tools/mutations.js";
+import { MutationTool, MutationResult, UpdateDescriptionResponse } from "./tools/mutations.js";
+import { DataHubTagClient, LINEAGEGUARD_TAGS } from "./datahub-tags.js";
 import { logger } from "../config/logger.js";
 
 import {
@@ -17,7 +18,7 @@ import {
     SearchResult,
 } from "./types.js";
 
-export type { MutationResult };
+export type { MutationResult, UpdateDescriptionResponse };
 
 export class DataHubClient {
 
@@ -28,8 +29,9 @@ export class DataHubClient {
     readonly queries: QueryTool;
     readonly documents: DocumentTool;
     readonly mutations: MutationTool;
+    readonly tags: DataHubTagClient;
 
-    constructor(private readonly client: MCPClient) {
+    constructor(private readonly client: MCPClient, private readonly gmsUrl?: string, private readonly token?: string) {
         this.search    = new SearchTool(client);
         this.entities  = new EntityTool(client);
         this.schema    = new SchemaTool(client);
@@ -37,6 +39,14 @@ export class DataHubClient {
         this.queries   = new QueryTool(client);
         this.documents = new DocumentTool(client);
         this.mutations = new MutationTool(client, client.getMutationRegistry());
+        
+        // Initialize tag client if credentials are provided
+        if (gmsUrl && token) {
+            this.tags = new DataHubTagClient(gmsUrl, token);
+        } else {
+            // Create a dummy tag client that will fail gracefully
+            this.tags = new DataHubTagClient("", "");
+        }
     }
 
     async initialize() { await this.client.initialize(); }
@@ -324,10 +334,10 @@ export class DataHubClient {
         description: string,
         fieldPath?: string,
         mode: "overwrite" | "append" | "remove" = "overwrite"
-    ): Promise<MutationResult> {
+    ): Promise<UpdateDescriptionResponse> {
         const start = performance.now();
         try {
-            // For dataset-level updates (no fieldPath), use updateDatasetDescription
+            // For dataset-level updates (no fieldPath), use update_description
             if (!fieldPath) {
                 // Handle mode by getting current description and modifying it
                 let finalDescription = description;
@@ -354,9 +364,9 @@ export class DataHubClient {
                 }
                 // overwrite mode uses the description as-is
 
-                const result = await this.mutations.updateDatasetDescription(urn, finalDescription);
+                const result = await this.mutations.updateDescription(urn, finalDescription, undefined);
                 logger.info({ event: "datahub_update_description_success", urn, fieldPath, mode, durationMs: (performance.now() - start).toFixed(0) }, `✏️ Description updated on ${urn}`);
-                return { success: true };
+                return result;
             } else {
                 // For field-level updates, use updateFieldDescription
                 // Note: mode handling for fields would be similar but more complex
@@ -374,15 +384,127 @@ export class DataHubClient {
     /**
      * Add tags to a dataset or column.
      * tags: array of tag URNs e.g. ["urn:li:tag:PII", "urn:li:tag:lineageguard_reviewed"]
+     * 
      */
     async addTags(urn: string, tags: string[], fieldPath?: string): Promise<MutationResult> {
         const start = performance.now();
+        
+        if (tags.length === 0) {
+            logger.warn({ 
+                event: "datahub_add_tags_skipped", 
+                urn, 
+                reason: "No tags provided" 
+            }, `⚠️ No tags provided. Skipping add_tags for ${urn}`);
+            return { success: false, message: "No tags provided" };
+        }
+
+        // Separate LineageGuard tags from other tags
+        const lineageGuardTags: string[] = [];
+        const otherTags: string[] = [];
+        
+        for (const tag of tags) {
+            if (Object.values(LINEAGEGUARD_TAGS).some(lgTag => lgTag.urn === tag)) {
+                lineageGuardTags.push(tag);
+            } else {
+                otherTags.push(tag);
+            }
+        }
+
+        // Ensure LineageGuard tags exist before attempting to add them
+        let tagProvisioningSucceeded = true;
+        if (lineageGuardTags.length > 0) {
+            logger.info({ 
+                event: "tag_provisioning_start", 
+                urn, 
+                lineageGuardTags 
+            }, `Ensuring ${lineageGuardTags.length} LineageGuard tags exist before adding to ${urn}`);
+
+            const provisioningResults: Record<string, boolean> = {};
+            for (const tagUrn of lineageGuardTags) {
+                const tagDef = Object.values(LINEAGEGUARD_TAGS).find(t => t.urn === tagUrn);
+                if (tagDef) {
+                    const success = await this.tags.ensureTag(tagDef.urn, tagDef.name, tagDef.description);
+                    provisioningResults[tagUrn] = success;
+                    if (!success) {
+                        tagProvisioningSucceeded = false;
+                    }
+                }
+            }
+
+            const succeeded = Object.values(provisioningResults).filter(v => v).length;
+            const failed = Object.values(provisioningResults).filter(v => !v).length;
+
+            if (failed > 0) {
+                logger.warn({ 
+                    event: "tag_provisioning_partial_failure", 
+                    urn, 
+                    succeeded, 
+                    failed, 
+                    results: provisioningResults 
+                }, `Tag provisioning partially failed: ${succeeded}/${succeeded + failed} succeeded`);
+            } else {
+                logger.info({ 
+                    event: "tag_provisioning_succeeded", 
+                    urn, 
+                    count: succeeded 
+                }, `All ${succeeded} LineageGuard tags provisioned successfully`);
+            }
+        }
+
+        // If provisioning failed, skip add_tags but don't fail the entire operation
+        if (!tagProvisioningSucceeded && lineageGuardTags.length > 0) {
+            logger.warn({ 
+                event: "tag_add_skipped", 
+                urn, 
+                reason: "tag_provisioning_failed" 
+            }, `⚠️ Skipping add_tags for ${urn} due to tag provisioning failure`);
+            return { success: false, message: "Tag provisioning failed, skipping tag addition" };
+        }
+
+        // Proceed with add_tags using all tags (provisioned LineageGuard + other tags)
+        const allTags = [...lineageGuardTags, ...otherTags];
+        
         try {
-            const result = await this.mutations.addTags(urn, tags, fieldPath);
-            logger.info({ event: "datahub_add_tags_success", urn, tags, fieldPath, durationMs: (performance.now() - start).toFixed(0) }, `🏷️ Tags added to ${urn}`);
+            logger.info({ 
+                event: "tag_add_start", 
+                urn, 
+                tags: allTags 
+            }, `Starting add_tags for ${urn} with ${allTags.length} tags`);
+            
+            const result = await this.mutations.addTags(urn, allTags, fieldPath);
+            
+            logger.info({ 
+                event: "tag_add_success", 
+                urn, 
+                tags: allTags, 
+                durationMs: (performance.now() - start).toFixed(0) 
+            }, `🏷️ Tags added to ${urn}`);
+            
             return result;
         } catch (error) {
-            logger.error({ event: "datahub_add_tags_failed", urn, error: error instanceof Error ? error.message : String(error) }, `Adding tags failed`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger.error({ 
+                event: "tag_add_failed", 
+                urn, 
+                tags: allTags, 
+                error: errorMessage 
+            }, `Adding tags failed`);
+            throw error;
+        }
+    }
+
+    /**
+     * Remove tags from a dataset or column.
+     * tags: array of tag URNs e.g. ["urn:li:tag:PII", "urn:li:tag:lineageguard_reviewed"]
+     */
+    async removeTags(urn: string, tags: string[], fieldPath?: string): Promise<MutationResult> {
+        const start = performance.now();
+        try {
+            const result = await this.mutations.removeTags(urn, tags, fieldPath);
+            logger.info({ event: "datahub_remove_tags_success", urn, tags, fieldPath, durationMs: (performance.now() - start).toFixed(0) }, `🏷️ Tags removed from ${urn}`);
+            return result;
+        } catch (error) {
+            logger.error({ event: "datahub_remove_tags_failed", urn, error: error instanceof Error ? error.message : String(error) }, `Removing tags failed`);
             throw error;
         }
     }
@@ -438,11 +560,11 @@ export class DataHubClient {
 
     /**
      * Write structured (typed) properties onto a dataset.
-     * properties: map of property URN → value(s)
+     * properties: map of property URN → value(s) (each value must be wrapped in an array)
      */
     async addStructuredProperties(
         urn: string,
-        properties: Record<string, string | number | string[] | number[]>
+        properties: Record<string, unknown[]>
     ): Promise<MutationResult> {
         const start = performance.now();
         try {

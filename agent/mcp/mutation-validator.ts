@@ -227,7 +227,7 @@ export class MutationValidator {
    */
   buildAddStructuredPropertiesPayload(
     entityUrns: string | string[],
-    propertyValues: Record<string, any>
+    propertyValues: Record<string, unknown[]>
   ): MutationPayloadResult {
     const schema = this.registry.requireTool("add_structured_properties");
 

@@ -58,7 +58,7 @@ export class ReportBuilder {
       generatedAt:
         new Date().toISOString(),
 
-      approvedAt: risk.requiresApproval ? new Date().toISOString() : undefined,
+      approvedAt: undefined, 
 
       metadata: {
 
