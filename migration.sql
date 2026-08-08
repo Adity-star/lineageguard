@@ -1,0 +1,1 @@
+ALTER TABLE "SampleHdfsDataset" ADD COLUMN "Customerbalance_9" VARCHAR(256) NULL;
