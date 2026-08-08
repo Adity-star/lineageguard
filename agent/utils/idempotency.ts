@@ -399,7 +399,8 @@ export async function withIdempotency<T>(
   options: IdempotencyOptions,
   operation: () => Promise<T>,
   service: IdempotencyService,
-  entityIdExtractor?: (result: T) => string | undefined
+  entityIdExtractor?: (result: T) => string | undefined,
+  idempotencyHitCallback?: (cachedResult: T) => void
 ): Promise<T> {
   const checkResult = await service.check<T>(options);
   
@@ -409,7 +410,18 @@ export async function withIdempotency<T>(
         event: "idempotency_cache_hit",
         key: options.key,
         operationType: options.operationType,
+        recordId: checkResult.recordId,
+        cachedResult: typeof checkResult.cachedResult === 'object' ? {
+          ...(checkResult.cachedResult as any),
+          // Don't log sensitive information
+        } : checkResult.cachedResult,
       }, "Returning cached result from idempotency check");
+      
+      // Call custom callback if provided
+      if (idempotencyHitCallback) {
+        idempotencyHitCallback(checkResult.cachedResult);
+      }
+      
       return checkResult.cachedResult;
     }
 

@@ -1,3 +1,4 @@
+import { logger } from "../config/logger";
 import { ExecutionPlan } from "./types";
 
 export class PlanningParseError extends Error {
@@ -11,8 +12,13 @@ export class PlanningParser {
   parse(response: string): ExecutionPlan {
     try {
       const cleaned = this.cleanResponse(response);
+      logger.info(`RAW LLM RESPONSE: ${response}`);
+      logger.info(`CLEANED RESPONSE: ${cleaned}`);
+      const result = JSON.parse(cleaned) as ExecutionPlan;
+      logger.info(`PARSED requiredchanges: ${JSON.stringify(result.requiredChanges)}`);
+      logger.info(`PARSED affectedcolumns: ${JSON.stringify((result as any).affectedColumns)}`);
+      return result;
 
-      return JSON.parse(cleaned) as ExecutionPlan;
     } catch (error) {
       throw new PlanningParseError(
         `Failed to parse planning response: ${error instanceof Error ? error.message : "Unknown error"}`

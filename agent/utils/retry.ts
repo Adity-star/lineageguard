@@ -15,7 +15,7 @@ export class RetryError extends Error {
     public readonly attempts: number,
     public readonly lastError: any
   ) {
-    super(message);
+    super(message, { cause: lastError });
     this.name = 'RetryError';
   }
 }
