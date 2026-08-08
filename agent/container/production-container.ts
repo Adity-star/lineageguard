@@ -70,7 +70,11 @@ export class ProductionContainer {
 
     this.mcpClient = new MCPClient(mcpTransport);
 
-    const datahubClient = new DataHubClient(this.mcpClient);
+    const datahubClient = new DataHubClient(
+      this.mcpClient,
+      env.DATAHUB_GMS_URL,
+      env.DATAHUB_GMS_TOKEN
+    );
 
     // Idempotency
     const adapter = new PrismaPg({

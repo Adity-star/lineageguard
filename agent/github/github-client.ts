@@ -26,6 +26,46 @@ export interface PullRequestResponse {
 
 }
 
+export interface CreateBranchRequest {
+  owner: string;
+  repository: string;
+  baseBranch: string;
+  newBranch: string;
+}
+
+export interface GetBranchRequest {
+  owner: string;
+  repository: string;
+  branch: string;
+}
+
+export interface GetBranchResponse {
+  exists: boolean;
+  sha?: string;
+}
+
+export interface CommitFileRequest {
+  owner: string;
+  repository: string;
+  branch: string;
+  path: string;
+  content: string;
+  message: string;
+}
+
+export interface CheckPullRequestRequest {
+  owner: string;
+  repository: string;
+  headBranch: string;
+  baseBranch: string;
+}
+
+export interface PullRequestExistsResponse {
+  exists: boolean;
+  number?: number;
+  url?: string;
+}
+
 export interface GitHubClient {
 
   createPullRequest(
@@ -42,4 +82,19 @@ export interface GitHubClient {
     reviewers: string[]
   ): Promise<void>;
 
+  createBranch(
+    request: CreateBranchRequest
+  ): Promise<void>;
+
+  getBranch(
+    request: GetBranchRequest
+  ): Promise<GetBranchResponse>;
+
+  commitFile(
+    request: CommitFileRequest
+  ): Promise<void>;
+
+  checkPullRequestExists(
+    request: CheckPullRequestRequest
+  ): Promise<PullRequestExistsResponse>;
 }

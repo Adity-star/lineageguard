@@ -1,4 +1,5 @@
 import { DataHubClient } from "../mcp/datahub-client.js";
+import { LINEAGEGUARD_TAGS } from "../mcp/datahub-tags.js";
 import { logger } from "../config/logger.js";
 import { ImpactReport, ImpactLevel } from "./types.js";
 import { ContextBundle } from "../context/type.js";
@@ -8,14 +9,14 @@ import { MetadataWriter } from "./metadata-writer.js";
  * Maps an ImpactLevel to the LineageGuard risk tag URN written into DataHub.
  */
 const RISK_TAG: Record<ImpactLevel, string> = {
-  LOW:      "urn:li:tag:lineageguard_risk_low",
-  MEDIUM:   "urn:li:tag:lineageguard_risk_medium",
-  HIGH:     "urn:li:tag:lineageguard_risk_high",
-  CRITICAL: "urn:li:tag:lineageguard_risk_critical",
+  LOW:      LINEAGEGUARD_TAGS.RISK_LOW.urn,
+  MEDIUM:   LINEAGEGUARD_TAGS.RISK_MEDIUM.urn,
+  HIGH:     LINEAGEGUARD_TAGS.RISK_HIGH.urn,
+  CRITICAL: LINEAGEGUARD_TAGS.RISK_CRITICAL.urn,
 };
 
 /** Marker tag added to every dataset touched by the agent */
-const REVIEWED_TAG = "urn:li:tag:lineageguard_reviewed";
+const REVIEWED_TAG = LINEAGEGUARD_TAGS.REVIEWED.urn;
 
 /**
  * Real DataHub metadata writer.
@@ -87,7 +88,7 @@ export class DataHubRealWriter implements MetadataWriter {
     // Also remove stale risk tags from a previous run (best-effort)
     const staleRiskTags = Object.values(RISK_TAG).filter(t => t !== RISK_TAG[report.level]);
     try {
-      await this.datahub.mutations.removeTags(urn, staleRiskTags);
+      await this.datahub.removeTags(urn, staleRiskTags);
     } catch {
       // Non-fatal — stale tags may not exist yet
     }
@@ -97,22 +98,37 @@ export class DataHubRealWriter implements MetadataWriter {
       results["addTags"] = "ok";
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      logger.warn({ event: "datahub_writeback_tags_failed", urn, error: msg }, `⚠️ Could not add tags: ${msg}`);
-      results["addTags"] = msg;
+      // Check if the error is about tag provisioning failure
+      if (msg.includes("tag provisioning failed") || msg.includes("Tag provisioning")) {
+        logger.warn({
+          event: "datahub_writeback_tag_provisioning_failed",
+          urn,
+          tags: tagsToAdd,
+          error: msg
+        }, `⚠️ Tag provisioning failed - skipping tag operations: ${msg}`);
+        results["addTags"] = "skipped_tag_provisioning_failed";
+      } else {
+        logger.warn({ event: "datahub_writeback_tags_failed", urn, error: msg }, `⚠️ Could not add tags: ${msg}`);
+        results["addTags"] = msg;
+      }
     }
 
     // ── 3. Write structured properties ───────────────────────────────────
     // These land as typed metadata fields on the dataset entity in DataHub.
-    const structuredProps: Record<string, string | number | string[]> = {
-      "urn:li:structuredProperty:lineageguard.riskScore":        report.score,
-      "urn:li:structuredProperty:lineageguard.riskLevel":        report.level,
-      "urn:li:structuredProperty:lineageguard.impactSummary":    report.summary,
-      "urn:li:structuredProperty:lineageguard.affectedColumns":  report.affectedColumns,
-      "urn:li:structuredProperty:lineageguard.requiresApproval": String(report.requiresApproval),
-      "urn:li:structuredProperty:lineageguard.generatedAt":      report.generatedAt,
-      "urn:li:structuredProperty:lineageguard.generatedBy":      report.metadata.generatedBy,
-      "urn:li:structuredProperty:lineageguard.version":          report.metadata.version,
-      "urn:li:structuredProperty:lineageguard.affectedAssets":   report.affectedAssets.map(a => a.urn),
+    // Helper to normalize values: if already an array, use as-is; otherwise wrap in array
+    const normalizeValue = (value: unknown): unknown[] => 
+      Array.isArray(value) ? value : [value];
+
+    const structuredProps: Record<string, unknown[]> = {
+      "urn:li:structuredProperty:lineageguard.riskScore":        normalizeValue(report.score),
+      "urn:li:structuredProperty:lineageguard.riskLevel":        normalizeValue(report.level),
+      "urn:li:structuredProperty:lineageguard.impactSummary":    normalizeValue(report.summary),
+      "urn:li:structuredProperty:lineageguard.affectedColumns":  normalizeValue(report.affectedColumns),
+      "urn:li:structuredProperty:lineageguard.requiresApproval": normalizeValue(String(report.requiresApproval)),
+      "urn:li:structuredProperty:lineageguard.generatedAt":      normalizeValue(report.generatedAt),
+      "urn:li:structuredProperty:lineageguard.generatedBy":      normalizeValue(report.metadata.generatedBy),
+      "urn:li:structuredProperty:lineageguard.version":          normalizeValue(report.metadata.version),
+      "urn:li:structuredProperty:lineageguard.affectedAssets":   normalizeValue(report.affectedAssets.map(a => a.urn)),
     };
 
     try {
@@ -128,12 +144,18 @@ export class DataHubRealWriter implements MetadataWriter {
     // Stamp every impacted downstream asset with the reviewed tag so
     // consumers can see it was assessed.
     let downstreamTagged = 0;
+    let downstreamTagSkipped = 0;
     for (const asset of report.affectedAssets) {
       if (asset.type !== "DATASET") continue;
       try {
         await this.datahub.addTags(asset.urn, [REVIEWED_TAG]);
         downstreamTagged++;
-      } catch {
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        // Check if the error is about tags not existing
+        if (msg.includes("does not exist") || msg.includes("Failed to validate")) {
+          downstreamTagSkipped++;
+        }
         // Non-fatal — downstream assets may not be accessible
       }
     }
@@ -149,11 +171,12 @@ export class DataHubRealWriter implements MetadataWriter {
       succeeded,
       failed,
       downstreamTagged,
+      downstreamTagSkipped,
     }, `✅ DataHub write-back complete
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Dataset:    ${urn}
 Succeeded:  ${succeeded}/${succeeded + failed} operations
-Downstream: ${downstreamTagged} asset(s) tagged
+Downstream: ${downstreamTagged} asset(s) tagged${downstreamTagSkipped > 0 ? ` (${downstreamTagSkipped} skipped - tags not exist)` : ""}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Operations:
 ${Object.entries(results).map(([k, v]) => `  ${v === "ok" ? "✓" : "✗"} ${k}: ${v}`).join("\n")}`);

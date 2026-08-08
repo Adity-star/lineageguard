@@ -66,10 +66,15 @@ export class ApprovalEngine {
     reviewedBy: string,
     reason?: string
   ): ApprovalDecision {
+    // Only set reviewedAt for actual approvals/rejections, not for PENDING
+    const reviewedAt = (decision === "APPROVED" || decision === "REJECTED")
+      ? new Date().toISOString()
+      : undefined;
+
     return {
       status: decision,
       reviewedBy,
-      reviewedAt: new Date().toISOString(),
+      reviewedAt,
       reason,
     };
   }
