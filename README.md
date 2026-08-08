@@ -1,315 +1,247 @@
-# 🛡️ LineageGuard
+# LineageGuard
 
-### AI-powered Schema Change Governance built on DataHub
+### AI-Powered Schema Change Governance Agent
 
-Transform natural language schema changes into validated database migrations with impact analysis, human approval, DataHub write-back, and automated GitHub pull requests.
-
-> **Read → Understand → Plan → Generate → Assess → Approve → Write Back → Pull Request**
-
-![Demo GIF](https://github.com/your-org/lineageguard/assets/demo.gif)
-
----
-
-## Why LineageGuard?
-
-Existing AI tools answer: **"What SQL should I write?"**
-
-LineageGuard answers: **"Should this migration exist at all?"**
+LineageGuard turns natural-language database change requests into governed, risk-aware, auditable changes — using real DataHub context, LLM planning, impact analysis, platform-aware SQL generation, approval gates, and GitHub pull requests.
 
 ---
 
 ## The Problem
 
-Changing a production database is risky.
+Database schema changes are easy to request but difficult to govern.
 
-A single column rename can silently break:
+A simple request such as:
 
-- 📊 Dashboards
-- 🔧 dbt models
-- 📦 Downstream datasets
-- 🔄 Data pipelines
-- 📈 Business reports
+```text
+"Add Customerbalance_9 to users"
+```
 
-Today's AI tools generate SQL without understanding metadata.
+can have consequences for:
 
-That leads to unsafe migrations.
+* downstream datasets
+* dashboards
+* queries
+* pipelines
+* data quality
+* governance
+* production systems
+
+Most AI tools can generate SQL.
+
+The harder problem is determining:
+
+> **Should this change happen, what could it break, and how should it safely reach production?**
 
 ---
 
-## Our Solution
+## The Solution
 
-```
-Natural Language
-       ↓
-    DataHub
-       ↓
-  LineageGuard
-       ↓
- Risk Analysis
-       ↓
-Human Approval
-       ↓
-  GitHub PR
+```text
+Natural Language Request
+          ↓
+   DataHub Context
+          ↓
+    LLM Planning
+          ↓
+ Risk + Impact Analysis
+          ↓
+ Platform-aware SQL
+          ↓
+    Approval Gate
+          ↓
+      GitHub PR
+          ↓
+   DataHub Writeback
 ```
 
-One picture explains everything.
+LineageGuard is a **governance agent**, not just an SQL generator.
 
 ---
 
-## Why DataHub?
+## Why LineageGuard Is Different
 
-LineageGuard uses DataHub as the source of truth.
+**The LLM understands what the user wants. LineageGuard determines how that change should safely proceed.**
 
-Instead of guessing...
+### Hybrid Architecture
 
-It understands:
+* **LLM** → understands natural-language intent and creates a structured execution plan
+* **DataHub** → provides real metadata, schema, ownership, lineage, and governance context
+* **Governance engines** → evaluate risk and impact
+* **SQL generator** → produces platform-aware migrations
+* **Approval engine** → determines whether manual approval is required
+* **GitHub** → provides an auditable delivery mechanism
+* **DataHub writeback** → records governance metadata
 
-✅ Lineage  
-✅ Ownership  
-✅ Documentation  
-✅ Glossary  
-✅ Usage  
-✅ Downstream Dependencies  
+---
 
-Every recommendation is grounded in metadata.
+## Example
+
+👉 See the complete example: [`examples/README.md`](examples/README.md)
+
+```text
+examples/
+├── README.md
+├── architecture.txt
+├── request.json
+├── response.json
+├── migration.sql
+├── rollback.sql
+└── CHANGE_REPORT.md
+```
+
+The example demonstrates one complete LineageGuard workflow from a natural-language request to generated migration, governance analysis, approval, and GitHub delivery.
 
 ---
 
 ## Architecture
 
 ```
-        User
+                    LINEAGEGUARD
+
+    User Request
          │
          ▼
-  Context Engine
+    DataHub Context        ← DataHub + MCP
          │
          ▼
- Planning Engine
+     LLM Planning          ← Grok LLM
          │
          ▼
-   Risk Engine
+   Risk + Impact          ← Governance Engine
+     Analysis
          │
          ▼
-Generator Engine
+   SQL Generation         ← Platform-aware SQL
          │
          ▼
-  Impact Engine
+   Approval Gate          ← Risk-based Rules
          │
          ▼
-Human Approval
+     GitHub PR            ← GitHub API
          │
          ▼
-    DataHub
-         │
-         ▼
-    GitHub
+  DataHub Writeback      ← Metadata Updates
 ```
 
----
-
-## Demo
-
-![Demo GIF](https://github.com/your-org/lineageguard/assets/demo.gif)
-
-**30 seconds to see the complete workflow:**
-
-Prompt → Pipeline → Impact → Approve → GitHub PR
+For the complete technical architecture, pipeline stages, engines, state management, MCP integration, and implementation details, see [`agent/README.md`](agent/README.md).
 
 ---
 
-## Features
+## Core Workflow
 
-🤖 **AI Planning**  
-Natural language to execution plan
+### 1. Context
+Retrieves real dataset metadata from DataHub through MCP.
 
-📊 **Lineage Analysis**  
-Understands downstream dependencies
+### 2. Planning
+Uses the LLM to understand the requested change and produce a structured execution plan.
 
-⚠️ **Risk Detection**  
-Deterministic risk scoring
+### 3. Risk
+Evaluates governance and technical risk.
 
-🧠 **Human Approval**  
-Required for high-risk changes
+### 4. Generation
+Creates and validates a platform-aware migration and rollback.
 
-📝 **SQL Generation**  
-Validated migrations with rollback
+### 5. Impact
+Determines affected downstream assets and governance implications.
 
-🔄 **Rollback**  
-Automatic rollback scripts
+### 6. Approval
+Automatically approves eligible low-risk changes or requires manual approval.
 
-📚 **Documentation**  
-Auto-generated migration docs
+### 7. GitHub
+Creates an auditable branch, commit, and pull request when the change is approved.
 
-🐙 **GitHub PR**  
-Automated pull requests
+---
 
-🏷️ **DataHub Write-back**  
-Metadata governance
+## Key Features
+
+* Natural-language schema change requests
+* DataHub context through MCP
+* LLM-based structured planning
+* Deterministic risk assessment
+* Downstream impact analysis
+* Platform-aware SQL generation
+* SQL validation
+* Automatic/manual approval gates
+* Rollback generation
+* DataHub governance writeback
+* GitHub PR automation
+* Idempotency and auditability
+
+---
+
+## Tech Stack
+
+| Component       | Technology           |
+| --------------- | -------------------- |
+| Runtime         | Node.js / TypeScript |
+| AI              | Grok                 |
+| Metadata        | DataHub              |
+| Integration     | MCP                  |
+| Database        | PostgreSQL / Prisma  |
+| Version Control | GitHub / Octokit     |
 
 ---
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/your-org/lineageguard.git
+# Clone the repository
+git clone https://github.com/Adity-star/lineageguard.git
 cd lineageguard
+
+# Configure environment
 cp .env.example .env
+# Edit .env with your DataHub, GitHub, and database credentials
+
+# Start with Docker Compose
 docker compose up
+
+# Or run the agent directly
+cd agent
+npm install
+npm run dev
 ```
 
-Done.
+For detailed configuration, see [`.env.example`](.env.example).
 
 ---
 
-## Screenshots
+## Documentation
 
-### Dashboard
-![Dashboard](https://github.com/your-org/lineageguard/assets/dashboard.png)
+### Documentation
 
-### Impact Analysis
-![Impact](https://github.com/your-org/lineageguard/assets/impact.png)
+* **[Agent Architecture & Technical Documentation](agent/README.md)**
+  Complete architecture, pipeline stages, engines, state management, MCP integration, services, and implementation details.
 
-### Approval
-![Approval](https://github.com/your-org/lineageguard/assets/approval.png)
-
-### Pull Request
-![PR](https://github.com/your-org/lineageguard/assets/pr.png)
+* **[Working Example](examples/README.md)**
+  Judge-friendly end-to-end demonstration.
 
 ---
 
-## Example Run
+## For Judges
 
-**User Request**
-```
-Rename customer_name to full_name in customers table
-```
+If you have limited time:
 
-**Context**
-- Dataset: customers (Snowflake)
-- Schema: 12 fields
-- Lineage: 3 downstream models
-
-**Plan**
-- Rename column: customer_name → full_name
-- Add index for performance
-- Update documentation
-
-**Risk**
-- Score: 45/100 (MEDIUM)
-- 3 dbt models affected
-- 2 dashboards reference column
-
-**SQL**
-```sql
-ALTER TABLE "customers" RENAME COLUMN "customer_name" TO "full_name";
-CREATE INDEX "idx_customers_full_name" ON "customers"("full_name");
+```text
+1. Read this README
+        ↓
+2. Open examples/README.md
+        ↓
+3. View examples/architecture.txt
+        ↓
+4. Inspect examples/response.json
+        ↓
+5. Inspect examples/migration.sql
+        ↓
+6. Inspect examples/CHANGE_REPORT.md
+        ↓
+7. Open the generated GitHub PR if available
 ```
 
-**Impact**
-- 4 downstream assets affected
-- 2 high priority updates needed
-
-**Approval**
-- Status: PENDING
-- Reviewer: john.doe@company.com
-
-**GitHub PR**
-- Branch: feat/rename-customer-name
-- Files: 3 changed
-- Labels: schema-change, needs-review
-
----
-
-## Project Structure
-
-```
-agent/
-├── context/      # DataHub metadata gathering
-├── planner/      # AI-powered execution planning
-├── risk/         # Deterministic risk scoring
-├── generators/   # SQL & schema generation
-├── impact/       # Impact analysis
-├── approval/     # Human approval workflow
-├── github/       # GitHub PR automation
-└── orchestration/ # Pipeline orchestration
-
-web/
-├── app/          # Next.js pages
-├── components/   # React components
-└── lib/          # Utilities
-```
-
----
-
-## Tech Stack
-
-| Layer | Tech |
-|-------|------|
-| Frontend | Next.js, React, TailwindCSS, Framer Motion |
-| Backend | TypeScript, Express |
-| Database | PostgreSQL + Prisma |
-| AI | Claude (Anthropic) |
-| Metadata | DataHub MCP |
-| Version Control | GitHub API |
-| Containerization | Docker, Docker Compose |
-| CI/CD | GitHub Actions |
-
----
-
-## How It Thinks
-
-```
-User Request
-     ↓
-Reads DataHub
-     ↓
-Understands lineage
-     ↓
-Plans migration
-     ↓
-Validates SQL
-     ↓
-Calculates risk
-     ↓
-Waits for approval
-     ↓
-Writes metadata
-     ↓
-Creates PR
-```
-
-Judges love seeing reasoning.
-
----
-
-## Future Roadmap
-
-- 🔄 Multi-user approval workflows
-- 💬 Slack notifications
-- 🎫 Jira integration
-- 🧠 Incremental learning from approvals
-- 📚 Organization memory
-- ☁️ Multi-cloud support
-- 🌐 Real-time collaboration
-- 📊 Advanced analytics dashboard
-
----
-
-## Team
-
-- **Your Name** - [GitHub](https://github.com/yourname) - [LinkedIn](https://linkedin.com/in/yourname)
-- **Team Member** - [GitHub](https://github.com/teammember) - [LinkedIn](https://linkedin.com/in/teammember)
+This path demonstrates the complete idea without requiring understanding of the entire codebase.
 
 ---
 
 ## License
 
 ISC
-
----
-
-## Support
-
-For issues and questions:
-- GitHub Issues: https://github.com/your-org/lineageguard/issues
-- Email: support@lineageguard.dev 
