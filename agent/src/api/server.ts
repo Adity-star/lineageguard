@@ -10,7 +10,6 @@ import {
   isValidEmail,
   isValidUrn,
   isValidPriority,
-  maskToken
 } from '../../utils/security.js';
 
 const app = express();
@@ -21,7 +20,7 @@ let globalContainer: ReturnType<typeof createContainer> | null = null;
 app.use(express.json());
 
 // In-memory store for demo purposes (replace with database in production)
-const requestStore = new Map<string, any>();
+const requestStore = new Map<string, ChangeRequest>();
 const metricsStore = {
   schemaChanges: 127,
   pendingReviews: 8,
@@ -65,7 +64,6 @@ app.get('/api/v1/metrics', (req: Request, res: Response) => {
 
 // Submit schema change request
 app.post('/api/v1/requests', async (req: Request, res: Response) => {
-  let requestId: string | undefined;
 
   try {
     const { description, datasetUrn, requestedBy, priority } = req.body;
@@ -81,7 +79,7 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         status: 'error',
-        error: 'Invalid input: ' + validationResult.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', '),
+        error: 'Invalid input: ' + validationResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
       });
     }
 
@@ -151,17 +149,27 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
         performance: result.performance 
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const typedError = error instanceof Error
+      ? error
+      : {
+          message: String(error),
+          stack: undefined,
+          name: undefined,
+          cause: undefined,
+          constructor: { name: undefined },
+        };
+
     // Log full error details with proper error serialization
     logger.error(
       {
         err: error,
         requestId,
-        errorType: error?.constructor?.name,
-        errorMessage: error?.message,
-        errorStack: error?.stack,
-        errorCause: error?.cause,
-        errorName: error?.name,
+        errorType: typedError.constructor?.name,
+        errorMessage: typedError.message,
+        errorStack: typedError.stack,
+        errorCause: typedError.cause,
+        errorName: typedError.name,
         rawError: String(error),
       },
       'Failed to process request'
@@ -171,32 +179,32 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
     let userMessage = 'An unexpected error occurred while processing your request';
     let statusCode = 500;
 
-    if (error?.message?.includes('Stage "context" failed')) {
+    if (typedError.message?.includes('Stage "context" failed')) {
       userMessage = 'Unable to retrieve dataset metadata. Please check the dataset URN and try again.';
       statusCode = 400;
-    } else if (error?.message?.includes('Stage "planning" failed')) {
+    } else if (typedError.message?.includes('Stage "planning" failed')) {
       userMessage = 'Unable to generate execution plan. The request description may be unclear.';
       statusCode = 400;
-    } else if (error?.message?.includes('Stage "risk" failed')) {
+    } else if (typedError.message?.includes('Stage "risk" failed')) {
       userMessage = 'Unable to assess risk. Please try again.';
       statusCode = 500;
-    } else if (error?.message?.includes('Stage "generator" failed')) {
+    } else if (typedError.message?.includes('Stage "generator" failed')) {
       userMessage = 'Unable to generate migration. The schema change may not be supported.';
       statusCode = 400;
-    } else if (error?.message?.includes('Stage "impact" failed')) {
+    } else if (typedError.message?.includes('Stage "impact" failed')) {
       userMessage = 'Unable to analyze impact. Please try again.';
       statusCode = 500;
-    } else if (error?.message?.includes('Stage "approval" failed')) {
+    } else if (typedError.message?.includes('Stage "approval" failed')) {
       userMessage = 'Unable to process approval. Please try again.';
       statusCode = 500;
-    } else if (error?.message?.includes('Stage "github" failed')) {
+    } else if (typedError.message?.includes('Stage "github" failed')) {
       userMessage = 'Unable to create pull request. Please check GitHub credentials and try again.';
       statusCode = 500;
-    } else if (error?.message?.includes('Missing required fields')) {
-      userMessage = error.message;
+    } else if (typedError.message?.includes('Missing required fields')) {
+      userMessage = typedError.message;
       statusCode = 400;
-    } else if (error?.message) {
-      userMessage = error.message;
+    } else if (typedError.message) {
+      userMessage = typedError.message;
     }
 
     res.status(statusCode).json({
@@ -238,12 +246,12 @@ app.get('/api/v1/requests', (req: Request, res: Response) => {
 
   // Filter by status if provided
   if (status) {
-    requests = requests.filter((r: any) => r.status === status);
+    requests = requests.filter((r: unknown) => (r as { status: string }).status === status);
   }
 
   // Sort by createdAt descending
-  requests.sort((a: any, b: any) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  requests.sort((a: unknown, b: unknown) => 
+    new Date((b as { createdAt: string }).createdAt).getTime() - new Date((a as { createdAt: string }).createdAt).getTime()
   );
 
   // Apply pagination
@@ -282,7 +290,7 @@ app.post('/api/v1/requests/:id/approval', (req: Request, res: Response) => {
   if (!validationResult.success) {
     return res.status(400).json({
       status: 'error',
-      error: 'Invalid approval input: ' + validationResult.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', '),
+      error: 'Invalid approval input: ' + validationResult.error.issues.map((e) => `${e.path.map(String).join('.')}: ${e.message}`).join(', '),
     });
   }
 
@@ -367,14 +375,14 @@ app.get('/api/v1/datasets', (req: Request, res: Response) => {
   let filteredDatasets = datasets;
 
   if (search) {
-    filteredDatasets = filteredDatasets.filter((d: any) =>
-      d.name.toLowerCase().includes((search as string).toLowerCase())
+    filteredDatasets = filteredDatasets.filter((d: unknown) =>
+      (d as { name: string }).name.toLowerCase().includes((search as string).toLowerCase())
     );
   }
 
   if (platform) {
-    filteredDatasets = filteredDatasets.filter((d: any) =>
-      d.platform === platform
+    filteredDatasets = filteredDatasets.filter((d: unknown) =>
+      (d as { platform: string }).platform === platform
     );
   }
 
@@ -444,7 +452,7 @@ app.get('/api/v1/pull-requests', (req: Request, res: Response) => {
   let filteredPRs = pullRequests;
 
   if (status) {
-    filteredPRs = filteredPRs.filter((pr: any) => pr.status === status);
+    filteredPRs = filteredPRs.filter((pr: unknown) => (pr as { status: string }).status === status);
   }
 
   res.json({
@@ -486,8 +494,8 @@ app.get('/api/v1/pull-requests/:number', (req: Request, res: Response) => {
 });
 
 // Error handler
-app.use((err: any, req: Request, res: Response, next: any) => {
-  logger.error('Unhandled error', err);
+app.use((err: Error, req: Request, res: Response) => {
+  logger.error({ err }, 'Unhandled error');
   res.status(500).json({
     status: 'error',
     error: 'Internal server error',

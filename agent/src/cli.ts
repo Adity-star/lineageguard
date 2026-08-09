@@ -5,6 +5,8 @@ import { logger } from '../config/logger.js';
 import { createContainer } from '../container/index.js';
 import { ChangeRequest } from '../mcp/types.js';
 
+// type Priority = 'low' | 'medium' | 'high';
+
 const program = new Command();
 
 program
@@ -19,7 +21,7 @@ program
   .option('-d, --dataset <urn>', 'Target dataset URN')
   .option('-r, --requested-by <email>', 'Requester email')
   .option('-p, --priority <level>', 'Priority level (low, medium, high)', 'medium')
-  .action(async (description: string, options: any) => {
+  .action(async (description: string, options: { dataset: string; requestedBy: string; priority: string }) => {
     try {
       logger.info('Submitting schema change request');
 
@@ -40,8 +42,8 @@ program
       if (result.github) {
         logger.info(`\nPull Request: ${result.github.url}`);
       }
-    } catch (error: any) {
-      logger.error('Workflow failed', error);
+    } catch (error: unknown) {
+      logger.error({ err: error }, 'Workflow failed');
       process.exit(1);
     }
   });
@@ -63,8 +65,8 @@ program
       logger.info('grok Connection: OK (configured)');
 
       logger.info('Health check completed');
-    } catch (error: any) {
-      logger.error('Health check failed', error);
+    } catch (error: unknown) {
+      logger.error({ err: error }, 'Health check failed');
       process.exit(1);
     }
   });
@@ -72,16 +74,16 @@ program
 program
   .command('serve')
   .description('Start the REST API server')
-  .option('-p, --port <number>', 'Port to listen on', '3000')
-  .action(async (options: any) => {
+  .option('-p, --port <port>', 'Port to listen on', '3000')
+  .action(async (options: { port: string }) => {
     try {
       logger.info(`Starting REST API server on port ${options.port}`);
 
       // Import and start the API server
       const { startServer } = await import('./api/server.js');
       await startServer(parseInt(options.port));
-    } catch (error: any) {
-      logger.error('Failed to start server', error);
+    } catch (error: unknown) {
+      logger.error({ err: error }, 'Failed to start server');
       process.exit(1);
     }
   });
