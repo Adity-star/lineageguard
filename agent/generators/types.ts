@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 /**
  * DDL (Data Definition Language) generated for a specific platform.
@@ -18,7 +18,7 @@ export const DDLArtifactSchema = z.object({
   operationType: z.string().optional(),
 
   /** Validation status: "validated" if tested, "generated" if not yet validated */
-  validationStatus: z.enum(["validated", "generated", "unvalidated"]),
+  validationStatus: z.enum(['validated', 'generated', 'unvalidated']),
 
   /** Validation errors if applicable */
   validationErrors: z.array(z.string()).optional(),
@@ -56,20 +56,16 @@ export const RollbackArtifactSchema = z.object({
   automatic: z.boolean(),
 });
 
-export type RollbackArtifact = z.infer<
-  typeof RollbackArtifactSchema
->;
+export type RollbackArtifact = z.infer<typeof RollbackArtifactSchema>;
 
 /**
  * Markdown documentation.
  */
-export const DocumentationArtifactSchema =
-  z.object({
-    markdown: z.string(),
-  });
+export const DocumentationArtifactSchema = z.object({
+  markdown: z.string(),
+});
 
-export type DocumentationArtifact =
-  z.infer<typeof DocumentationArtifactSchema>;
+export type DocumentationArtifact = z.infer<typeof DocumentationArtifactSchema>;
 
 /**
  * Optional dbt changes.
@@ -78,9 +74,7 @@ export const DbtArtifactSchema = z.object({
   files: z.array(z.string()),
 });
 
-export type DbtArtifact = z.infer<
-  typeof DbtArtifactSchema
->;
+export type DbtArtifact = z.infer<typeof DbtArtifactSchema>;
 
 /**
  * Final output of the Code Generation Engine.
@@ -94,12 +88,9 @@ export const GenerationResultSchema = z.object({
 
   rollback: RollbackArtifactSchema,
 
-  documentation:
-    DocumentationArtifactSchema,
+  documentation: DocumentationArtifactSchema,
 
   dbt: DbtArtifactSchema.optional(),
 });
 
-export type GenerationResult = z.infer<
-  typeof GenerationResultSchema
->;
+export type GenerationResult = z.infer<typeof GenerationResultSchema>;

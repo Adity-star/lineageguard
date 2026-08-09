@@ -1,12 +1,8 @@
-import { ContextBundle } from "../context/type.js";
-import { logger } from "../config/logger.js";
+import { ContextBundle } from '../context/type.js';
+import { logger } from '../config/logger.js';
 
 export class ReviewerResolver {
-
-  resolve(
-    context: ContextBundle
-  ): string[] {
-
+  resolve(context: ContextBundle): string[] {
     const reviewers = new Set<string>();
 
     // Add dataset owners as reviewers
@@ -19,7 +15,5 @@ export class ReviewerResolver {
     }
 
     return [...reviewers];
-
   }
-
 }

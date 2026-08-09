@@ -1,5 +1,8 @@
-import { logger } from "../config/logger.js";
-import { MutationToolRegistry, MutationToolSchema } from "./mutation-registry.js";
+import { logger } from '../config/logger.js';
+import {
+  MutationToolRegistry,
+  MutationToolSchema,
+} from './mutation-registry.js';
 
 /**
  * Result of building and validating a mutation payload.
@@ -37,17 +40,17 @@ export class MutationValidator {
    */
   buildAddTagsPayload(
     entityUrns: string | string[],
-    tagUrns: string | string[]
+    tagUrns: string | string[],
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("add_tags");
+    const schema = this.registry.requireTool('add_tags');
 
     const payload = this.buildPayload(
-      "add_tags",
+      'add_tags',
       {
         entity_urns: this.ensureArray(entityUrns),
         tag_urns: this.ensureArray(tagUrns),
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -58,17 +61,17 @@ export class MutationValidator {
    */
   buildRemoveTagsPayload(
     entityUrns: string | string[],
-    tagUrns: string | string[]
+    tagUrns: string | string[],
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("remove_tags");
+    const schema = this.registry.requireTool('remove_tags');
 
     const payload = this.buildPayload(
-      "remove_tags",
+      'remove_tags',
       {
         entity_urns: this.ensureArray(entityUrns),
         tag_urns: this.ensureArray(tagUrns),
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -80,9 +83,9 @@ export class MutationValidator {
   buildUpdateDescriptionPayload(
     entityUrn: string,
     description: string,
-    fieldPath?: string
+    fieldPath?: string,
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("update_description");
+    const schema = this.registry.requireTool('update_description');
 
     const basePayload: Record<string, any> = {
       entity_urn: entityUrn,
@@ -93,7 +96,11 @@ export class MutationValidator {
       basePayload.field_path = fieldPath;
     }
 
-    const payload = this.buildPayload("update_description", basePayload, schema);
+    const payload = this.buildPayload(
+      'update_description',
+      basePayload,
+      schema,
+    );
 
     return payload;
   }
@@ -103,17 +110,17 @@ export class MutationValidator {
    */
   buildAddTermsPayload(
     entityUrns: string | string[],
-    termUrns: string | string[]
+    termUrns: string | string[],
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("add_terms");
+    const schema = this.registry.requireTool('add_terms');
 
     const payload = this.buildPayload(
-      "add_terms",
+      'add_terms',
       {
         entity_urns: this.ensureArray(entityUrns),
         term_urns: this.ensureArray(termUrns),
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -124,17 +131,17 @@ export class MutationValidator {
    */
   buildRemoveTermsPayload(
     entityUrns: string | string[],
-    termUrns: string | string[]
+    termUrns: string | string[],
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("remove_terms");
+    const schema = this.registry.requireTool('remove_terms');
 
     const payload = this.buildPayload(
-      "remove_terms",
+      'remove_terms',
       {
         entity_urns: this.ensureArray(entityUrns),
         term_urns: this.ensureArray(termUrns),
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -145,17 +152,17 @@ export class MutationValidator {
    */
   buildAddOwnersPayload(
     entityUrns: string | string[],
-    owners: Array<{ owner_urn: string; ownership_type?: string }>
+    owners: Array<{ owner_urn: string; ownership_type?: string }>,
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("add_owners");
+    const schema = this.registry.requireTool('add_owners');
 
     const payload = this.buildPayload(
-      "add_owners",
+      'add_owners',
       {
         entity_urns: this.ensureArray(entityUrns),
         owners,
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -166,17 +173,17 @@ export class MutationValidator {
    */
   buildRemoveOwnersPayload(
     entityUrns: string | string[],
-    ownerUrns: string | string[]
+    ownerUrns: string | string[],
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("remove_owners");
+    const schema = this.registry.requireTool('remove_owners');
 
     const payload = this.buildPayload(
-      "remove_owners",
+      'remove_owners',
       {
         entity_urns: this.ensureArray(entityUrns),
         owner_urns: this.ensureArray(ownerUrns),
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -187,17 +194,17 @@ export class MutationValidator {
    */
   buildSetDomainPayload(
     entityUrns: string | string[],
-    domainUrn: string
+    domainUrn: string,
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("set_domains");
+    const schema = this.registry.requireTool('set_domains');
 
     const payload = this.buildPayload(
-      "set_domains",
+      'set_domains',
       {
         entity_urns: this.ensureArray(entityUrns),
         domain_urn: domainUrn,
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -207,16 +214,16 @@ export class MutationValidator {
    * Build a payload for removing domain.
    */
   buildRemoveDomainPayload(
-    entityUrns: string | string[]
+    entityUrns: string | string[],
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("remove_domains");
+    const schema = this.registry.requireTool('remove_domains');
 
     const payload = this.buildPayload(
-      "remove_domains",
+      'remove_domains',
       {
         entity_urns: this.ensureArray(entityUrns),
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -227,17 +234,17 @@ export class MutationValidator {
    */
   buildAddStructuredPropertiesPayload(
     entityUrns: string | string[],
-    propertyValues: Record<string, unknown[]>
+    propertyValues: Record<string, unknown[]>,
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("add_structured_properties");
+    const schema = this.registry.requireTool('add_structured_properties');
 
     const payload = this.buildPayload(
-      "add_structured_properties",
+      'add_structured_properties',
       {
         entity_urns: this.ensureArray(entityUrns),
         property_values: propertyValues,
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -248,17 +255,17 @@ export class MutationValidator {
    */
   buildRemoveStructuredPropertiesPayload(
     entityUrns: string | string[],
-    propertyUrns: string | string[]
+    propertyUrns: string | string[],
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("remove_structured_properties");
+    const schema = this.registry.requireTool('remove_structured_properties');
 
     const payload = this.buildPayload(
-      "remove_structured_properties",
+      'remove_structured_properties',
       {
         entity_urns: this.ensureArray(entityUrns),
         property_urns: this.ensureArray(propertyUrns),
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -270,18 +277,18 @@ export class MutationValidator {
   buildSaveDocumentPayload(
     entityUrn: string,
     documentTitle: string,
-    documentUrl: string
+    documentUrl: string,
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("save_document");
+    const schema = this.registry.requireTool('save_document');
 
     const payload = this.buildPayload(
-      "save_document",
+      'save_document',
       {
         entity_urn: entityUrn,
         document_title: documentTitle,
         document_url: documentUrl,
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -292,17 +299,17 @@ export class MutationValidator {
    */
   buildSetLifecycleStagePayload(
     entityUrns: string | string[],
-    stage: string
+    stage: string,
   ): MutationPayloadResult {
-    const schema = this.registry.requireTool("set_lifecycle_stage");
+    const schema = this.registry.requireTool('set_lifecycle_stage');
 
     const payload = this.buildPayload(
-      "set_lifecycle_stage",
+      'set_lifecycle_stage',
       {
         entity_urns: this.ensureArray(entityUrns),
         lifecycle_stage: stage,
       },
-      schema
+      schema,
     );
 
     return payload;
@@ -319,7 +326,7 @@ export class MutationValidator {
   private buildPayload(
     toolName: string,
     candidatePayload: Record<string, any>,
-    schema: MutationToolSchema
+    schema: MutationToolSchema,
   ): MutationPayloadResult {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -335,7 +342,7 @@ export class MutationValidator {
         }
       } else {
         warnings.push(
-          `Parameter "${key}" is not recognized by "${toolName}". Skipping.`
+          `Parameter "${key}" is not recognized by "${toolName}". Skipping.`,
         );
       }
     }
@@ -344,7 +351,7 @@ export class MutationValidator {
     for (const required of schema.requiredParameters) {
       if (!(required in payload)) {
         errors.push(
-          `Required parameter missing for "${toolName}": "${required}"`
+          `Required parameter missing for "${toolName}": "${required}"`,
         );
       }
     }
@@ -354,21 +361,21 @@ export class MutationValidator {
       if (param.name in payload) {
         const value = payload[param.name];
 
-        if (param.type === "array" && !Array.isArray(value)) {
+        if (param.type === 'array' && !Array.isArray(value)) {
           errors.push(
-            `Parameter "${param.name}" for "${toolName}" must be an array`
+            `Parameter "${param.name}" for "${toolName}" must be an array`,
           );
         }
 
-        if (param.type === "string" && typeof value !== "string") {
+        if (param.type === 'string' && typeof value !== 'string') {
           errors.push(
-            `Parameter "${param.name}" for "${toolName}" must be a string`
+            `Parameter "${param.name}" for "${toolName}" must be a string`,
           );
         }
 
-        if (param.type === "object" && typeof value !== "object") {
+        if (param.type === 'object' && typeof value !== 'object') {
           errors.push(
-            `Parameter "${param.name}" for "${toolName}" must be an object`
+            `Parameter "${param.name}" for "${toolName}" must be an object`,
           );
         }
       }
@@ -376,7 +383,7 @@ export class MutationValidator {
 
     return {
       valid: errors.length === 0,
-      payload: errors.length === 0 ? payload : undefined,
+      ...(errors.length === 0 && { payload }),
       errors,
       warnings,
     };
@@ -403,7 +410,7 @@ export class MutationValidator {
    */
   validatePayload(
     toolName: string,
-    payload: Record<string, any>
+    payload: Record<string, any>,
   ): { valid: boolean; errors: string[] } {
     return this.registry.validatePayload(toolName, payload);
   }

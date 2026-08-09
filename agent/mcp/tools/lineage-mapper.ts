@@ -1,9 +1,14 @@
-import { logger } from "../../config/logger.js";
-import { Lineage, LineageNode, LineageNodeSchema, LineageSchema } from "../types.js";
+import { logger } from '../../config/logger.js';
+import {
+  Lineage,
+  LineageNode,
+  LineageNodeSchema,
+  LineageSchema,
+} from '../types.js';
 
 /**
  * Maps DataHub MCP server lineage responses to internal Lineage model.
- * 
+ *
  * Handles variations in lineage response format across DataHub MCP versions.
  * The MCP server might return:
  * - { upstream: [...], downstream: [...] }
@@ -14,37 +19,37 @@ import { Lineage, LineageNode, LineageNodeSchema, LineageSchema } from "../types
 export class LineageMapper {
   /**
    * Map raw MCP lineage response to internal Lineage model.
-   * 
+   *
    * Handles multiple response formats:
    * - Direct upstream/downstream arrays
    * - Nested in edges/relationships
    * - Empty/missing lineage
    */
   static mapLineage(rawResponse: any): Lineage {
-    if (!rawResponse || typeof rawResponse !== "object") {
+    if (!rawResponse || typeof rawResponse !== 'object') {
       logger.warn(
         {
-          event: "lineage_mapper_invalid_input",
+          event: 'lineage_mapper_invalid_input',
           responseType: typeof rawResponse,
         },
-        "Invalid lineage response - returning empty lineage"
+        'Invalid lineage response - returning empty lineage',
       );
       return { upstream: [], downstream: [] };
     }
 
     // Extract upstream
     const upstream = this.extractUpstream(rawResponse);
-    
+
     // Extract downstream
     const downstream = this.extractDownstream(rawResponse);
 
     logger.debug(
       {
-        event: "lineage_mapped",
+        event: 'lineage_mapped',
         upstreamCount: upstream.length,
         downstreamCount: downstream.length,
       },
-      `Mapped lineage: ${upstream.length} upstream, ${downstream.length} downstream`
+      `Mapped lineage: ${upstream.length} upstream, ${downstream.length} downstream`,
     );
 
     return { upstream, downstream };
@@ -56,20 +61,20 @@ export class LineageMapper {
   private static extractUpstream(response: any): LineageNode[] {
     // Try direct upstream array
     if (Array.isArray(response.upstream)) {
-      return this.mapNodes(response.upstream, "upstream");
+      return this.mapNodes(response.upstream, 'upstream');
     }
 
     // Try upstreamEdges
     if (Array.isArray(response.upstreamEdges)) {
-      return this.mapEdgesToNodes(response.upstreamEdges, "upstream");
+      return this.mapEdgesToNodes(response.upstreamEdges, 'upstream');
     }
 
     // Try relationships with direction filter
     if (Array.isArray(response.relationships)) {
       const upstreamRels = response.relationships.filter(
-        (rel: any) => rel.direction === "upstream" || rel.type === "upstream"
+        (rel: any) => rel.direction === 'upstream' || rel.type === 'upstream',
       );
-      return this.mapNodes(upstreamRels, "upstream");
+      return this.mapNodes(upstreamRels, 'upstream');
     }
 
     // No upstream found
@@ -82,20 +87,21 @@ export class LineageMapper {
   private static extractDownstream(response: any): LineageNode[] {
     // Try direct downstream array
     if (Array.isArray(response.downstream)) {
-      return this.mapNodes(response.downstream, "downstream");
+      return this.mapNodes(response.downstream, 'downstream');
     }
 
     // Try downstreamEdges
     if (Array.isArray(response.downstreamEdges)) {
-      return this.mapEdgesToNodes(response.downstreamEdges, "downstream");
+      return this.mapEdgesToNodes(response.downstreamEdges, 'downstream');
     }
 
     // Try relationships with direction filter
     if (Array.isArray(response.relationships)) {
       const downstreamRels = response.relationships.filter(
-        (rel: any) => rel.direction === "downstream" || rel.type === "downstream"
+        (rel: any) =>
+          rel.direction === 'downstream' || rel.type === 'downstream',
       );
-      return this.mapNodes(downstreamRels, "downstream");
+      return this.mapNodes(downstreamRels, 'downstream');
     }
 
     // No downstream found
@@ -105,7 +111,10 @@ export class LineageMapper {
   /**
    * Map an array of raw nodes to LineageNode array.
    */
-  private static mapNodes(rawNodes: any[], direction: "upstream" | "downstream"): LineageNode[] {
+  private static mapNodes(
+    rawNodes: any[],
+    direction: 'upstream' | 'downstream',
+  ): LineageNode[] {
     if (!Array.isArray(rawNodes) || rawNodes.length === 0) {
       return [];
     }
@@ -121,12 +130,12 @@ export class LineageMapper {
       } catch (error) {
         logger.warn(
           {
-            event: "lineage_node_mapping_failed",
+            event: 'lineage_node_mapping_failed',
             direction,
             index: i,
             error: error instanceof Error ? error.message : String(error),
           },
-          `Failed to map ${direction} node at index ${i}`
+          `Failed to map ${direction} node at index ${i}`,
         );
       }
     }
@@ -138,7 +147,10 @@ export class LineageMapper {
    * Map edge objects to LineageNode array.
    * Edges typically have: { entity: {...}, type: "..." }
    */
-  private static mapEdgesToNodes(edges: any[], direction: "upstream" | "downstream"): LineageNode[] {
+  private static mapEdgesToNodes(
+    edges: any[],
+    direction: 'upstream' | 'downstream',
+  ): LineageNode[] {
     if (!Array.isArray(edges) || edges.length === 0) {
       return [];
     }
@@ -158,7 +170,7 @@ export class LineageMapper {
    * Map a single raw node to LineageNode.
    */
   private static mapNode(rawNode: any): LineageNode | null {
-    if (!rawNode || typeof rawNode !== "object") {
+    if (!rawNode || typeof rawNode !== 'object') {
       return null;
     }
 
@@ -167,10 +179,10 @@ export class LineageMapper {
     if (!urn) {
       logger.warn(
         {
-          event: "lineage_node_missing_urn",
+          event: 'lineage_node_missing_urn',
           nodeKeys: Object.keys(rawNode),
         },
-        "Lineage node missing URN - skipping"
+        'Lineage node missing URN - skipping',
       );
       return null;
     }
@@ -179,26 +191,26 @@ export class LineageMapper {
     let name = rawNode.name || rawNode.title || rawNode.displayName;
     if (!name) {
       // Try to extract from URN as fallback
-      const urnParts = urn.split(",");
+      const urnParts = urn.split(',');
       if (urnParts.length > 0) {
-        name = urnParts[urnParts.length - 1].split(")")[0].trim();
+        name = urnParts[urnParts.length - 1].split(')')[0].trim();
       }
       if (!name) {
-        name = "Unknown Entity";
+        name = 'Unknown Entity';
       }
     }
 
     // Extract entity type
     let entityType = rawNode.entityType || rawNode.type || rawNode.kind;
-    
+
     // Normalize entity type to match our enum
     if (entityType) {
       entityType = this.normalizeEntityType(entityType);
     }
-    
+
     // Default to dataset if not specified
     if (!entityType) {
-      entityType = "dataset";
+      entityType = 'dataset';
     }
 
     return {
@@ -213,28 +225,28 @@ export class LineageMapper {
    */
   private static normalizeEntityType(type: string): string {
     const normalized = type.toLowerCase();
-    
+
     // Map common variations
     const typeMap: Record<string, string> = {
-      "dataset": "dataset",
-      "datasets": "dataset",
-      "table": "dataset",
-      "view": "dataset",
-      "dashboard": "dashboard",
-      "dashboards": "dashboard",
-      "chart": "chart",
-      "charts": "chart",
-      "datajob": "dataJob",
-      "job": "dataJob",
-      "pipeline": "dataJob",
-      "mlmodel": "mlModel",
-      "model": "mlModel",
-      "container": "container",
-      "domain": "domain",
-      "tag": "tag",
-      "glossaryterm": "glossaryTerm",
-      "term": "glossaryTerm",
-      "assertion": "assertion",
+      dataset: 'dataset',
+      datasets: 'dataset',
+      table: 'dataset',
+      view: 'dataset',
+      dashboard: 'dashboard',
+      dashboards: 'dashboard',
+      chart: 'chart',
+      charts: 'chart',
+      datajob: 'dataJob',
+      job: 'dataJob',
+      pipeline: 'dataJob',
+      mlmodel: 'mlModel',
+      model: 'mlModel',
+      container: 'container',
+      domain: 'domain',
+      tag: 'tag',
+      glossaryterm: 'glossaryTerm',
+      term: 'glossaryTerm',
+      assertion: 'assertion',
     };
 
     return typeMap[normalized] || type;
@@ -248,7 +260,8 @@ export class LineageMapper {
       LineageSchema.parse(lineage);
       return { valid: true };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return { valid: false, error: errorMessage };
     }
   }
@@ -258,11 +271,11 @@ export class LineageMapper {
    */
   static mapAndValidate(rawResponse: any): Lineage {
     const mapped = this.mapLineage(rawResponse);
-    
+
     const validation = this.validate(mapped);
     if (!validation.valid) {
       throw new Error(
-        `Lineage validation failed: ${validation.error}. Mapped: ${JSON.stringify(mapped)}`
+        `Lineage validation failed: ${validation.error}. Mapped: ${JSON.stringify(mapped)}`,
       );
     }
 
@@ -277,11 +290,11 @@ export class LineageMapper {
     requestPayload: any,
     rawResponse: any,
     mappedLineage: Lineage,
-    durationMs: number
+    durationMs: number,
   ): void {
     logger.debug(
       {
-        event: "lineage_mapping_complete",
+        event: 'lineage_mapping_complete',
         toolName,
         requestPayload,
         rawResponseKeys: rawResponse ? Object.keys(rawResponse) : [],
@@ -291,7 +304,7 @@ export class LineageMapper {
         sampleUpstream: mappedLineage.upstream[0],
         sampleDownstream: mappedLineage.downstream[0],
       },
-      `Mapped lineage: ${mappedLineage.upstream.length} upstream, ${mappedLineage.downstream.length} downstream`
+      `Mapped lineage: ${mappedLineage.upstream.length} upstream, ${mappedLineage.downstream.length} downstream`,
     );
   }
 }

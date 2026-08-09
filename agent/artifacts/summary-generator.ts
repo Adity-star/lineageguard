@@ -1,11 +1,8 @@
-import { ExecutionPlan } from "../planner/types.js";
-import { RiskAssessment } from "../risk/types.js";
+import { ExecutionPlan } from '../planner/types.js';
+import { RiskAssessment } from '../risk/types.js';
 
 export class SummaryGenerator {
-  generate(
-    plan: ExecutionPlan,
-    risk: RiskAssessment
-  ): string {
+  generate(plan: ExecutionPlan, risk: RiskAssessment): string {
     return [
       `# Change Summary`,
       ``,
@@ -27,12 +24,12 @@ export class SummaryGenerator {
       `## Assumptions`,
       ...(plan.assumptions.length
         ? plan.assumptions.map((a) => `- ${a}`)
-        : ["- None"]),
+        : ['- None']),
       ``,
       `## Missing Information`,
       ...(plan.missingInformation.length
         ? plan.missingInformation.map((i) => `- ${i}`)
-        : ["- None"])
-    ].join("\n");
+        : ['- None']),
+    ].join('\n');
   }
 }

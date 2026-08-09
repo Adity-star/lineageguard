@@ -1,6 +1,6 @@
-import pino from "pino";
-import { env } from "./env.js";
-import { randomUUID } from "crypto";
+import pino from 'pino';
+import { env } from './env.js';
+import { randomUUID } from 'crypto';
 
 interface LogContext {
   correlationId?: string;
@@ -19,13 +19,13 @@ const baseOptions: any = {
   timestamp: pino.stdTimeFunctions.isoTime,
 };
 
-if (env.NODE_ENV === "development") {
+if (env.NODE_ENV === 'development') {
   baseOptions.transport = {
-    target: "pino-pretty",
+    target: 'pino-pretty',
     options: {
       colorize: true,
-      translateTime: "HH:MM:ss Z",
-      ignore: "pid,hostname",
+      translateTime: 'HH:MM:ss Z',
+      ignore: 'pid,hostname',
     },
   };
 }

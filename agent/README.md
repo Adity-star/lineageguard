@@ -11,7 +11,7 @@ This is **NOT** simply an LLM generating SQL — it's a comprehensive governance
 
 ## What Problem It Solves
 
-A developer might request: *"Add column Customerbalance to SampleHdfsDataset"*
+A developer might request: _"Add column Customerbalance to SampleHdfsDataset"_
 
 A raw LLM could generate SQL, but that doesn't answer critical governance questions:
 
@@ -67,20 +67,20 @@ DataHub Writeback (Metadata Updates)
 ```mermaid
 graph TD
     Entry[Entry Points<br/>CLI | API | Direct] --> Container
-    
+
     subgraph Container [Dependency Injection]
         Prod[ProductionContainer]
         Dev[DevelopmentContainer]
     end
-    
+
     Container --> Orchestrator
-    
+
     subgraph Orchestrator [Orchestrator]
         Orch[Orchestrator<br/>Workflow Coordination]
     end
-    
+
     Orchestrator --> Pipeline
-    
+
     subgraph Pipeline [7-Stage Pipeline]
         Context[Context Stage]
         Planning[Planning Stage]
@@ -89,7 +89,7 @@ graph TD
         Impact[Impact Stage]
         Approval[Approval Stage]
         GitHub[GitHub Stage]
-        
+
         Context --> Planning
         Planning --> Risk
         Risk --> Generator
@@ -97,28 +97,28 @@ graph TD
         Impact --> Approval
         Approval --> GitHub
     end
-    
+
     Pipeline --> State[StateStore<br/>Data Flow]
-    
+
     subgraph External [External Integrations]
         DataHub[DataHub via MCP<br/>mcp-server-datahub]
         Grok[Grok LLM<br/>Planning]
         GitHubAPI[GitHub API<br/>Octokit]
         Postgres[PostgreSQL<br/>Prisma ORM]
     end
-    
+
     Context --> DataHub
     Planning --> Grok
     GitHub --> GitHubAPI
     Orchestrator --> Postgres
-    
+
     subgraph Support [Supporting Services]
         Idempotency[Idempotency Service]
         Logger[Structured Logging]
         Performance[Performance Tracker]
         Config[Configuration]
     end
-    
+
     Orchestrator --> Idempotency
     Pipeline --> Logger
     Pipeline --> Performance
@@ -128,9 +128,11 @@ graph TD
 ## Entry Points
 
 ### CLI (`src/cli.ts`)
+
 **Purpose**: Command-line interface for submitting change requests and health checks
 
 **Usage**:
+
 ```bash
 npm run cli request "Add column Customerbalance to SampleHdfsDataset"
 npm run cli health
@@ -138,24 +140,29 @@ npm run cli serve --port 3000
 ```
 
 **How it works**:
+
 - Parses command-line arguments using Commander.js
 - Creates container with appropriate implementations
 - Calls `orchestrator.execute()` with the change request
 - Returns workflow results including GitHub PR URL if created
 
 ### API Server (`src/api/server.ts`)
+
 **Purpose**: REST API server for HTTP-based requests
 
 **How it works**:
+
 - Starts Express server on configured port
 - Provides endpoints for submitting change requests
 - Delegates to orchestrator for workflow execution
 - Returns JSON responses with workflow state
 
 ### Direct Execution (`src/index.ts`)
+
 **Purpose**: Direct entry point for running the agent as a service
 
 **How it works**:
+
 - Starts API server on port 3001
 - Sets up graceful shutdown handlers
 - Initializes logging and error handling
@@ -163,26 +170,32 @@ npm run cli serve --port 3000
 ## Dependency Injection / Container
 
 ### ProductionContainer
+
 Uses real implementations for all external dependencies:
+
 - **MCP**: Real DataHub connection via STDIO transport to `mcp-server-datahub`
 - **LLM**: Real Grok client for planning
 - **GitHub**: Real Octokit client for GitHub API
 - **Database**: Real PostgreSQL via Prisma for persistence
 
 ### DevelopmentContainer
+
 Uses mock implementations for testing:
+
 - Mock MCP client with predefined responses
 - Mock GitHub client that returns fake PR URLs
 - Mock idempotency service that bypasses database
 - Intended for development and testing only
 
 ### Why Dependency Injection?
+
 - **Testing**: Easy to swap real implementations with mocks
 - **Configuration**: Different environments get appropriate implementations
 - **Separation**: Infrastructure concerns separated from business logic
 - **Flexibility**: Easy to add new implementations without changing core logic
 
 ### Injected Services
+
 - ContextEngine, PlanningEngine, RiskEngine, Generator, ImpactEngine, ApprovalEngine, GitHubEngine
 - MCPClient, DataHubClient, GitHubClient
 - IdempotencyService, Logger, PerformanceTracker
@@ -193,6 +206,7 @@ Uses mock implementations for testing:
 The orchestrator (`orchestration/orchestrator.ts`) is the central workflow coordinator:
 
 ### Responsibilities
+
 - **Workflow Coordination**: Manages the end-to-end execution of the 7-stage pipeline
 - **Run IDs**: Generates unique identifiers for each workflow execution
 - **Idempotency**: Generates and validates idempotency keys to prevent duplicate operations
@@ -203,7 +217,9 @@ The orchestrator (`orchestration/orchestrator.ts`) is the central workflow coord
 - **Final Result Handling**: Returns complete workflow state with all artifacts
 
 ### Failure Behavior
+
 When a stage fails:
+
 1. Error is caught and logged with full context (stage name, state, error details)
 2. Workflow event FAILED is emitted
 3. Idempotency record is marked as failed
@@ -211,7 +227,9 @@ When a stage fails:
 5. Pipeline execution stops immediately (fail-fast behavior)
 
 ### State Management
+
 The orchestrator uses a StateStore that accumulates data through the pipeline:
+
 - Each stage reads from the state
 - Each stage adds its results to the state
 - Final state contains all workflow artifacts
@@ -224,10 +242,12 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 
 **Purpose**: Gather comprehensive metadata from DataHub about the target dataset
 
-**Inputs**: 
+**Inputs**:
+
 - ChangeRequest (description, datasetUrn, requestedBy, priority, etc.)
 
 **Processing**:
+
 - Resolves dataset URN to actual dataset
 - Collects metadata through multiple stages:
   - DatasetResolverStage: Finds the dataset
@@ -240,6 +260,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 - Enriches with extended metadata (domain, related dashboards, pipelines, dbt models)
 
 **Outputs**: ContextBundle containing:
+
 - Dataset metadata (name, platform, description, owners, tags, glossary terms, domain)
 - Schema (array of SchemaField with fieldPath, type, nullable, description, tags)
 - Lineage (upstream and downstream nodes)
@@ -250,7 +271,8 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 
 **External Dependencies**: DataHub via MCP (DataHubClient)
 
-**Failure Behavior**: 
+**Failure Behavior**:
+
 - Retries up to 3 times for each sub-stage
 - Fails if dataset cannot be resolved
 - Fails if critical metadata is unavailable
@@ -259,11 +281,13 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 
 **Purpose**: Use LLM to understand natural language request and create structured execution plan
 
-**Inputs**: 
+**Inputs**:
+
 - ChangeRequest
 - ContextBundle (from Context stage)
 
 **Processing**:
+
 - PlanningEngine coordinates the planning process
 - Planner builds prompts from request and context
 - Prompts are sanitized to prevent injection attacks
@@ -272,6 +296,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 - PlanningValidator validates the parsed plan
 
 **Outputs**: PlanningResult containing:
+
 - ExecutionPlan with:
   - intent (summary of the change)
   - affectedColumns (list of column names)
@@ -285,6 +310,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 **External Dependencies**: Grok LLM via GrokClient
 
 **Failure Behavior**:
+
 - Fails if LLM request fails
 - Fails if parsing fails
 - Fails if validation fails
@@ -294,10 +320,12 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 **Purpose**: Assess the risk of the proposed change using deterministic rules
 
 **Inputs**:
+
 - ExecutionPlan (from Planning stage)
 - ContextBundle (from Context stage)
 
 **Processing**:
+
 - RiskCalculator calculates metrics:
   - downstreamDatasets (count of downstream dependencies)
   - queryCount (number of related queries)
@@ -312,6 +340,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 - Recommendations are generated based on risk level
 
 **Outputs**: RiskAssessment containing:
+
 - overallRisk (LOW/MEDIUM/HIGH/CRITICAL)
 - score (0-100)
 - affectedAssets (datasets, dashboards, queries counts)
@@ -322,6 +351,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 **External Dependencies**: None (deterministic)
 
 **Failure Behavior**:
+
 - Fails if risk calculation fails
 - Fails if validation fails
 
@@ -330,11 +360,13 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 **Purpose**: Generate platform-specific SQL DDL, rollback scripts, and documentation
 
 **Inputs**:
+
 - ContextBundle (from Context stage)
 - ExecutionPlan (from Planning stage)
 - RiskAssessment (from Risk stage)
 
 **Processing**:
+
 - PlatformAwareSQLGenerator generates platform-specific DDL:
   - Detects platform from plan or context (Snowflake, Postgres, BigQuery, MySQL, Redshift, Hive, etc.)
   - Resolves HDFS to Hive SQL
@@ -348,6 +380,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 - GenerationValidator validates all artifacts
 
 **Outputs**: GenerationResult containing:
+
 - ddl (DDLArtifact with platform, tableName, fieldCount, ddl statement, validation status)
 - sql (SQLArtifact with sql statement, platform)
 - rollback (RollbackArtifact with sql statement)
@@ -358,6 +391,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 **External Dependencies**: None (deterministic)
 
 **Failure Behavior**:
+
 - Fails if platform cannot be determined
 - Fails if DDL generation fails
 - Fails if validation fails
@@ -367,11 +401,13 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 **Purpose**: Analyze downstream impact and write metadata to DataHub
 
 **Inputs**:
+
 - ContextBundle (from Context stage)
 - ExecutionPlan (from Planning stage)
 - RiskAssessment (from Risk stage)
 
 **Processing**:
+
 - ImpactScorer calculates impact score and level
 - RecommendationEngine generates impact recommendations
 - ReportBuilder builds comprehensive impact report
@@ -379,6 +415,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 - MetadataWriter writes impact metadata to DataHub (if mutations enabled)
 
 **Outputs**: ImpactReport containing:
+
 - summary (description of impact)
 - score (0-100)
 - level (LOW/MEDIUM/HIGH/CRITICAL)
@@ -392,6 +429,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 **External Dependencies**: DataHub via MCP (for writeback)
 
 **Failure Behavior**:
+
 - Fails if impact calculation fails
 - Continues if DataHub writeback fails (logged but doesn't fail the stage)
 
@@ -400,10 +438,12 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 **Purpose**: Evaluate approval requirements and process approval decision
 
 **Inputs**:
+
 - RiskAssessment (from Risk stage)
 - ImpactReport (from Impact stage)
 
 **Processing**:
+
 - ApprovalEngine.requiresApproval() determines if manual approval is needed:
   - HIGH/CRITICAL risk or impact always requires approval
   - MEDIUM risk or impact requires approval by default
@@ -415,6 +455,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 - ApprovalValidator validates the decision
 
 **Outputs**: ApprovalDecision containing:
+
 - status (APPROVED/PENDING/REJECTED)
 - reviewedBy (who made the decision)
 - reviewedAt (timestamp of decision)
@@ -423,6 +464,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 **External Dependencies**: None (deterministic)
 
 **Failure Behavior**:
+
 - Fails if approval processing fails
 - Fails if validation fails
 
@@ -431,6 +473,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 **Purpose**: Create GitHub pull request if change is approved
 
 **Inputs**:
+
 - ApprovalDecision (from Approval stage)
 - ContextBundle (from Context stage)
 - ExecutionPlan (from Planning stage)
@@ -438,6 +481,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 - ImpactReport (from Impact stage)
 
 **Processing**:
+
 - Checks if approval status is APPROVED
 - If not approved, skips GitHub PR creation
 - Generates deterministic branch name based on:
@@ -461,6 +505,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 - Adds labels and reviewers
 
 **Outputs**: GitHubResult containing:
+
 - number (PR number)
 - url (PR URL)
 - branch (feature branch name)
@@ -468,6 +513,7 @@ The pipeline (`orchestration/pipeline.ts`) executes 7 stages sequentially with c
 **External Dependencies**: GitHub API via Octokit
 
 **Failure Behavior**:
+
 - Skipped if not approved
 - Retries GitHub operations with exponential backoff
 - Fails if branch creation fails
@@ -483,6 +529,7 @@ The ContextEngine (`context/context-engine.ts`) orchestrates a multi-stage conte
 The ContextBundle contains comprehensive metadata:
 
 **Dataset Metadata**:
+
 - Basic info: urn, name, platform, description
 - Ownership: owners array with urn, name, type
 - Tags: array of tag strings
@@ -494,6 +541,7 @@ The ContextBundle contains comprehensive metadata:
 - Deprecation: deprecated, note, decommissionDate
 
 **Schema**:
+
 - Array of SchemaField objects:
   - fieldPath (column name)
   - type (data type)
@@ -502,16 +550,19 @@ The ContextBundle contains comprehensive metadata:
   - tags (array of strings)
 
 **Lineage**:
+
 - Upstream: array of LineageNode (urn, name, entityType)
 - Downstream: array of LineageNode (urn, name, entityType)
 
 **Queries**:
+
 - Array of DatasetQuery objects:
   - id (query identifier)
   - sql (SQL text)
   - lastSeen (timestamp)
 
 **Documentation**:
+
 - Array of Document objects:
   - id (document identifier)
   - title (document title)
@@ -519,16 +570,19 @@ The ContextBundle contains comprehensive metadata:
   - url (document URL)
 
 **Related Assets**:
+
 - Related dashboards: array of dashboard references
 - Related pipelines: array of pipeline references
 - Related dbt models: array of dbt model references
 
 **Usage Statistics**:
+
 - queryCount: number of related queries
 
 ### Context Enrichment
 
 After base context collection, the engine enriches with extended metadata via parallel DataHub calls:
+
 - getOwners(), getGlossaryTerms(), getTags()
 - getStructuredProperties(), getDomain()
 - getRelatedDashboards(), getRelatedPipelines(), getRelatedDbtModels()
@@ -616,11 +670,13 @@ The LLM (Grok via GrokClient) performs these tasks:
 ### Example
 
 **Input**:
+
 ```
 Description: "Add column Customerbalance_9 to SampleHdfsDataset"
 ```
 
 **Output (conceptually)**:
+
 ```json
 {
   "intent": "Add a new column Customerbalance_9 to SampleHdfsDataset",
@@ -659,6 +715,7 @@ LineageGuard uses a hybrid approach that leverages the strengths of both AI and 
 ### Why Hybrid?
 
 **LLM Strengths**:
+
 - Semantic understanding of natural language
 - Intent extraction from ambiguous requests
 - Handling edge cases and novel situations
@@ -666,6 +723,7 @@ LineageGuard uses a hybrid approach that leverages the strengths of both AI and 
 - Flexible interpretation
 
 **LLM Weaknesses**:
+
 - Non-deterministic outputs
 - Can hallucinate or make errors
 - Difficult to validate consistently
@@ -673,6 +731,7 @@ LineageGuard uses a hybrid approach that leverages the strengths of both AI and 
 - Limited precision for technical tasks
 
 **Deterministic Engine Strengths**:
+
 - Consistent, repeatable behavior
 - Precise control over output format
 - Easy to test and validate
@@ -680,6 +739,7 @@ LineageGuard uses a hybrid approach that leverages the strengths of both AI and 
 - Performance predictability
 
 **Deterministic Engine Weaknesses**:
+
 - Rigid, requires explicit rules
 - Poor at handling ambiguity
 - Limited semantic understanding
@@ -687,21 +747,21 @@ LineageGuard uses a hybrid approach that leverages the strengths of both AI and 
 
 ### Responsibility Division
 
-| Responsibility | LLM | Deterministic Engine |
-|----------------|-----|---------------------|
-| Natural language understanding | ✅ | ❌ |
-| Intent extraction | ✅ | ❌ |
-| Semantic reasoning | ✅ | ❌ |
-| Handling ambiguity | ✅ | ❌ |
-| Risk scoring | ❌ | ✅ |
-| SQL generation | ❌ | ✅ |
-| Platform-specific syntax | ❌ | ✅ |
-| Impact calculation | ❌ | ✅ |
-| Approval logic | ❌ | ✅ |
-| GitHub operations | ❌ | ✅ |
-| Idempotency | ❌ | ✅ |
-| Metadata validation | ❌ | ✅ |
-| DataHub mutations | ❌ | ✅ |
+| Responsibility                 | LLM | Deterministic Engine |
+| ------------------------------ | --- | -------------------- |
+| Natural language understanding | ✅  | ❌                   |
+| Intent extraction              | ✅  | ❌                   |
+| Semantic reasoning             | ✅  | ❌                   |
+| Handling ambiguity             | ✅  | ❌                   |
+| Risk scoring                   | ❌  | ✅                   |
+| SQL generation                 | ❌  | ✅                   |
+| Platform-specific syntax       | ❌  | ✅                   |
+| Impact calculation             | ❌  | ✅                   |
+| Approval logic                 | ❌  | ✅                   |
+| GitHub operations              | ❌  | ✅                   |
+| Idempotency                    | ❌  | ✅                   |
+| Metadata validation            | ❌  | ✅                   |
+| DataHub mutations              | ❌  | ✅                   |
 
 ### Safety Benefits
 
@@ -722,6 +782,7 @@ The RiskEngine (`risk/risk-engine.ts`) provides deterministic risk assessment us
 ### Risk Calculation
 
 RiskCalculator calculates metrics based on:
+
 - **downstreamDatasets**: Number of downstream dependencies from lineage
 - **queryCount**: Number of related queries
 - **hasDocumentation**: Boolean indicating if dataset has documentation
@@ -731,12 +792,14 @@ RiskCalculator calculates metrics based on:
 ### Risk Scoring
 
 RiskScorer converts metrics to:
+
 - **Score**: 0-100 numeric score
 - **Level**: LOW (0-25), MEDIUM (26-50), HIGH (51-75), CRITICAL (76-100)
 
 ### Findings Generation
 
 Findings are generated for:
+
 - **LINEAGE**: Downstream dataset impact (HIGH if >10, MEDIUM otherwise)
 - **DOCUMENTATION**: Missing documentation (LOW severity)
 - **GOVERNANCE**: Missing owner (MEDIUM severity)
@@ -744,6 +807,7 @@ Findings are generated for:
 ### Approval Requirement
 
 Changes require approval if:
+
 - Risk engine requires approval (based on change type)
 - Risk level is MEDIUM, HIGH, or CRITICAL
 - Impact level is MEDIUM, HIGH, or CRITICAL
@@ -798,11 +862,13 @@ The Generator (`generators/generator.ts`) orchestrates platform-aware SQL genera
 PlatformAwareSQLGenerator (`generators/platform-aware-sql-generator.ts`) handles:
 
 **Platform Detection**:
+
 - Extracts platform from plan or context
 - Resolves HDFS to Hive SQL
 - Supports: Snowflake, Postgres, BigQuery, MySQL, Redshift, Hive, T-SQL
 
 **Operation Types**:
+
 - add_column: Adds new column to existing table
 - drop_column: Removes column from table
 - rename_column: Renames existing column
@@ -811,11 +877,13 @@ PlatformAwareSQLGenerator (`generators/platform-aware-sql-generator.ts`) handles
 - drop_table: Drops existing table
 
 **Type Mapping**:
+
 - Maps generic types to platform-specific types
 - Handles nullable/not-null constraints
 - Respects platform-specific syntax
 
 **Validation**:
+
 - SQLValidator parses generated DDL
 - Checks for syntax errors
 - Marks validation status in artifact
@@ -825,34 +893,41 @@ PlatformAwareSQLGenerator (`generators/platform-aware-sql-generator.ts`) handles
 **Request**: "Add column Customerbalance_9 to SampleHdfsDataset"
 
 **Generated DDL** (Hive/HDFS):
+
 ```sql
 ALTER TABLE SampleHdfsDataset
 ADD COLUMN Customerbalance_9 STRING;
 ```
 
 **Generated Rollback**:
+
 ```sql
 ALTER TABLE SampleHdfsDataset
 DROP COLUMN Customerbalance_9;
 ```
 
 **Generated Documentation**:
+
 ```markdown
 # Schema Change: Add Column Customerbalance_9
 
 ## Summary
+
 Added column Customerbalance_9 to SampleHdfsDataset
 
 ## Risk Assessment
+
 - Risk Level: MEDIUM
 - Risk Score: 45
 - Requires Approval: Yes
 
 ## Impact
+
 - Affected Datasets: 3
 - Affected Queries: 5
 
 ## Rollback
+
 Use ROLLBACK.sql to revert this change.
 ```
 
@@ -861,17 +936,20 @@ Use ROLLBACK.sql to revert this change.
 SQL validation is performed by SQLValidator (`generators/sql-validator.ts`):
 
 **Validation Process**:
+
 - Parses generated SQL using SQL parser
 - Checks for syntax errors
 - Validates platform-specific syntax
 - Returns validation status and any errors/warnings
 
 **Validation States**:
+
 - VALID: SQL passes all checks
 - INVALID: SQL has syntax errors
 - WARNING: SQL has warnings but is valid
 
 **Why Separate?**
+
 - Generation creates the SQL
 - Validation ensures correctness
 - Separation allows for different validation strategies
@@ -884,6 +962,7 @@ The ImpactEngine (`impact/impact-engine.ts`) analyzes downstream impact and writ
 ### Impact Calculation
 
 ImpactScorer calculates:
+
 - **Score**: 0-100 based on affected assets and risk
 - **Level**: LOW/MEDIUM/HIGH/CRITICAL
 - **Affected Assets**: Datasets, dashboards, queries, pipelines
@@ -891,6 +970,7 @@ ImpactScorer calculates:
 ### Affected Assets
 
 Impact analysis identifies:
+
 - **Datasets**: Downstream datasets from lineage
 - **Dashboards**: Dashboards that query the dataset
 - **Queries**: SQL queries that reference the dataset
@@ -902,12 +982,14 @@ Impact analysis identifies:
 MetadataWriter (`impact/metadata-writer.js`) writes impact metadata to DataHub via MCP:
 
 **Writeback Operations** (if TOOLS_IS_MUTATION_ENABLED=true):
+
 - Update dataset descriptions with impact information
 - Add governance tags
 - Update structured properties with impact scores
 - Write impact reports to dataset documentation
 
 **Safety**:
+
 - Writeback failures are logged but don't fail the stage
 - Mutations are validated before execution
 - Entity URNs are validated
@@ -922,11 +1004,11 @@ The ApprovalEngine (`approval/approval-engine.ts`) manages the approval gate.
 
 ```typescript
 // HIGH/CRITICAL always require approval
-if (risk.overallRisk === "HIGH" || risk.overallRisk === "CRITICAL") return true;
-if (impact.level === "HIGH" || impact.level === "CRITICAL") return true;
+if (risk.overallRisk === 'HIGH' || risk.overallRisk === 'CRITICAL') return true;
+if (impact.level === 'HIGH' || impact.level === 'CRITICAL') return true;
 
 // MEDIUM requires approval by default
-if (risk.overallRisk === "MEDIUM" || impact.level === "MEDIUM") return true;
+if (risk.overallRisk === 'MEDIUM' || impact.level === 'MEDIUM') return true;
 
 // LOW can be auto-approved
 return false;
@@ -935,16 +1017,19 @@ return false;
 ### Approval Decisions
 
 **Auto-Approval**:
+
 - Status: APPROVED
 - Reason: "Auto-approved: Low risk change" or "Auto-approved: Testing mode"
 - ReviewedBy: "LineageGuard"
 
 **Manual Approval**:
+
 - Status: PENDING
 - Reason: "Awaiting manual approval"
 - ReviewedBy: "LineageGuard"
 
 **Manual Decision**:
+
 - Status: APPROVED or REJECTED
 - ReviewedBy: Actual reviewer
 - Reason: Decision rationale
@@ -952,6 +1037,7 @@ return false;
 ### Validation
 
 ApprovalValidator validates:
+
 - APPROVED decisions must have reviewer information
 - REJECTED decisions must have a reason
 - HIGH/CRITICAL changes require a reason
@@ -959,11 +1045,13 @@ ApprovalValidator validates:
 ### GitHub Execution Control
 
 **GitHub stage only executes if**:
+
 - Approval status is APPROVED
 - All previous stages completed successfully
 - Idempotency check passes (no duplicate PR)
 
 **If not approved**:
+
 - GitHub stage is skipped
 - No PR is created
 - Workflow completes without GitHub artifact
@@ -975,6 +1063,7 @@ The GitHubEngine (`github/github-engine.ts`) converts approved changes into GitH
 ### Branch Naming
 
 Branch names are generated deterministically based on:
+
 - Change type (add_column, drop_column, etc.)
 - Dataset name
 - Affected columns (sorted for consistency)
@@ -1018,6 +1107,7 @@ Branch names are generated deterministically based on:
 ### Idempotency Key
 
 GitHub PR idempotency key includes:
+
 - Repository (owner/repo)
 - Base branch
 - Dataset URN
@@ -1028,6 +1118,7 @@ GitHub PR idempotency key includes:
 ### When Not Approved
 
 If approval status is not APPROVED:
+
 - GitHub stage logs skip message
 - No branch is created
 - No files are committed
@@ -1057,6 +1148,7 @@ DataHub Metadata
 ### Transport
 
 **StdioMCPTransport**:
+
 - Launches `mcp-server-datahub` as a subprocess
 - Communicates via stdin/stdout
 - Passes environment variables for DataHub configuration
@@ -1067,6 +1159,7 @@ DataHub Metadata
 DataHubClient (`mcp/datahub-client.ts`) provides typed methods for DataHub operations:
 
 **Read Tools**:
+
 - `searchDatasets()`: Search for datasets by query
 - `getDataset()`: Get dataset metadata
 - `getOwners()`: Get dataset owners
@@ -1083,6 +1176,7 @@ DataHubClient (`mcp/datahub-client.ts`) provides typed methods for DataHub opera
 - `getRelatedDbtModels()`: Get related dbt models
 
 **Mutation Tools** (if TOOLS_IS_MUTATION_ENABLED=true):
+
 - `updateDescription()`: Update dataset description
 - `addTags()`: Add tags to dataset
 - `removeTags()`: Remove tags from dataset
@@ -1098,6 +1192,7 @@ DataHubClient (`mcp/datahub-client.ts`) provides typed methods for DataHub opera
 ### Tool Response Validation
 
 All tool responses are validated:
+
 - Response structure is checked
 - Required fields are validated
 - Errors are caught and logged
@@ -1108,32 +1203,38 @@ All tool responses are validated:
 Metadata mutations to DataHub are handled with safety measures:
 
 ### Entity URN Validation
+
 - All entity URNs are validated before mutations
 - URN format is checked
 - Entity existence is verified where possible
 
 ### Tag URN Handling
+
 - Tag URNs must follow DataHub format
 - Tags are resolved to actual DataHub tag entities
 - Non-existent tags are handled gracefully
 
 ### Structured Properties
+
 - Property values are validated against schema
 - Property names are checked for validity
 - Type safety is enforced
 
 ### Validation
+
 - All mutations are validated before execution
 - Mutation failures are logged with full context
 - Failed mutations don't fail the entire workflow
 
 ### Writeback Behavior
+
 - Writeback is controlled by TOOLS_IS_MUTATION_ENABLED
 - When disabled, mutations are skipped
 - When enabled, mutations are attempted with error handling
 - Writeback failures are logged but don't fail the stage
 
 ### Limitations
+
 - Some metadata mutations require pre-existing DataHub entities
 - Structured properties require schema definitions in DataHub
 - Tag mutations require tag URNs to exist in DataHub
@@ -1149,16 +1250,16 @@ The workflow state accumulates through the pipeline:
 
 ```typescript
 interface WorkflowState {
-  request?: ChangeRequest;           // Original user request
-  context?: ContextBundle;          // DataHub context from Context stage
-  plan?: ExecutionPlan;             // LLM-generated plan from Planning stage
-  risk?: RiskAssessment;            // Risk assessment from Risk stage
-  generation?: GenerationResult;    // Generated artifacts from Generator stage
-  impact?: ImpactReport;            // Impact analysis from Impact stage
-  approval?: ApprovalDecision;      // Approval decision from Approval stage
-  github?: GitHubResult;            // GitHub PR from GitHub stage
-  performance?: PerformanceMetrics;  // Timing metrics
-  runId?: string;                   // Unique run identifier
+  request?: ChangeRequest; // Original user request
+  context?: ContextBundle; // DataHub context from Context stage
+  plan?: ExecutionPlan; // LLM-generated plan from Planning stage
+  risk?: RiskAssessment; // Risk assessment from Risk stage
+  generation?: GenerationResult; // Generated artifacts from Generator stage
+  impact?: ImpactReport; // Impact analysis from Impact stage
+  approval?: ApprovalDecision; // Approval decision from Approval stage
+  github?: GitHubResult; // GitHub PR from GitHub stage
+  performance?: PerformanceMetrics; // Timing metrics
+  runId?: string; // Unique run identifier
 }
 ```
 
@@ -1176,6 +1277,7 @@ interface WorkflowState {
 ### State Immutability
 
 StateStore provides immutable state management:
+
 - State is never mutated directly
 - Each stage adds new state via `state.set()`
 - Previous state remains unchanged
@@ -1188,6 +1290,7 @@ IdempotencyService (`utils/idempotency.ts`) prevents duplicate operations using 
 ### Why Idempotency Matters
 
 Duplicate schema changes are dangerous:
+
 - Can cause data corruption
 - Can break downstream systems
 - Can create inconsistent state
@@ -1197,6 +1300,7 @@ Duplicate schema changes are dangerous:
 ### Idempotency Keys
 
 Keys are generated from operation inputs:
+
 - For workflow: description, datasetUrn, requestedBy, priority
 - For context: description, datasetUrn, context hash
 - For planning: description, datasetUrn, context hash
@@ -1209,6 +1313,7 @@ Keys are generated from operation inputs:
 Idempotency records are stored in PostgreSQL via Prisma:
 
 **Schema**:
+
 ```prisma
 model IdempotencyRecord {
   id            String   @id @default(cuid())
@@ -1220,12 +1325,13 @@ model IdempotencyRecord {
   expiresAt     DateTime
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  
+
   @@unique([operationType, tenantId, key])
 }
 ```
 
 **Status Values**:
+
 - PENDING: Operation is currently running
 - COMPLETED: Operation completed successfully
 - FAILED: Operation failed
@@ -1242,25 +1348,27 @@ model IdempotencyRecord {
 ### Example
 
 **First Request**:
+
 ```typescript
 const result = await withIdempotency(
-  { key: "add_column_customerbalance", operationType: "generation" },
+  { key: 'add_column_customerbalance', operationType: 'generation' },
   async () => {
     return await generator.generate(context, plan, risk);
   },
-  idempotencyService
+  idempotencyService,
 );
 // Executes generation, caches result
 ```
 
 **Duplicate Request**:
+
 ```typescript
 const result = await withIdempotency(
-  { key: "add_column_customerbalance", operationType: "generation" },
+  { key: 'add_column_customerbalance', operationType: 'generation' },
   async () => {
     return await generator.generate(context, plan, risk);
   },
-  idempotencyService
+  idempotencyService,
 );
 // Returns cached result, skips generation
 ```
@@ -1268,6 +1376,7 @@ const result = await withIdempotency(
 ### TTL Configuration
 
 Default TTLs per operation type:
+
 - Workflow execution: 24 hours
 - Context build: 1 hour
 - Planning: 6 hours
@@ -1302,16 +1411,19 @@ Structured Error Returned
 ### Error Types
 
 **WorkflowError** (`orchestration/errors.ts`):
+
 - Thrown when workflow execution fails
 - Contains error context and original error
 - Includes stage name and error details
 
 **IdempotencyError** (`utils/idempotency.ts`):
+
 - Thrown when idempotency check fails
 - HTTP 409 Conflict status
 - Contains duplicate operation details
 
 **AppError** (`utils/errors.ts`):
+
 - Base error class for application errors
 - Includes error code and HTTP status
 - Used for structured error responses
@@ -1319,6 +1431,7 @@ Structured Error Returned
 ### Error Logging
 
 All errors are logged with:
+
 - Error type and message
 - Stack trace (for Error objects)
 - Context (runId, stage, state)
@@ -1327,6 +1440,7 @@ All errors are logged with:
 ### Failure Behavior
 
 **Stage Failure**:
+
 - Stage execution stops immediately
 - Error is caught and logged
 - Pipeline execution fails
@@ -1335,12 +1449,14 @@ All errors are logged with:
 - Structured error is returned to caller
 
 **External Service Failure**:
+
 - Retries with exponential backoff (where configurable)
 - Logs retry attempts
 - Fails after max retries
 - Includes service-specific error details
 
 **Validation Failure**:
+
 - Fails the current stage
 - Includes validation errors in response
 - Provides details about what failed validation
@@ -1352,6 +1468,7 @@ LineageGuard provides comprehensive observability through structured logging and
 ### Structured Logging
 
 All logs use structured JSON format with:
+
 - **event**: Event type for filtering
 - **runId**: Unique workflow identifier
 - **stage**: Current pipeline stage
@@ -1368,6 +1485,7 @@ All logs use structured JSON format with:
 ### Stage Timing
 
 Each stage is timed:
+
 - Stage start time logged
 - Stage duration calculated
 - Per-stage performance metrics collected
@@ -1376,6 +1494,7 @@ Each stage is timed:
 ### Performance Metrics
 
 PerformanceTracker (`utils/performance.ts`) collects:
+
 - Stage-level timing (context, planning, risk, generation, impact, approval, github)
 - Total workflow duration
 - Per-operation timing (e.g., generation, validation)
@@ -1383,6 +1502,7 @@ PerformanceTracker (`utils/performance.ts`) collects:
 ### Error Categories
 
 Errors are categorized by:
+
 - **event type**: Specific error event
 - **error type**: Error class/type
 - **stage**: Pipeline stage where error occurred
@@ -1413,69 +1533,84 @@ LineageGuard uses PostgreSQL with Prisma ORM for persistence.
 The database schema (`prisma/schema.prisma`) includes:
 
 **Core Entities**:
+
 - User: User accounts and authentication
 - Tenant: Multi-tenant isolation
 - Membership: User-tenant relationships
 
 **Change Requests**:
+
 - ChangeRequest: Schema change requests submitted by users
 
 **Workflow Execution**:
+
 - WorkflowRun: Complete workflow runs
 - ExecutionStep: Individual step execution
 - WorkflowState: Complete workflow state snapshot
 
 **Assessments**:
+
 - RiskAssessment: Risk assessment results
 - ImpactReport: Impact analysis reports
 
 **Approval**:
+
 - ApprovalDecision: Approval decisions
 
 **Artifacts**:
+
 - GeneratedArtifact: Generated SQL and documentation
 
 **Idempotency**:
+
 - IdempotencyRecord: Idempotency tracking
 
 **Audit**:
+
 - AuditLog: Audit trail for all operations
 
 ### What is Persisted
 
 **Idempotency Records**:
+
 - Operation type and key
 - Status (PENDING, COMPLETED, FAILED)
 - Cached results
 - Expiration time
 
 **Workflow State**:
+
 - Complete workflow state snapshot
 - All stage outputs
 - Performance metrics
 - Request and response data
 
 **Risk Assessments**:
+
 - Risk scores and levels
 - Affected assets
 - Findings and recommendations
 
 **Impact Reports**:
+
 - Impact scores and levels
 - Affected columns and assets
 - Recommendations
 
 **Approval Decisions**:
+
 - Approval status
 - Reviewer information
 - Decision reasons
 
 **Generated Artifacts**:
+
 - SQL DDL statements
 - Rollback scripts
 - Documentation
 
 **Audit Logs**:
+
 - All operations
 - User actions
 - System events
@@ -1483,6 +1618,7 @@ The database schema (`prisma/schema.prisma`) includes:
 ### Database Configuration
 
 Environment variables:
+
 - `DATABASE_URL`: PostgreSQL connection string
 - Uses Prisma with PostgreSQL adapter
 - Connection pooling via Prisma
@@ -1619,11 +1755,13 @@ Branch: `add_column/samplehdfsdataset/customerbalance_9`
 ### 10. Commit/PR
 
 **Files Committed**:
+
 - `migration.sql`: DDL statement
 - `DOCUMENTATION.md`: Change documentation
 - `ROLLBACK.sql`: Rollback script
 
 **Pull Request**:
+
 - Title: "Add column Customerbalance_9 to SampleHdfsDataset"
 - Description: Risk and impact analysis
 - Labels: ["schema-change", "medium-risk"]
@@ -1632,6 +1770,7 @@ Branch: `add_column/samplehdfsdataset/customerbalance_9`
 ### 11. DataHub Writeback
 
 If mutations enabled:
+
 - Update dataset description with change information
 - Add governance tags
 - Update structured properties with impact score
@@ -1674,31 +1813,31 @@ The API returns a complete WorkflowState:
 interface WorkflowState {
   // Original request
   request?: ChangeRequest;
-  
+
   // DataHub context
   context?: ContextBundle;
-  
+
   // LLM-generated plan
   plan?: ExecutionPlan;
-  
+
   // Risk assessment
   risk?: RiskAssessment;
-  
+
   // Generated artifacts
   generation?: GenerationResult;
-  
+
   // Impact analysis
   impact?: ImpactReport;
-  
+
   // Approval decision
   approval?: ApprovalDecision;
-  
+
   // GitHub PR (if approved)
   github?: GitHubResult;
-  
+
   // Performance metrics
   performance?: PerformanceMetrics;
-  
+
   // Run identifier
   runId?: string;
 }
@@ -1758,6 +1897,7 @@ npm run test:coverage
 ### Example Test Requests
 
 **1. Add Column**:
+
 ```json
 {
   "description": "Add column email to users",
@@ -1767,6 +1907,7 @@ npm run test:coverage
 ```
 
 **2. Drop Column**:
+
 ```json
 {
   "description": "Drop column old_field from users",
@@ -1776,6 +1917,7 @@ npm run test:coverage
 ```
 
 **3. Rename Column**:
+
 ```json
 {
   "description": "Rename column username to user_name",
@@ -1785,6 +1927,7 @@ npm run test:coverage
 ```
 
 **4. High-Risk Change**:
+
 ```json
 {
   "description": "Drop column customer_id from orders",
@@ -1795,6 +1938,7 @@ npm run test:coverage
 ```
 
 **5. Low-Risk Change**:
+
 ```json
 {
   "description": "Add column notes to logs",
@@ -1805,6 +1949,7 @@ npm run test:coverage
 ```
 
 **6. Missing Datatype**:
+
 ```json
 {
   "description": "Add column status to users",
@@ -1814,6 +1959,7 @@ npm run test:coverage
 ```
 
 **7. Dataset with Owner**:
+
 ```json
 {
   "description": "Add column region to sales",
@@ -1823,6 +1969,7 @@ npm run test:coverage
 ```
 
 **8. Dataset without Owner**:
+
 ```json
 {
   "description": "Add column temp to temp_table",
@@ -1832,6 +1979,7 @@ npm run test:coverage
 ```
 
 **9. Dataset with Downstream Dependencies**:
+
 ```json
 {
   "description": "Modify column amount in transactions",
@@ -1841,6 +1989,7 @@ npm run test:coverage
 ```
 
 **10. Duplicate Request/Idempotency**:
+
 ```json
 {
   "description": "Add column email to users",
@@ -1862,6 +2011,7 @@ npm install
 ### Configuration
 
 Copy `.env.example` to `.env` and configure:
+
 ```bash
 cp .env.example .env
 ```
@@ -1928,6 +2078,7 @@ npm run format
 ### Environment Variables
 
 **DataHub**:
+
 ```env
 DATAHUB_GMS_URL=http://localhost:8080
 DATAHUB_GMS_TOKEN=your_datahub_token
@@ -1935,6 +2086,7 @@ TOOLS_IS_MUTATION_ENABLED=true
 ```
 
 **Grok (LLM)**:
+
 ```env
 GROQ_API_KEY=your_groq_api_key
 GROQ_MODEL=llama-3.3-70b-versatile
@@ -1942,6 +2094,7 @@ GROQ_BASE_URL=https://api.groq.com/openai/v1
 ```
 
 **GitHub**:
+
 ```env
 GITHUB_TOKEN=your_github_token
 GITHUB_OWNER=your_github_username
@@ -1950,17 +2103,20 @@ GITHUB_BASE_BRANCH=main
 ```
 
 **PostgreSQL**:
+
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/lineageguard
 ```
 
 **Application**:
+
 ```env
 NODE_ENV=development
 LOG_LEVEL=info
 ```
 
 **Idempotency**:
+
 ```env
 IDEMPOTENCY_CLEANUP_INTERVAL_MS=300000
 IDEMPOTENCY_RETENTION_BUFFER_HOURS=1

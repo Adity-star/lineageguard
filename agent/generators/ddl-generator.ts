@@ -1,18 +1,19 @@
-import { SchemaField } from "../mcp/types.js";
-import { logger } from "../config/logger.js";
+import { SchemaField } from '../mcp/types.js';
+import { logger } from '../config/logger.js';
+import { DDLArtifact } from './types.js';
 
 /**
  * Supported database platforms for DDL generation.
  */
 export type DatabasePlatform =
-  | "snowflake"
-  | "postgres"
-  | "postgresql"
-  | "bigquery"
-  | "mysql"
-  | "redshift"
-  | "tsql"
-  | "unknown";
+  | 'snowflake'
+  | 'postgres'
+  | 'postgresql'
+  | 'bigquery'
+  | 'mysql'
+  | 'redshift'
+  | 'tsql'
+  | 'unknown';
 
 /**
  * DDL generation options and validation status.
@@ -23,36 +24,7 @@ export interface DDLGenerationOptions {
   schemaName?: string;
   ifNotExists?: boolean;
   validated?: boolean;
-  validationStatus?: "validated" | "generated" | "unvalidated";
-}
-
-/**
- * Result of DDL generation with metadata.
- */
-export interface DDLArtifact {
-  /** The actual DDL statement(s) */
-  ddl: string;
-
-  /** Formatted version with comments and metadata */
-  formatted: string;
-
-  /** Platform this DDL targets */
-  platform: DatabasePlatform;
-
-  /** Table name generated for */
-  tableName: string;
-
-  /** Validation status: "validated" if tested, "generated" if unvalidated */
-  validationStatus: "validated" | "generated" | "unvalidated";
-
-  /** Validation error details if applicable */
-  validationErrors?: string[];
-
-  /** Field count in generated schema */
-  fieldCount: number;
-
-  /** Platform-specific notes or warnings */
-  notes?: string[];
+  validationStatus?: 'validated' | 'generated' | 'unvalidated';
 }
 
 /**
@@ -68,174 +40,200 @@ export class DDLGenerator {
    * Normalize a platform name to a supported value.
    */
   private normalizePlatform(platform: string): DatabasePlatform {
-    const lower = (platform || "unknown").toLowerCase().trim();
+    const lower = (platform || 'unknown').toLowerCase().trim();
 
     // Exact matches
-    if (lower === "snowflake") return "snowflake";
-    if (lower === "bigquery") return "bigquery";
-    if (lower === "postgres" || lower === "postgresql") return "postgres";
-    if (lower === "mysql") return "mysql";
-    if (lower === "redshift") return "redshift";
-    if (lower === "tsql" || lower === "mssql" || lower === "sqlserver")
-      return "tsql";
+    if (lower === 'snowflake') return 'snowflake';
+    if (lower === 'bigquery') return 'bigquery';
+    if (lower === 'postgres' || lower === 'postgresql') return 'postgres';
+    if (lower === 'mysql') return 'mysql';
+    if (lower === 'redshift') return 'redshift';
+    if (lower === 'tsql' || lower === 'mssql' || lower === 'sqlserver')
+      return 'tsql';
 
     // HDFS/Hive/Spark SQL platforms - map to Hive SQL (similar syntax)
-    if (lower === "hdfs") {
-      logger.warn({
-        event: "hdfs_platform_resolved",
-        original: platform,
-        resolved: "hive",
-      }, `HDFS platform resolved to Hive SQL for DDL generation`);
-      return "postgres"; // Use Hive/Postgres-like syntax as fallback
+    if (lower === 'hdfs') {
+      logger.warn(
+        {
+          event: 'hdfs_platform_resolved',
+          original: platform,
+          resolved: 'hive',
+        },
+        `HDFS platform resolved to Hive SQL for DDL generation`,
+      );
+      return 'postgres'; // Use Hive/Postgres-like syntax as fallback
     }
-    if (lower === "hive" || lower === "spark" ||
-        lower === "sparksql" || lower === "impala" || lower === "trino" ||
-        lower === "iceberg" || lower === "delta") {
-      return "postgres"; // Use Hive/Postgres-like syntax as fallback
+    if (
+      lower === 'hive' ||
+      lower === 'spark' ||
+      lower === 'sparksql' ||
+      lower === 'impala' ||
+      lower === 'trino' ||
+      lower === 'iceberg' ||
+      lower === 'delta'
+    ) {
+      return 'postgres'; // Use Hive/Postgres-like syntax as fallback
     }
 
     // Fallback to unknown
-    logger.warn({
-      event: "unknown_platform",
-      platform,
-    }, `Unknown platform '${platform}' defaulting to unknown`);
-    return "unknown";
+    logger.warn(
+      {
+        event: 'unknown_platform',
+        platform,
+      },
+      `Unknown platform '${platform}' defaulting to unknown`,
+    );
+    return 'unknown';
   }
 
   /**
    * Map SchemaField types to platform-specific DDL types.
    */
-  private mapFieldType(
-    fieldType: string,
-    platform: DatabasePlatform
-  ): string {
-    const normalized = (fieldType || "").toLowerCase().trim();
+  private mapFieldType(fieldType: string, platform: DatabasePlatform): string {
+    const normalized = (fieldType || '').toLowerCase().trim();
 
     // Common mapping
     const typeMap: Record<DatabasePlatform, Record<string, string>> = {
       snowflake: {
-        int: "INTEGER",
-        integer: "INTEGER",
-        bigint: "BIGINT",
-        varchar: "VARCHAR",
-        string: "VARCHAR(256)",
-        text: "VARCHAR(MAX)",
-        boolean: "BOOLEAN",
-        bool: "BOOLEAN",
-        timestamp: "TIMESTAMP_NTZ",
-        datetime: "TIMESTAMP_NTZ",
-        date: "DATE",
-        decimal: "DECIMAL(38,0)",
-        numeric: "NUMERIC(38,0)",
-        float: "FLOAT",
-        double: "DOUBLE",
+        int: 'INTEGER',
+        integer: 'INTEGER',
+        bigint: 'BIGINT',
+        varchar: 'VARCHAR',
+        string: 'VARCHAR(256)',
+        text: 'VARCHAR(MAX)',
+        boolean: 'BOOLEAN',
+        bool: 'BOOLEAN',
+        timestamp: 'TIMESTAMP_NTZ',
+        datetime: 'TIMESTAMP_NTZ',
+        date: 'DATE',
+        decimal: 'DECIMAL(38,0)',
+        numeric: 'NUMERIC(38,0)',
+        float: 'FLOAT',
+        double: 'DOUBLE',
       },
       postgres: {
-        int: "INTEGER",
-        integer: "INTEGER",
-        bigint: "BIGINT",
-        varchar: "VARCHAR",
-        string: "VARCHAR(255)",
-        text: "TEXT",
-        boolean: "BOOLEAN",
-        bool: "BOOLEAN",
-        timestamp: "TIMESTAMP",
-        datetime: "TIMESTAMP",
-        date: "DATE",
-        decimal: "DECIMAL",
-        numeric: "NUMERIC",
-        float: "REAL",
-        double: "DOUBLE PRECISION",
+        int: 'INTEGER',
+        integer: 'INTEGER',
+        bigint: 'BIGINT',
+        varchar: 'VARCHAR',
+        string: 'VARCHAR(255)',
+        text: 'TEXT',
+        boolean: 'BOOLEAN',
+        bool: 'BOOLEAN',
+        timestamp: 'TIMESTAMP',
+        datetime: 'TIMESTAMP',
+        date: 'DATE',
+        decimal: 'DECIMAL',
+        numeric: 'NUMERIC',
+        float: 'REAL',
+        double: 'DOUBLE PRECISION',
+      },
+      postgresql: {
+        int: 'INTEGER',
+        integer: 'INTEGER',
+        bigint: 'BIGINT',
+        varchar: 'VARCHAR',
+        string: 'VARCHAR(255)',
+        text: 'TEXT',
+        boolean: 'BOOLEAN',
+        bool: 'BOOLEAN',
+        timestamp: 'TIMESTAMP',
+        datetime: 'TIMESTAMP',
+        date: 'DATE',
+        decimal: 'DECIMAL',
+        numeric: 'NUMERIC',
+        float: 'REAL',
+        double: 'DOUBLE PRECISION',
       },
       bigquery: {
-        int: "INT64",
-        integer: "INT64",
-        bigint: "INT64",
-        varchar: "STRING",
-        string: "STRING",
-        text: "STRING",
-        boolean: "BOOL",
-        bool: "BOOL",
-        timestamp: "TIMESTAMP",
-        datetime: "TIMESTAMP",
-        date: "DATE",
-        decimal: "NUMERIC",
-        numeric: "NUMERIC",
-        float: "FLOAT64",
-        double: "FLOAT64",
+        int: 'INT64',
+        integer: 'INT64',
+        bigint: 'INT64',
+        varchar: 'STRING',
+        string: 'STRING',
+        text: 'STRING',
+        boolean: 'BOOL',
+        bool: 'BOOL',
+        timestamp: 'TIMESTAMP',
+        datetime: 'TIMESTAMP',
+        date: 'DATE',
+        decimal: 'NUMERIC',
+        numeric: 'NUMERIC',
+        float: 'FLOAT64',
+        double: 'FLOAT64',
       },
       mysql: {
-        int: "INT",
-        integer: "INT",
-        bigint: "BIGINT",
-        varchar: "VARCHAR(255)",
-        string: "VARCHAR(255)",
-        text: "LONGTEXT",
-        boolean: "BOOLEAN",
-        bool: "BOOLEAN",
-        timestamp: "TIMESTAMP",
-        datetime: "DATETIME",
-        date: "DATE",
-        decimal: "DECIMAL",
-        numeric: "NUMERIC",
-        float: "FLOAT",
-        double: "DOUBLE",
+        int: 'INT',
+        integer: 'INT',
+        bigint: 'BIGINT',
+        varchar: 'VARCHAR(255)',
+        string: 'VARCHAR(255)',
+        text: 'LONGTEXT',
+        boolean: 'BOOLEAN',
+        bool: 'BOOLEAN',
+        timestamp: 'TIMESTAMP',
+        datetime: 'DATETIME',
+        date: 'DATE',
+        decimal: 'DECIMAL',
+        numeric: 'NUMERIC',
+        float: 'FLOAT',
+        double: 'DOUBLE',
       },
       redshift: {
-        int: "INTEGER",
-        integer: "INTEGER",
-        bigint: "BIGINT",
-        varchar: "VARCHAR",
-        string: "VARCHAR(256)",
-        text: "VARCHAR(MAX)",
-        boolean: "BOOLEAN",
-        bool: "BOOLEAN",
-        timestamp: "TIMESTAMP",
-        datetime: "TIMESTAMP",
-        date: "DATE",
-        decimal: "DECIMAL",
-        numeric: "NUMERIC",
-        float: "REAL",
-        double: "DOUBLE PRECISION",
+        int: 'INTEGER',
+        integer: 'INTEGER',
+        bigint: 'BIGINT',
+        varchar: 'VARCHAR',
+        string: 'VARCHAR(256)',
+        text: 'VARCHAR(MAX)',
+        boolean: 'BOOLEAN',
+        bool: 'BOOLEAN',
+        timestamp: 'TIMESTAMP',
+        datetime: 'TIMESTAMP',
+        date: 'DATE',
+        decimal: 'DECIMAL',
+        numeric: 'NUMERIC',
+        float: 'REAL',
+        double: 'DOUBLE PRECISION',
       },
       tsql: {
-        int: "INT",
-        integer: "INT",
-        bigint: "BIGINT",
-        varchar: "VARCHAR(255)",
-        string: "VARCHAR(255)",
-        text: "NVARCHAR(MAX)",
-        boolean: "BIT",
-        bool: "BIT",
-        timestamp: "DATETIME2",
-        datetime: "DATETIME2",
-        date: "DATE",
-        decimal: "DECIMAL",
-        numeric: "NUMERIC",
-        float: "FLOAT",
-        double: "FLOAT",
+        int: 'INT',
+        integer: 'INT',
+        bigint: 'BIGINT',
+        varchar: 'VARCHAR(255)',
+        string: 'VARCHAR(255)',
+        text: 'NVARCHAR(MAX)',
+        boolean: 'BIT',
+        bool: 'BIT',
+        timestamp: 'DATETIME2',
+        datetime: 'DATETIME2',
+        date: 'DATE',
+        decimal: 'DECIMAL',
+        numeric: 'NUMERIC',
+        float: 'FLOAT',
+        double: 'FLOAT',
       },
       unknown: {
-        int: "INT",
-        integer: "INTEGER",
-        bigint: "BIGINT",
-        varchar: "VARCHAR",
-        string: "VARCHAR(255)",
-        text: "TEXT",
-        boolean: "BOOLEAN",
-        bool: "BOOLEAN",
-        timestamp: "TIMESTAMP",
-        datetime: "TIMESTAMP",
-        date: "DATE",
-        decimal: "DECIMAL",
-        numeric: "NUMERIC",
-        float: "FLOAT",
-        double: "DOUBLE",
+        int: 'INT',
+        integer: 'INTEGER',
+        bigint: 'BIGINT',
+        varchar: 'VARCHAR',
+        string: 'VARCHAR(255)',
+        text: 'TEXT',
+        boolean: 'BOOLEAN',
+        bool: 'BOOLEAN',
+        timestamp: 'TIMESTAMP',
+        datetime: 'TIMESTAMP',
+        date: 'DATE',
+        decimal: 'DECIMAL',
+        numeric: 'NUMERIC',
+        float: 'FLOAT',
+        double: 'DOUBLE',
       },
     };
 
-    const platformMap = typeMap[platform] || typeMap["unknown"];
-    return platformMap[normalized] || "VARCHAR(256)"; // Safe default
+    const platformMap = typeMap[platform] || typeMap['unknown'];
+    return platformMap[normalized] || 'VARCHAR(256)'; // Safe default
   }
 
   /**
@@ -243,10 +241,10 @@ export class DDLGenerator {
    */
   private getNullableConstraint(
     nullable: boolean,
-    platform: DatabasePlatform
+    platform: DatabasePlatform,
   ): string {
     // All platforms use NULL/NOT NULL the same way
-    return nullable ? "NULL" : "NOT NULL";
+    return nullable ? 'NULL' : 'NOT NULL';
   }
 
   /**
@@ -254,7 +252,7 @@ export class DDLGenerator {
    */
   private buildCreateTableStatement(
     options: DDLGenerationOptions,
-    fields: SchemaField[]
+    fields: SchemaField[],
   ): string {
     const platform = options.platform;
     const tableName = this.quoteIdentifier(options.tableName, platform);
@@ -269,17 +267,15 @@ export class DDLGenerator {
         const colName = this.quoteIdentifier(field.fieldPath, platform);
         const colType = this.mapFieldType(field.type, platform);
         const nullable = this.getNullableConstraint(field.nullable, platform);
-        const comment = field.description
-          ? ` -- ${field.description}`
-          : "";
+        const comment = field.description ? ` -- ${field.description}` : '';
 
         return `  ${colName} ${colType} ${nullable}${comment}`;
       })
-      .join("\n");
+      .join('\n');
 
     const ifNotExistsClause = options.ifNotExists
       ? this.getIfNotExistsClause(platform)
-      : "";
+      : '';
 
     const createStatement = `CREATE TABLE ${ifNotExistsClause} ${schemaQualified} (
 ${columnDefs}
@@ -294,19 +290,22 @@ ${columnDefs}
    */
   private getIfNotExistsClause(platform: DatabasePlatform): string {
     // Most platforms use IF NOT EXISTS
-    return "IF NOT EXISTS";
+    return 'IF NOT EXISTS';
   }
 
   /**
    * Quote an identifier appropriately for the platform.
    */
-  private quoteIdentifier(identifier: string, platform: DatabasePlatform): string {
+  private quoteIdentifier(
+    identifier: string,
+    platform: DatabasePlatform,
+  ): string {
     const cleaned = identifier.trim();
 
-    if (platform === "bigquery") {
+    if (platform === 'bigquery') {
       // BigQuery uses backticks
       return `\`${cleaned}\``;
-    } else if (platform === "tsql") {
+    } else if (platform === 'tsql') {
       // SQL Server uses square brackets
       return `[${cleaned}]`;
     } else {
@@ -320,38 +319,39 @@ ${columnDefs}
    */
   public generate(
     fields: SchemaField[],
-    options: DDLGenerationOptions
+    options: DDLGenerationOptions,
   ): DDLArtifact {
     const startTime = performance.now();
     const platform = this.normalizePlatform(options.platform);
-    const validationStatus = options.validationStatus || "generated";
+    const validationStatus = options.validationStatus || 'generated';
 
     logger.info(
       {
-        event: "ddl_generation_start",
+        event: 'ddl_generation_start',
         platform,
         tableName: options.tableName,
         fieldCount: fields.length,
         validationStatus,
       },
-      `DDLGenerator starting for platform: ${platform}, table: ${options.tableName}`
+      `DDLGenerator starting for platform: ${platform}, table: ${options.tableName}`,
     );
 
     try {
       // Validate inputs
       if (!fields || fields.length === 0) {
-        throw new Error("No schema fields provided for DDL generation");
+        throw new Error('No schema fields provided for DDL generation');
       }
 
       if (!options.tableName || options.tableName.trim().length === 0) {
-        throw new Error("Table name is required");
+        throw new Error('Table name is required');
       }
 
       // Generate the DDL
       const ddl = this.buildCreateTableStatement(options, fields);
 
       // Build formatted version with metadata
-      const platformLabel = platform === "unknown" ? "Generic SQL" : platform.toUpperCase();
+      const platformLabel =
+        platform === 'unknown' ? 'Generic SQL' : platform.toUpperCase();
       const formatted = [
         `-- =====================================`,
         `-- Generated by LineageGuard`,
@@ -364,32 +364,35 @@ ${columnDefs}
         ``,
         ddl,
         ``,
-      ].join("\n");
+      ].join('\n');
 
       const notes: string[] = [];
 
       // Platform-specific notes
-      if (platform === "unknown") {
+      if (platform === 'unknown') {
         notes.push(
-          "Platform could not be determined from DataHub metadata. Using generic SQL - verify compatibility."
+          'Platform could not be determined from DataHub metadata. Using generic SQL - verify compatibility.',
         );
       }
 
-      if (validationStatus === "generated" || validationStatus === "unvalidated") {
+      if (
+        validationStatus === 'generated' ||
+        validationStatus === 'unvalidated'
+      ) {
         notes.push(
-          "This DDL was generated and has NOT been executed. Review before applying to production."
+          'This DDL was generated and has NOT been executed. Review before applying to production.',
         );
       }
 
-      if (platform === "bigquery") {
+      if (platform === 'bigquery') {
         notes.push(
-          "BigQuery uses project.dataset.table naming - adjust schema/table names as needed."
+          'BigQuery uses project.dataset.table naming - adjust schema/table names as needed.',
         );
       }
 
       logger.info(
         {
-          event: "ddl_generation_success",
+          event: 'ddl_generation_success',
           platform,
           tableName: options.tableName,
           fieldCount: fields.length,
@@ -397,12 +400,11 @@ ${columnDefs}
           durationMs: performance.now() - startTime,
           validationStatus,
         },
-        `DDL generated successfully for ${options.tableName} (${fields.length} fields)`
+        `DDL generated successfully for ${options.tableName} (${fields.length} fields)`,
       );
 
       return {
         ddl,
-        formatted,
         platform,
         tableName: options.tableName,
         validationStatus,
@@ -410,17 +412,18 @@ ${columnDefs}
         notes,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       logger.error(
         {
-          event: "ddl_generation_failed",
+          event: 'ddl_generation_failed',
           platform,
           tableName: options.tableName,
           error: errorMessage,
           durationMs: performance.now() - startTime,
         },
-        `DDL generation failed: ${errorMessage}`
+        `DDL generation failed: ${errorMessage}`,
       );
 
       throw error;
@@ -435,7 +438,7 @@ ${columnDefs}
     tableName: string,
     field: SchemaField,
     platform: DatabasePlatform,
-    schemaName?: string
+    schemaName?: string,
   ): string {
     const normalizedPlatform = this.normalizePlatform(platform as string);
     const tableRef = schemaName
@@ -446,7 +449,7 @@ ${columnDefs}
     const colType = this.mapFieldType(field.type, normalizedPlatform);
     const nullable = this.getNullableConstraint(
       field.nullable,
-      normalizedPlatform
+      normalizedPlatform,
     );
 
     return `ALTER TABLE ${tableRef} ADD COLUMN ${colName} ${colType} ${nullable};`;
@@ -460,7 +463,7 @@ ${columnDefs}
     tableName: string,
     columnName: string,
     platform: DatabasePlatform,
-    schemaName?: string
+    schemaName?: string,
   ): string {
     const normalizedPlatform = this.normalizePlatform(platform as string);
     const tableRef = schemaName
@@ -470,7 +473,7 @@ ${columnDefs}
     const colName = this.quoteIdentifier(columnName, normalizedPlatform);
 
     // BigQuery uses different syntax
-    if (normalizedPlatform === "bigquery") {
+    if (normalizedPlatform === 'bigquery') {
       return `ALTER TABLE ${tableRef} DROP COLUMN ${colName};`;
     }
 

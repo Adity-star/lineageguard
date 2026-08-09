@@ -184,6 +184,8 @@ Creates an auditable branch, commit, and pull request when the change is approve
 
 ## Quick Start
 
+### With Docker
+
 ```bash
 # Clone the repository
 git clone https://github.com/Adity-star/lineageguard.git
@@ -191,14 +193,38 @@ cd lineageguard
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your DataHub, GitHub, and database credentials
+# Edit .env with your Grok API key, GitHub token, and other credentials
 
-# Start with Docker Compose
+# Start all services (DataHub + Agent + Frontend)
 docker compose up
 
-# Or run the agent directly
+# Access services
+# DataHub UI: http://localhost:9002
+# LineageGuard Agent: http://localhost:3001
+# LineageGuard Web: http://localhost:3000
+```
+
+### Without Docker (Development)
+
+```bash
+# Start DataHub (required for MCP server)
+datahub docker quickstart
+
+# Configure agent
 cd agent
+cp .env.example .env.local
+# Edit .env.local with your credentials
+
+# Install dependencies
 npm install
+
+# Generate Prisma client
+npm run prisma:generate
+
+# Run migrations
+npm run prisma:migrate
+
+# Start the agent
 npm run dev
 ```
 

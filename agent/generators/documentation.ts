@@ -1,17 +1,13 @@
-import { ExecutionPlan } from "../planner/types.js";
-import { RiskAssessment } from "../risk/types.js";
+import { ExecutionPlan } from '../planner/types.js';
+import { RiskAssessment } from '../risk/types.js';
 
-import { DocumentationArtifact } from "./types.js";
+import { DocumentationArtifact } from './types.js';
 
 export class DocumentationGenerator {
-  generate(
-    plan: ExecutionPlan,
-    risk: RiskAssessment
-  ): DocumentationArtifact {
-
+  generate(plan: ExecutionPlan, risk: RiskAssessment): DocumentationArtifact {
     // Log current plan data for debugging
     console.log({
-      event: "documentation_generation",
+      event: 'documentation_generation',
       currentPlanSummary: plan.summary,
       currentPlanIntent: plan.intent,
       currentAffectedColumns: plan.affectedColumns,
@@ -19,42 +15,36 @@ export class DocumentationGenerator {
     });
 
     // Determine operation type from required changes
-    const operationType = plan.requiredChanges?.[0]?.type || "unknown";
+    const operationType = plan.requiredChanges?.[0]?.type || 'unknown';
 
     const markdown = [
-      "# LineageGuard Change Report",
-      "",
-      "## Summary",
+      '# LineageGuard Change Report',
+      '',
+      '## Summary',
       plan.summary,
-      "",
-      "## Intent",
+      '',
+      '## Intent',
       plan.intent,
-      "",
-      "## Operation Type",
+      '',
+      '## Operation Type',
       operationType,
-      "",
-      "## Risk",
+      '',
+      '## Risk',
       `- Level: ${risk.overallRisk}`,
       `- Score: ${risk.score}/100`,
-      "",
-      "## Affected Columns",
-      plan.affectedColumns?.join(", ") || "None",
-      "",
-      "## Required Changes",
-      ...plan.requiredChanges.map(
-        c => `- ${c.type}: ${c.description}`
-      ),
-      "",
-      "## Recommendations",
-      ...risk.recommendations.map(
-        r => `- ${r}`
-      ),
-      "",
-      "## Approval",
-      risk.requiresApproval
-        ? "Required"
-        : "Not Required",
-    ].join("\n");
+      '',
+      '## Affected Columns',
+      plan.affectedColumns?.join(', ') || 'None',
+      '',
+      '## Required Changes',
+      ...plan.requiredChanges.map((c) => `- ${c.type}: ${c.description}`),
+      '',
+      '## Recommendations',
+      ...risk.recommendations.map((r) => `- ${r}`),
+      '',
+      '## Approval',
+      risk.requiresApproval ? 'Required' : 'Not Required',
+    ].join('\n');
 
     return {
       markdown,

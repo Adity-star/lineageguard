@@ -20,33 +20,42 @@ program
   .argument('<description>', 'Description of the schema change')
   .option('-d, --dataset <urn>', 'Target dataset URN')
   .option('-r, --requested-by <email>', 'Requester email')
-  .option('-p, --priority <level>', 'Priority level (low, medium, high)', 'medium')
-  .action(async (description: string, options: { dataset: string; requestedBy: string; priority: string }) => {
-    try {
-      logger.info('Submitting schema change request');
+  .option(
+    '-p, --priority <level>',
+    'Priority level (low, medium, high)',
+    'medium',
+  )
+  .action(
+    async (
+      description: string,
+      options: { dataset: string; requestedBy: string; priority: string },
+    ) => {
+      try {
+        logger.info('Submitting schema change request');
 
-      const request: ChangeRequest = {
-        description,
-        datasetUrn: options.dataset,
-        requestedBy: options.requestedBy || 'unknown',
-        priority: options.priority,
-      };
+        const request: ChangeRequest = {
+          description,
+          datasetUrn: options.dataset,
+          requestedBy: options.requestedBy || 'unknown',
+          priority: options.priority as 'low' | 'medium' | 'high',
+        };
 
-      const container = createContainer();
-      const result = await container.orchestrator.execute(request);
+        const container = createContainer();
+        const result = await container.orchestrator.execute(request);
 
-      logger.info('Workflow completed successfully');
-      logger.info('\n=== Workflow Result ===');
-      logger.info(JSON.stringify(result, null, 2));
+        logger.info('Workflow completed successfully');
+        logger.info('\n=== Workflow Result ===');
+        logger.info(JSON.stringify(result, null, 2));
 
-      if (result.github) {
-        logger.info(`\nPull Request: ${result.github.url}`);
+        if (result.github) {
+          logger.info(`\nPull Request: ${result.github.url}`);
+        }
+      } catch (error: unknown) {
+        logger.error({ err: error }, 'Workflow failed');
+        process.exit(1);
       }
-    } catch (error: unknown) {
-      logger.error({ err: error }, 'Workflow failed');
-      process.exit(1);
-    }
-  });
+    },
+  );
 
 program
   .command('health')

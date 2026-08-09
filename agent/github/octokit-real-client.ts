@@ -1,6 +1,16 @@
-import { Octokit } from "@octokit/rest";
-import { logger } from "../config/logger.js";
-import { GitHubClient, CreatePullRequestRequest, PullRequestResponse, CreateBranchRequest, GetBranchRequest, GetBranchResponse, CommitFileRequest, CheckPullRequestRequest, PullRequestExistsResponse } from "./github-client.js";
+import { Octokit } from '@octokit/rest';
+import { logger } from '../config/logger.js';
+import {
+  GitHubClient,
+  CreatePullRequestRequest,
+  PullRequestResponse,
+  CreateBranchRequest,
+  GetBranchRequest,
+  GetBranchResponse,
+  CommitFileRequest,
+  CheckPullRequestRequest,
+  PullRequestExistsResponse,
+} from './github-client.js';
 
 /**
  * Real GitHub client implementation using Octokit
@@ -11,7 +21,7 @@ export class OctokitRealClient implements GitHubClient {
   constructor(
     private readonly token: string,
     private readonly owner: string,
-    private readonly repository: string
+    private readonly repository: string,
   ) {
     this.octokit = new Octokit({
       auth: token,
@@ -19,11 +29,11 @@ export class OctokitRealClient implements GitHubClient {
   }
 
   async createPullRequest(
-    request: PullRequestRequest
+    request: CreatePullRequestRequest,
   ): Promise<PullRequestResponse> {
     try {
       logger.info({
-        event: "github_pr_create_start",
+        event: 'github_pr_create_start',
         owner: this.owner,
         repository: this.repository,
         headBranch: request.headBranch,
@@ -45,7 +55,7 @@ export class OctokitRealClient implements GitHubClient {
       };
 
       logger.info({
-        event: "github_pr_create_success",
+        event: 'github_pr_create_success',
         prNumber: result.number,
         prUrl: result.url,
       });
@@ -53,7 +63,7 @@ export class OctokitRealClient implements GitHubClient {
       return result;
     } catch (error) {
       logger.error({
-        event: "github_pr_create_failed",
+        event: 'github_pr_create_failed',
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -63,7 +73,7 @@ export class OctokitRealClient implements GitHubClient {
   async addLabels(prNumber: number, labels: string[]): Promise<void> {
     try {
       logger.info({
-        event: "github_labels_add_start",
+        event: 'github_labels_add_start',
         prNumber,
         labels,
       });
@@ -76,13 +86,13 @@ export class OctokitRealClient implements GitHubClient {
       });
 
       logger.info({
-        event: "github_labels_add_success",
+        event: 'github_labels_add_success',
         prNumber,
         labels,
       });
     } catch (error) {
       logger.error({
-        event: "github_labels_add_failed",
+        event: 'github_labels_add_failed',
         prNumber,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -90,13 +100,10 @@ export class OctokitRealClient implements GitHubClient {
     }
   }
 
-  async requestReviewers(
-    prNumber: number,
-    reviewers: string[]
-  ): Promise<void> {
+  async requestReviewers(prNumber: number, reviewers: string[]): Promise<void> {
     try {
       logger.info({
-        event: "github_reviewers_request_start",
+        event: 'github_reviewers_request_start',
         prNumber,
         reviewers,
       });
@@ -109,13 +116,13 @@ export class OctokitRealClient implements GitHubClient {
       });
 
       logger.info({
-        event: "github_reviewers_request_success",
+        event: 'github_reviewers_request_success',
         prNumber,
         reviewers,
       });
     } catch (error) {
       logger.error({
-        event: "github_reviewers_request_failed",
+        event: 'github_reviewers_request_failed',
         prNumber,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -126,7 +133,7 @@ export class OctokitRealClient implements GitHubClient {
   async createBranch(request: CreateBranchRequest): Promise<void> {
     try {
       logger.info({
-        event: "github_branch_create_start",
+        event: 'github_branch_create_start',
         owner: request.owner,
         repository: request.repository,
         baseBranch: request.baseBranch,
@@ -143,7 +150,7 @@ export class OctokitRealClient implements GitHubClient {
       const baseSha = baseRef.data.object.sha;
 
       logger.info({
-        event: "github_base_branch_resolved",
+        event: 'github_base_branch_resolved',
         baseBranch: request.baseBranch,
         baseSha,
       });
@@ -157,7 +164,7 @@ export class OctokitRealClient implements GitHubClient {
       });
 
       logger.info({
-        event: "github_branch_created",
+        event: 'github_branch_created',
         owner: request.owner,
         repository: request.repository,
         newBranch: request.newBranch,
@@ -165,7 +172,7 @@ export class OctokitRealClient implements GitHubClient {
       });
     } catch (error) {
       logger.error({
-        event: "github_branch_create_failed",
+        event: 'github_branch_create_failed',
         owner: request.owner,
         repository: request.repository,
         baseBranch: request.baseBranch,
@@ -179,7 +186,7 @@ export class OctokitRealClient implements GitHubClient {
   async getBranch(request: GetBranchRequest): Promise<GetBranchResponse> {
     try {
       logger.info({
-        event: "github_branch_get_start",
+        event: 'github_branch_get_start',
         owner: request.owner,
         repository: request.repository,
         branch: request.branch,
@@ -192,7 +199,7 @@ export class OctokitRealClient implements GitHubClient {
       });
 
       logger.info({
-        event: "github_branch_get_success",
+        event: 'github_branch_get_success',
         owner: request.owner,
         repository: request.repository,
         branch: request.branch,
@@ -206,7 +213,7 @@ export class OctokitRealClient implements GitHubClient {
     } catch (error: any) {
       if (error.status === 404) {
         logger.info({
-          event: "github_branch_not_found",
+          event: 'github_branch_not_found',
           owner: request.owner,
           repository: request.repository,
           branch: request.branch,
@@ -215,7 +222,7 @@ export class OctokitRealClient implements GitHubClient {
       }
 
       logger.error({
-        event: "github_branch_get_failed",
+        event: 'github_branch_get_failed',
         owner: request.owner,
         repository: request.repository,
         branch: request.branch,
@@ -228,7 +235,7 @@ export class OctokitRealClient implements GitHubClient {
   async commitFile(request: CommitFileRequest): Promise<void> {
     try {
       logger.info({
-        event: "github_file_commit_start",
+        event: 'github_file_commit_start',
         owner: request.owner,
         repository: request.repository,
         branch: request.branch,
@@ -249,7 +256,7 @@ export class OctokitRealClient implements GitHubClient {
         owner: request.owner,
         repo: request.repository,
         tree_sha: currentSha,
-        recursive: true,
+        recursive: 'true',
       });
 
       // Create a blob for the file content
@@ -293,7 +300,7 @@ export class OctokitRealClient implements GitHubClient {
       });
 
       logger.info({
-        event: "github_file_commit_success",
+        event: 'github_file_commit_success',
         owner: request.owner,
         repository: request.repository,
         branch: request.branch,
@@ -302,7 +309,7 @@ export class OctokitRealClient implements GitHubClient {
       });
     } catch (error) {
       logger.error({
-        event: "github_file_commit_failed",
+        event: 'github_file_commit_failed',
         owner: request.owner,
         repository: request.repository,
         branch: request.branch,
@@ -313,10 +320,12 @@ export class OctokitRealClient implements GitHubClient {
     }
   }
 
-  async checkPullRequestExists(request: CheckPullRequestRequest): Promise<PullRequestExistsResponse> {
+  async checkPullRequestExists(
+    request: CheckPullRequestRequest,
+  ): Promise<PullRequestExistsResponse> {
     try {
       logger.info({
-        event: "github_pr_check_start",
+        event: 'github_pr_check_start',
         owner: request.owner,
         repository: request.repository,
         headBranch: request.headBranch,
@@ -333,8 +342,11 @@ export class OctokitRealClient implements GitHubClient {
 
       if (response.data.length > 0) {
         const pr = response.data[0];
+        if (!pr) {
+          return { exists: false };
+        }
         logger.info({
-          event: "github_pr_exists",
+          event: 'github_pr_exists',
           owner: request.owner,
           repository: request.repository,
           headBranch: request.headBranch,
@@ -350,7 +362,7 @@ export class OctokitRealClient implements GitHubClient {
       }
 
       logger.info({
-        event: "github_pr_not_exists",
+        event: 'github_pr_not_exists',
         owner: request.owner,
         repository: request.repository,
         headBranch: request.headBranch,
@@ -359,7 +371,7 @@ export class OctokitRealClient implements GitHubClient {
       return { exists: false };
     } catch (error) {
       logger.error({
-        event: "github_pr_check_failed",
+        event: 'github_pr_check_failed',
         owner: request.owner,
         repository: request.repository,
         headBranch: request.headBranch,

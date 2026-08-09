@@ -5,7 +5,7 @@ import { RiskMetrics } from '../../../risk/calculator.js';
 describe('RiskScorer', () => {
   it('should calculate low risk for simple column addition', () => {
     const scorer = new RiskScorer();
-    
+
     const metrics: RiskMetrics = {
       downstreamDatasets: 0,
       upstreamDatasets: 0,
@@ -25,7 +25,7 @@ describe('RiskScorer', () => {
 
   it('should calculate high risk for column deletion with downstream impact', () => {
     const scorer = new RiskScorer();
-    
+
     const metrics: RiskMetrics = {
       downstreamDatasets: 25,
       upstreamDatasets: 5,
@@ -45,7 +45,7 @@ describe('RiskScorer', () => {
 
   it('should calculate critical risk for table deletion with massive downstream impact', () => {
     const scorer = new RiskScorer();
-    
+
     const metrics: RiskMetrics = {
       downstreamDatasets: 2,
       upstreamDatasets: 1,
@@ -65,7 +65,7 @@ describe('RiskScorer', () => {
 
   it('should cap score at 100', () => {
     const scorer = new RiskScorer();
-    
+
     const metrics: RiskMetrics = {
       downstreamDatasets: 100,
       upstreamDatasets: 50,

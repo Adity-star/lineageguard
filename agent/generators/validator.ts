@@ -1,36 +1,26 @@
-import { ZodError } from "zod";
+import { ZodError } from 'zod';
 
-import {
-  GenerationResult,
-  GenerationResultSchema,
-} from "./types";
+import { GenerationResult, GenerationResultSchema } from './types.js';
 
 export class GenerationValidationError extends Error {
   constructor(
     message: string,
-    public readonly issues?: ZodError["issues"]
+    public readonly issues?: ZodError['issues'],
   ) {
     super(message);
 
-    this.name =
-      "GenerationValidationError";
+    this.name = 'GenerationValidationError';
   }
 }
 
 export class GenerationValidator {
-  validate(
-    data: unknown
-  ): GenerationResult {
-
-    const result =
-      GenerationResultSchema.safeParse(
-        data
-      );
+  validate(data: unknown): GenerationResult {
+    const result = GenerationResultSchema.safeParse(data);
 
     if (!result.success) {
       throw new GenerationValidationError(
-        "Generated artifacts are invalid.",
-        result.error.issues
+        'Generated artifacts are invalid.',
+        result.error.issues,
       );
     }
 

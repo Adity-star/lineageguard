@@ -1,39 +1,36 @@
-import { ContextEngine } from "../../context/context-engine.js";
+import { ContextEngine } from '../../context/context-engine.js';
 
-import { PipelineStage } from "../pipeline.js";
-import { StateStore } from "../state.js";
-import { MissingWorkflowStateError } from "../errors.js";
-import { logger } from "../../config/logger.js";
-import { PerformanceTracker } from "../../utils/performance.js";
-import { IdempotencyService, withIdempotency, OperationType } from "../../utils/idempotency.js";
+import { PipelineStage } from '../pipeline.js';
+import { StateStore } from '../state.js';
+import { MissingWorkflowStateError } from '../errors.js';
+import { logger } from '../../config/logger.js';
+import { PerformanceTracker } from '../../utils/performance.js';
+import {
+  IdempotencyService,
+  withIdempotency,
+  OperationType,
+} from '../../utils/idempotency.js';
 
 export class ContextStage implements PipelineStage {
-
-  readonly name = "context";
+  readonly name = 'context';
 
   constructor(
     private readonly engine: ContextEngine,
-    private readonly idempotencyService: IdempotencyService
+    private readonly idempotencyService: IdempotencyService,
   ) {}
 
-  async execute(
-    state: StateStore,
-    perf?: PerformanceTracker
-  ): Promise<void> {
-
-    const request = state.get("request");
+  async execute(state: StateStore, perf?: PerformanceTracker): Promise<void> {
+    const request = state.get('request');
 
     if (!request) {
-      throw new MissingWorkflowStateError(
-        "request"
-      );
+      throw new MissingWorkflowStateError('request');
     }
 
     const idempotencyKey = IdempotencyService.generateKey({
       description: request.description,
-      datasetUrn: request.datasetUrn || "none",
+      datasetUrn: request.datasetUrn || 'none',
       requestedBy: request.requestedBy,
-      priority: request.priority || "none",
+      priority: request.priority || 'none',
     });
 
     const context = await withIdempotency(
@@ -44,21 +41,19 @@ export class ContextStage implements PipelineStage {
       async () => {
         return await this.engine.buildContext(request);
       },
-      this.idempotencyService
+      this.idempotencyService,
     );
 
-    state.set(
-      "context",
-      context
+    state.set('context', context);
+
+    logger.info(
+      {
+        event: 'context_complete',
+        datasetName: context.dataset?.name,
+        platform: context.dataset?.platform,
+        fieldCount: context.schema?.length || 0,
+      },
+      'Context Complete',
     );
-
-    logger.info({
-      event: "context_complete",
-      datasetName: context.dataset?.name,
-      platform: context.dataset?.platform,
-      fieldCount: context.schema?.length || 0,
-    }, "Context Complete");
-
   }
-
 }

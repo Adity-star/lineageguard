@@ -1,12 +1,9 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
-import { logger } from "../config/logger.js";
+import { logger } from '../config/logger.js';
 
-import {
-  MCPConnectionError,
-  MCPTimeoutError,
-} from "./errors.js";
+import { MCPConnectionError, MCPTimeoutError } from './errors.js';
 
 export interface StdioMCPTransportOptions {
   timeoutMs?: number;
@@ -47,18 +44,18 @@ export class StdioMCPTransport {
   constructor(options: StdioMCPTransportOptions = {}) {
     this.timeoutMs = options.timeoutMs ?? 30000;
 
-    this.command = options.command ?? "mcp-server-datahub";
+    this.command = options.command ?? 'mcp-server-datahub';
 
     this.args = options.args ?? [];
 
     this.environment = {
       ...process.env,
       ...(options.env ?? {}),
-    };
+    } as Record<string, string>;
 
     this.client = new Client({
-      name: "lineageguard",
-      version: "1.0.0",
+      name: 'lineageguard',
+      version: '1.0.0',
     });
   }
 
@@ -73,7 +70,7 @@ export class StdioMCPTransport {
           command: this.command,
           args: this.args,
         },
-        "Starting DataHub MCP Server (STDIO)"
+        'Starting DataHub MCP Server (STDIO)',
       );
 
       this.transport = new StdioClientTransport({
@@ -86,11 +83,11 @@ export class StdioMCPTransport {
 
       this.connected = true;
 
-      logger.info("Connected to DataHub MCP Server");
+      logger.info('Connected to DataHub MCP Server');
     } catch (error) {
       throw new MCPConnectionError(
-        "Failed to connect to DataHub MCP Server",
-        error
+        'Failed to connect to DataHub MCP Server',
+        error,
       );
     }
   }
@@ -105,17 +102,15 @@ export class StdioMCPTransport {
 
       this.connected = false;
 
-      logger.info("Disconnected from DataHub MCP Server");
+      logger.info('Disconnected from DataHub MCP Server');
     } catch (error) {
-      logger.error(error, "Failed to disconnect MCP");
+      logger.error(error, 'Failed to disconnect MCP');
     }
   }
 
   getClient(): Client {
     if (!this.connected) {
-      throw new MCPConnectionError(
-        "MCP client is not connected."
-      );
+      throw new MCPConnectionError('MCP client is not connected.');
     }
 
     return this.client;
@@ -128,10 +123,7 @@ export class StdioMCPTransport {
       }, this.timeoutMs);
     });
 
-    return Promise.race([
-      fn(),
-      timeoutPromise,
-    ]);
+    return Promise.race([fn(), timeoutPromise]);
   }
 
   isConnected(): boolean {

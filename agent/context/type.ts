@@ -1,129 +1,126 @@
 import {
-    Dataset,
-    SchemaField,
-    Lineage,
-    DatasetQuery,
-    Document
-} from "../mcp/types.js";
+  Dataset,
+  SchemaField,
+  Lineage,
+  DatasetQuery,
+  Document,
+} from '../mcp/types.js';
 
 export interface RawContext {
+  dataset?: Dataset;
 
-    dataset?: Dataset;
+  schema?: SchemaField[];
 
-    schema?: SchemaField[];
+  lineage?: Lineage;
 
-    lineage?: Lineage;
+  queries?: DatasetQuery[];
 
-    queries?: DatasetQuery[];
-
-    documents?: Document[];
-
+  documents?: Document[];
 }
 
 export interface ContextProvenance {
-    datasetUrn: string;
-    retrievedAt: string;
-    source: 'datahub' | 'fallback';
-    catalogVersion?: string;
-    retrievalDurationMs: number;
+  datasetUrn: string;
+  retrievedAt: string;
+  source: 'datahub' | 'fallback';
+  catalogVersion?: string;
+  retrievalDurationMs: number;
 }
 
 export interface DataQuality {
-    passedChecks: number;
-    failedChecks: number;
-    lastChecked?: string;
+  passedChecks: number;
+  failedChecks: number;
+  lastChecked?: string;
 }
 
 export interface Domain {
-    urn: string;
-    name: string;
-    description?: string;
+  urn: string;
+  name: string;
+  description?: string;
 }
 
 export interface Certification {
-    certified: boolean;
-    level?: string;
-    lastCertified?: string;
-    certifier?: string;
+  certified: boolean;
+  level?: string;
+  lastCertified?: string;
+  certifier?: string;
 }
 
 export interface Deprecation {
-    deprecated: boolean;
-    note?: string;
-    decommissionDate?: string;
+  deprecated: boolean;
+  note?: string;
+  decommissionDate?: string;
 }
 
 export interface RelatedDashboard {
-    urn: string;
-    name: string;
-    url?: string;
+  urn: string;
+  name: string;
+  url?: string;
 }
 
 export interface RelatedPipeline {
-    urn: string;
-    name: string;
-    platform: string;
+  urn: string;
+  name: string;
+  platform: string;
 }
 
 export interface RelatedDbtModel {
-    urn: string;
-    name: string;
-    package: string;
+  urn: string;
+  name: string;
+  package: string;
 }
 
 export interface ContextBundle {
+  // Core metadata
+  dataset: Dataset;
 
-    // Core metadata
-    dataset: Dataset;
+  schema: SchemaField[];
 
-    schema: SchemaField[];
+  lineage: Lineage;
 
-    lineage: Lineage;
+  // Documentation
+  queries: DatasetQuery[];
 
-    // Documentation
-    queries: DatasetQuery[];
+  documents: Document[];
 
-    documents: Document[];
+  // Extended metadata
+  owners: Array<{ urn: string; name: string; type: string }>;
+  glossaryTerms: Array<{ urn: string; name: string; description?: string }>;
+  tags: string[];
+  structuredProperties: Record<string, any>;
 
-    // Extended metadata
-    owners: Array<{ urn: string; name: string; type: string }>;
-    glossaryTerms: Array<{ urn: string; name: string; description?: string }>;
-    tags: string[];
-    structuredProperties: Record<string, any>;
+  // Usage and quality
+  usage: {
+    queryCount: number;
+    lastQueried?: string;
+    topUsers?: Array<{ user: string; count: number }>;
+  };
+  quality: DataQuality;
 
-    // Usage and quality
-    usage: {
-        queryCount: number;
-        lastQueried?: string;
-        topUsers?: Array<{ user: string; count: number }>;
-    };
-    quality: DataQuality;
+  // Governance
+  domain?: Domain | undefined;
+  certification: Certification;
+  deprecation: Deprecation;
 
-    // Governance
-    domain?: Domain;
-    certification: Certification;
-    deprecation: Deprecation;
+  // Related assets
+  relatedDashboards: RelatedDashboard[];
+  relatedPipelines: RelatedPipeline[];
+  relatedDbtModels: RelatedDbtModel[];
 
-    // Related assets
-    relatedDashboards: RelatedDashboard[];
-    relatedPipelines: RelatedPipeline[];
-    relatedDbtModels: RelatedDbtModel[];
+  // Statistics
+  statistics: {
+    totalFields: number;
+    upstreamCount: number;
+    downstreamCount: number;
+    queryCount: number;
+    documentCount: number;
+    ownerCount: number;
+    glossaryTermCount: number;
+    tagCount: number;
+    dashboardCount: number;
+    pipelineCount: number;
+    dbtModelCount: number;
+  };
 
-    // Statistics
-    statistics: {
-        totalFields: number;
-        upstreamCount: number;
-        downstreamCount: number;
-        queryCount: number;
-        documentCount: number;
-        ownerCount: number;
-        glossaryTermCount: number;
-        tagCount: number;
-        dashboardCount: number;
-        pipelineCount: number;
-        dbtModelCount: number;
-    };
-
-    // Provenance
-    provenance: ContextProvenance;
+  // Provenance
+  provenance: ContextProvenance;
 }

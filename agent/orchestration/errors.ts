@@ -1,41 +1,25 @@
 export class WorkflowError extends Error {
-
   constructor(
-
     message: string,
 
     public readonly stage: string,
 
-    public readonly cause?: unknown
-
+    public readonly cause?: unknown,
   ) {
-
     super(message);
 
-    this.name = "WorkflowError";
-
+    this.name = 'WorkflowError';
   }
-
 }
 
-export class MissingWorkflowStateError
-  extends WorkflowError {
-
-  constructor(
-    property: string
-  ) {
-
+export class MissingWorkflowStateError extends WorkflowError {
+  constructor(property: string) {
     super(
-
       `Workflow state is missing "${property}".`,
 
-      "state"
-
+      'state',
     );
 
-    this.name =
-      "MissingWorkflowStateError";
-
+    this.name = 'MissingWorkflowStateError';
   }
-
 }

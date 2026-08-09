@@ -1,5 +1,5 @@
-import { ImpactReport } from "./types.js";
-import { ContextBundle } from "../context/type.js";
+import { ImpactReport } from './types.js';
+import { ContextBundle } from '../context/type.js';
 
 export interface MetadataWriter {
   /**

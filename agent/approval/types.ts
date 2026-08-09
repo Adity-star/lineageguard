@@ -1,10 +1,6 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-export const ApprovalStatusSchema = z.enum([
-  "PENDING",
-  "APPROVED",
-  "REJECTED",
-]);
+export const ApprovalStatusSchema = z.enum(['PENDING', 'APPROVED', 'REJECTED']);
 
 export type ApprovalStatus = z.infer<typeof ApprovalStatusSchema>;
 
@@ -23,7 +19,7 @@ export type ApprovalDecision = z.infer<typeof ApprovalDecisionSchema>;
 export const ApprovalRequestSchema = z.object({
   requestId: z.string(),
 
-  riskLevel: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+  riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
 
   riskScore: z.number().min(0).max(100),
 

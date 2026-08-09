@@ -1,52 +1,30 @@
-import { ZodError } from "zod";
+import { ZodError } from 'zod';
 
-import {
-  PullRequest,
-  PullRequestSchema,
-} from "./types";
+import { PullRequest, PullRequestSchema } from './types.js';
 
-export class GitHubValidationError
-  extends Error {
-
+export class GitHubValidationError extends Error {
   constructor(
     message: string,
-    public readonly issues?: ZodError["issues"]
+    public readonly issues?: ZodError['issues'],
   ) {
-
     super(message);
 
-    this.name =
-      "GitHubValidationError";
-
+    this.name = 'GitHubValidationError';
   }
-
 }
 
 export class GitHubValidator {
-
-  validate(
-    data: unknown
-  ): PullRequest {
-
-    const result =
-      PullRequestSchema.safeParse(
-        data
-      );
+  validate(data: unknown): PullRequest {
+    const result = PullRequestSchema.safeParse(data);
 
     if (!result.success) {
-
       throw new GitHubValidationError(
+        'Invalid Pull Request.',
 
-        "Invalid Pull Request.",
-
-        result.error.issues
-
+        result.error.issues,
       );
-
     }
 
     return result.data;
-
   }
-
 }

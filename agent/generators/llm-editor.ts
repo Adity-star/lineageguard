@@ -1,4 +1,4 @@
-import { ExecutionPlan } from "../planner/types.js";
+import { ExecutionPlan } from '../planner/types.js';
 
 export interface SchemaEditorRequest {
   schema: string;
@@ -10,7 +10,5 @@ export interface SchemaEditorResponse {
 }
 
 export interface LLMEditor {
-  editSchema(
-    request: SchemaEditorRequest
-  ): Promise<SchemaEditorResponse>;
+  editSchema(request: SchemaEditorRequest): Promise<SchemaEditorResponse>;
 }

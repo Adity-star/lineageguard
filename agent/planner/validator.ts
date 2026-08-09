@@ -1,17 +1,14 @@
-import { ZodError } from "zod";
+import { ZodError } from 'zod';
 
-import {
-  ExecutionPlan,
-  ExecutionPlanSchema,
-} from "./types";
+import { ExecutionPlan, ExecutionPlanSchema } from './types.js';
 
 export class PlanningValidationError extends Error {
   constructor(
     message: string,
-    public readonly issues?: ZodError["issues"]
+    public readonly issues?: ZodError['issues'],
   ) {
     super(message);
-    this.name = "PlanningValidationError";
+    this.name = 'PlanningValidationError';
   }
 }
 
@@ -21,8 +18,8 @@ export class PlanningValidator {
 
     if (!result.success) {
       throw new PlanningValidationError(
-        "Execution plan validation failed.",
-        result.error.issues
+        'Execution plan validation failed.',
+        result.error.issues,
       );
     }
 

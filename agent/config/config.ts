@@ -1,8 +1,7 @@
-import { env } from "./env";
-import { maskToken } from "../utils/security.js";
+import { env } from './env.js';
+import { maskToken } from '../utils/security.js';
 
 export interface AppConfig {
-
   github: {
     owner: string;
     repository: string;
@@ -24,33 +23,30 @@ export interface AppConfig {
   logging: {
     level: string;
   };
-
 }
 
 export const config: AppConfig = {
-
   github: {
-    owner: env.GITHUB_OWNER,
-    repository: env.GITHUB_REPOSITORY,
-    baseBranch: env.GITHUB_BASE_BRANCH,
-    token: env.GITHUB_TOKEN,
+    owner: env.GITHUB_OWNER || '',
+    repository: env.GITHUB_REPOSITORY || '',
+    baseBranch: env.GITHUB_BASE_BRANCH || '',
+    token: env.GITHUB_TOKEN || '',
   },
 
   datahub: {
-    url: env.DATAHUB_GMS_URL,
-    token: env.DATAHUB_GMS_TOKEN,
+    url: env.DATAHUB_GMS_URL || '',
+    token: env.DATAHUB_GMS_TOKEN || '',
   },
 
   grok: {
-    apiKey: env.GROQ_API_KEY,
-    model: env.GROQ_MODEL,
-    baseURL: env.GROQ_BASE_URL,
+    apiKey: env.GROQ_API_KEY || '',
+    model: env.GROQ_MODEL || '',
+    baseURL: env.GROQ_BASE_URL || '',
   },
 
   logging: {
-    level: env.LOG_LEVEL,
+    level: env.LOG_LEVEL || '',
   },
-
 };
 
 // Safe config for logging (tokens masked)

@@ -1,19 +1,13 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import { MCPClient } from "../client";
+import { MCPClient } from '../client.js';
 
-import {
-  DocumentSchema,
-  Document,
-  MCPToolResponse,
-} from "../types";
+import { DocumentSchema, Document, MCPToolResponse } from '../types.js';
 
 const DocumentsSchema = z.array(DocumentSchema);
 
 export class DocumentTool {
-  constructor(
-    private readonly client: MCPClient
-  ) {}
+  constructor(private readonly client: MCPClient) {}
 
   /**
    * Semantic document search.
@@ -23,7 +17,7 @@ export class DocumentTool {
     const client = (this.client as any).transport.getClient();
 
     const response = await client.callTool({
-      name: "search_documents",
+      name: 'search_documents',
       arguments: { query },
     });
 
@@ -34,7 +28,7 @@ export class DocumentTool {
 
     if (!result || result.total === 0) {
       return {
-        tool: "search_documents",
+        tool: 'search_documents',
         durationMs,
         data: [],
       };
@@ -42,14 +36,14 @@ export class DocumentTool {
 
     // Map searchResults to Document format
     const documents = (result.searchResults ?? []).map((item: any) => ({
-      id: item.id || item.urn || "",
-      title: item.title || item.name || "",
-      snippet: item.snippet || item.content || "",
+      id: item.id || item.urn || '',
+      title: item.title || item.name || '',
+      snippet: item.snippet || item.content || '',
       url: item.url,
     }));
 
     return {
-      tool: "search_documents",
+      tool: 'search_documents',
       durationMs,
       data: documents,
     };
@@ -58,15 +52,13 @@ export class DocumentTool {
   /**
    * Keyword / regex document search.
    */
-  async grepDocuments(
-    pattern: string
-  ): Promise<MCPToolResponse<Document[]>> {
+  async grepDocuments(pattern: string): Promise<MCPToolResponse<Document[]>> {
     return this.client.executeTool(
-      "grep_documents",
+      'grep_documents',
       {
         pattern,
       },
-      DocumentsSchema
+      DocumentsSchema,
     );
   }
 }

@@ -1,30 +1,26 @@
-import { ZodError } from "zod";
+import { ZodError } from 'zod';
 
-import {
-  RiskAssessment,
-  RiskAssessmentSchema,
-} from "./types";
+import { RiskAssessment, RiskAssessmentSchema } from './types.js';
 
 export class RiskValidationError extends Error {
   constructor(
     message: string,
-    public readonly issues?: ZodError["issues"]
+    public readonly issues?: ZodError['issues'],
   ) {
     super(message);
 
-    this.name = "RiskValidationError";
+    this.name = 'RiskValidationError';
   }
 }
 
 export class RiskValidator {
   validate(data: unknown): RiskAssessment {
-    const result =
-      RiskAssessmentSchema.safeParse(data);
+    const result = RiskAssessmentSchema.safeParse(data);
 
     if (!result.success) {
       throw new RiskValidationError(
-        "Risk assessment validation failed.",
-        result.error.issues
+        'Risk assessment validation failed.',
+        result.error.issues,
       );
     }
 
@@ -32,7 +28,6 @@ export class RiskValidator {
   }
 
   isValid(data: unknown): boolean {
-    return RiskAssessmentSchema.safeParse(data)
-      .success;
+    return RiskAssessmentSchema.safeParse(data).success;
   }
 }

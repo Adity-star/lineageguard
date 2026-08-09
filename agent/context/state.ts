@@ -1,5 +1,11 @@
-import { ChangeRequest } from "../mcp/types.js";
-import { Dataset, SchemaField, Lineage, DatasetQuery, Document } from "../mcp/types.js";
+import { ChangeRequest } from '../mcp/types.js';
+import {
+  Dataset,
+  SchemaField,
+  Lineage,
+  DatasetQuery,
+  Document,
+} from '../mcp/types.js';
 
 export interface ContextState {
   request: ChangeRequest;
@@ -21,9 +27,7 @@ export interface ContextState {
   };
 }
 
-export function createContextState(
-  request: ChangeRequest
-): ContextState {
+export function createContextState(request: ChangeRequest): ContextState {
   return {
     request,
 

@@ -1,6 +1,6 @@
-import { RiskAssessment } from "../risk/types.js";
-import { ImpactReport } from "../impact/types.js";
-import { ApprovalDecision, ApprovalRequest, ApprovalStatus } from "./types.js";
+import { RiskAssessment } from '../risk/types.js';
+import { ImpactReport } from '../impact/types.js';
+import { ApprovalDecision, ApprovalRequest, ApprovalStatus } from './types.js';
 
 export class ApprovalEngine {
   /**
@@ -8,26 +8,23 @@ export class ApprovalEngine {
    * LOW risk changes can be auto-approved if configured.
    * MEDIUM, HIGH, and CRITICAL always require approval.
    */
-  requiresApproval(
-    risk: RiskAssessment,
-    impact: ImpactReport
-  ): boolean {
+  requiresApproval(risk: RiskAssessment, impact: ImpactReport): boolean {
     // If either risk or impact engine requires approval, it's required
     if (risk.requiresApproval || impact.requiresApproval) {
       return true;
     }
 
     // HIGH and CRITICAL always require approval
-    if (risk.overallRisk === "HIGH" || risk.overallRisk === "CRITICAL") {
+    if (risk.overallRisk === 'HIGH' || risk.overallRisk === 'CRITICAL') {
       return true;
     }
 
-    if (impact.level === "HIGH" || impact.level === "CRITICAL") {
+    if (impact.level === 'HIGH' || impact.level === 'CRITICAL') {
       return true;
     }
 
     // MEDIUM requires approval by default (can be configured)
-    if (risk.overallRisk === "MEDIUM" || impact.level === "MEDIUM") {
+    if (risk.overallRisk === 'MEDIUM' || impact.level === 'MEDIUM') {
       return true;
     }
 
@@ -43,7 +40,7 @@ export class ApprovalEngine {
     risk: RiskAssessment,
     impact: ImpactReport,
     datasetName: string,
-    changeDescription: string
+    changeDescription: string,
   ): ApprovalRequest {
     return {
       requestId,
@@ -64,12 +61,13 @@ export class ApprovalEngine {
   processDecision(
     decision: ApprovalStatus,
     reviewedBy: string,
-    reason?: string
+    reason?: string,
   ): ApprovalDecision {
     // Only set reviewedAt for actual approvals/rejections, not for PENDING
-    const reviewedAt = (decision === "APPROVED" || decision === "REJECTED")
-      ? new Date().toISOString()
-      : undefined;
+    const reviewedAt =
+      decision === 'APPROVED' || decision === 'REJECTED'
+        ? new Date().toISOString()
+        : undefined;
 
     return {
       status: decision,
@@ -85,26 +83,30 @@ export class ApprovalEngine {
    */
   validateDecision(
     decision: ApprovalDecision,
-    riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
   ): { valid: boolean; error?: string } {
-    if (decision.status === "APPROVED" && !decision.reviewedBy) {
+    if (decision.status === 'APPROVED' && !decision.reviewedBy) {
       return {
         valid: false,
-        error: "Approved decisions must include reviewer information.",
+        error: 'Approved decisions must include reviewer information.',
       };
     }
 
-    if (decision.status === "REJECTED" && !decision.reason) {
+    if (decision.status === 'REJECTED' && !decision.reason) {
       return {
         valid: false,
-        error: "Rejected decisions must include a reason.",
+        error: 'Rejected decisions must include a reason.',
       };
     }
 
-    if ((riskLevel === "HIGH" || riskLevel === "CRITICAL") && !decision.reason) {
+    if (
+      (riskLevel === 'HIGH' || riskLevel === 'CRITICAL') &&
+      !decision.reason
+    ) {
       return {
         valid: false,
-        error: "HIGH and CRITICAL risk changes require a reason for the decision.",
+        error:
+          'HIGH and CRITICAL risk changes require a reason for the decision.',
       };
     }
 

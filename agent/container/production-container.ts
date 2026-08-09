@@ -1,27 +1,35 @@
-import { config } from "../config/config.js";
-import { env } from "../config/env.js";
-import { logger } from "../config/logger.js";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { config } from '../config/config.js';
+import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-import { ContextEngine } from "../context/context-engine.js";
-import { PlanningEngine } from "../planner/planning-engine.js";
-import { RiskEngine } from "../risk/risk-engine.js";
-import { Generator } from "../generators/generator.js";
-import { ImpactEngine } from "../impact/impact-engine.js";
-import { ApprovalEngine } from "../approval/approval-engine.js";
-import { GitHubEngine } from "../github/github-engine.js";
-import { Orchestrator } from "../orchestration/orchestrator.js";
-import { StdioMCPTransport } from "../mcp/studio-transport.js";
-import { MCPClient } from "../mcp/client.js";
-import { DataHubClient } from "../mcp/datahub-client.js";
-import { Planner } from "../planner/planner.js";
-import { DataHubRealWriter } from "../impact/datahub-real-writer.js";
-import { OctokitRealClient } from "../github/octokit-real-client.js";
-import { ContextStage, PlanningStage, RiskStage, GeneratorStage, ImpactStage, ApprovalStage, GitHubStage } from "../orchestration/stages/index.js";
-import { PrismaClient } from "@prisma/client";
-import { IdempotencyService } from "../utils/idempotency.js";
-import { GrokConfig, GrokClient } from "../llm/grok.js";
-import { GrokLLMAdapter } from "../llm/grok-adapter.js";
+import { ContextEngine } from '../context/context-engine.js';
+import { PlanningEngine } from '../planner/planning-engine.js';
+import { RiskEngine } from '../risk/risk-engine.js';
+import { Generator } from '../generators/generator.js';
+import { ImpactEngine } from '../impact/impact-engine.js';
+import { ApprovalEngine } from '../approval/approval-engine.js';
+import { GitHubEngine } from '../github/github-engine.js';
+import { Orchestrator } from '../orchestration/orchestrator.js';
+import { StdioMCPTransport } from '../mcp/studio-transport.js';
+import { MCPClient } from '../mcp/client.js';
+import { DataHubClient } from '../mcp/datahub-client.js';
+import { Planner } from '../planner/planner.js';
+import { DataHubRealWriter } from '../impact/datahub-real-writer.js';
+import { OctokitRealClient } from '../github/octokit-real-client.js';
+import {
+  ContextStage,
+  PlanningStage,
+  RiskStage,
+  GeneratorStage,
+  ImpactStage,
+  ApprovalStage,
+  GitHubStage,
+} from '../orchestration/stages/index.js';
+import { PrismaClient } from '@prisma/client';
+import { IdempotencyService } from '../utils/idempotency.js';
+import { GrokConfig, GrokClient } from '../llm/grok.js';
+import { GrokLLMAdapter } from '../llm/grok-adapter.js';
 /**
  * Production Container
  *
@@ -30,7 +38,6 @@ import { GrokLLMAdapter } from "../llm/grok-adapter.js";
  */
 
 export class ProductionContainer {
-
   readonly context: ContextEngine;
 
   readonly planning: PlanningEngine;
@@ -50,7 +57,6 @@ export class ProductionContainer {
   private readonly mcpClient: MCPClient;
 
   constructor() {
-
     /**
      * Infrastructure - Real implementations only
      */
@@ -58,11 +64,11 @@ export class ProductionContainer {
     // Use STDIO transport to launch mcp-server-datahub as a subprocess.
     // This avoids HTTP entirely and communicates over stdin/stdout.
     const mcpTransport = new StdioMCPTransport({
-      command: "mcp-server-datahub",
+      command: 'mcp-server-datahub',
       timeoutMs: 30000,
       env: {
         DATAHUB_GMS_URL: env.DATAHUB_GMS_URL,
-        DATAHUB_GMS_TOKEN: env.DATAHUB_GMS_TOKEN,
+        DATAHUB_GMS_TOKEN: env.DATAHUB_GMS_TOKEN ?? '',
         // Enable mutation tools so the agent can write back to DataHub
         TOOLS_IS_MUTATION_ENABLED: env.TOOLS_IS_MUTATION_ENABLED,
       },
@@ -73,7 +79,7 @@ export class ProductionContainer {
     const datahubClient = new DataHubClient(
       this.mcpClient,
       env.DATAHUB_GMS_URL,
-      env.DATAHUB_GMS_TOKEN
+      env.DATAHUB_GMS_TOKEN,
     );
 
     // Idempotency
@@ -93,12 +99,12 @@ export class ProductionContainer {
       maxTokens: 4096,
       temperature: 0,
     };
-    console.log("GROK DEBUG", {
-        exists: !!grokConfig.apiKey,
-        length: grokConfig.apiKey?.length,
-        start: grokConfig.apiKey?.substring(0, 5),
-        baseURL: grokConfig.baseURL,
-      });
+    console.log('GROK DEBUG', {
+      exists: !!grokConfig.apiKey,
+      length: grokConfig.apiKey?.length,
+      start: grokConfig.apiKey?.substring(0, 5),
+      baseURL: grokConfig.baseURL,
+    });
 
     const grokClient = new GrokClient(grokConfig);
     const llmAdapter = new GrokLLMAdapter(grokConfig);
@@ -107,7 +113,7 @@ export class ProductionContainer {
     const githubClient = new OctokitRealClient(
       config.github.token,
       config.github.owner,
-      config.github.repository
+      config.github.repository,
     );
 
     /**
@@ -144,15 +150,22 @@ export class ProductionContainer {
     const contextStage = new ContextStage(this.context, idempotencyService);
     const planningStage = new PlanningStage(this.planning, idempotencyService);
     const riskStage = new RiskStage(this.risk, idempotencyService);
-    const generatorStage = new GeneratorStage(this.generator, idempotencyService);
+    const generatorStage = new GeneratorStage(
+      this.generator,
+      idempotencyService,
+    );
     const impactStage = new ImpactStage(this.impact, idempotencyService);
-    const approvalStage = new ApprovalStage(this.approval, idempotencyService, false);
+    const approvalStage = new ApprovalStage(
+      this.approval,
+      idempotencyService,
+      false,
+    );
     const githubStage = new GitHubStage(
       this.github,
       config.github.owner,
       config.github.repository,
       config.github.baseBranch,
-      idempotencyService
+      idempotencyService,
     );
 
     this.orchestrator = new Orchestrator(
@@ -168,54 +181,55 @@ export class ProductionContainer {
       config.github.owner,
       config.github.repository,
       config.github.baseBranch,
-      idempotencyService
+      idempotencyService,
     );
 
-    logger.info({
-      event: "production_container_initialized",
-      grokModel: grokConfig.model,
-      githubOwner: config.github.owner,
-      githubRepository: config.github.repository,
-      datahubUrl: config.datahub.url,
-    }, "Production container initialized with real implementations");
-
+    logger.info(
+      {
+        event: 'production_container_initialized',
+        grokModel: grokConfig.model,
+        githubOwner: config.github.owner,
+        githubRepository: config.github.repository,
+        datahubUrl: config.datahub.url,
+      },
+      'Production container initialized with real implementations',
+    );
   }
 
   getMcpClient(): MCPClient {
     return this.mcpClient;
   }
-
 }
 
 /**
  * Factory function to create the appropriate container based on environment
  */
 export function createContainer() {
-  const isProduction = env.NODE_ENV === "production";
-  const isDevelopment = env.NODE_ENV === "development";
+  const isProduction = env.NODE_ENV === 'production';
+  const isDevelopment = env.NODE_ENV === 'development';
 
   if (isProduction) {
-    logger.info("Creating PRODUCTION container with real implementations");
+    logger.info('Creating PRODUCTION container with real implementations');
     return new ProductionContainer();
   }
 
   if (isDevelopment) {
     // In development, use production container by default
     // Can be overridden with USE_MOCKS=true
-    const useMocks = process.env.USE_MOCKS === "true";
-    
+    const useMocks = process.env.USE_MOCKS === 'true';
+
     if (useMocks) {
-      logger.info("Creating DEVELOPMENT container with MOCK implementations");
+      logger.info('Creating DEVELOPMENT container with MOCK implementations');
       // Import the development container with mocks
-      const { ApplicationContainer } = require("./container.js");
+      const { ApplicationContainer } = require('./container.js');
       return new ApplicationContainer();
     }
-    
-    logger.info("Creating DEVELOPMENT container with REAL implementations");
+
+    logger.info('Creating DEVELOPMENT container with REAL implementations');
     return new ProductionContainer();
   }
 
   // Default to production container for test
-  logger.info("Creating PRODUCTION container (default)");
+  logger.info('Creating PRODUCTION container (default)');
   return new ProductionContainer();
 }

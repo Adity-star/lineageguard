@@ -1,4 +1,4 @@
-import { logger } from "../config/logger.js";
+import { logger } from '../config/logger.js';
 
 /**
  * Detailed logging context for a mutation operation.
@@ -10,6 +10,9 @@ export interface MutationLogContext {
   payloadSize?: number;
   responseStatus?: boolean;
   durationMs?: number;
+  descriptionLength?: number;
+  propertyCount?: number;
+  fieldPath?: string;
 }
 
 /**
@@ -28,7 +31,7 @@ export class MutationLogger {
   static logMutationStart(
     toolName: string,
     payload: Record<string, any>,
-    context?: Partial<MutationLogContext>
+    context?: Partial<MutationLogContext>,
   ): void {
     const payloadSize = JSON.stringify(payload).length;
     const entityCount =
@@ -37,7 +40,7 @@ export class MutationLogger {
 
     logger.info(
       {
-        event: "mutation_start",
+        event: 'mutation_start',
         toolName,
         payloadSize,
         entityCount: entityCount || undefined,
@@ -45,7 +48,7 @@ export class MutationLogger {
         payloadPreview: this.sanitizePayload(payload),
         ...context,
       },
-      `▶ Mutation START: ${toolName} (${entityCount || 1} entity, ${payloadSize}B)`
+      `▶ Mutation START: ${toolName} (${entityCount || 1} entity, ${payloadSize}B)`,
     );
   }
 
@@ -57,13 +60,13 @@ export class MutationLogger {
     payload: Record<string, any>,
     response: any,
     durationMs: number,
-    context?: Partial<MutationLogContext>
+    context?: Partial<MutationLogContext>,
   ): void {
     const responseSize = JSON.stringify(response).length;
 
     logger.info(
       {
-        event: "mutation_success",
+        event: 'mutation_success',
         toolName,
         durationMs: Math.round(durationMs),
         requestSize: JSON.stringify(payload).length,
@@ -73,7 +76,7 @@ export class MutationLogger {
         requestPayloadKeys: Object.keys(payload),
         ...context,
       },
-      `✓ Mutation SUCCESS: ${toolName} (${Math.round(durationMs)}ms, response: ${responseSize}B)`
+      `✓ Mutation SUCCESS: ${toolName} (${Math.round(durationMs)}ms, response: ${responseSize}B)`,
     );
   }
 
@@ -83,18 +86,18 @@ export class MutationLogger {
   static logValidationFailure(
     toolName: string,
     errors: string[],
-    warnings: string[]
+    warnings: string[],
   ): void {
     logger.error(
       {
-        event: "mutation_validation_failed",
+        event: 'mutation_validation_failed',
         toolName,
         errorCount: errors.length,
         warningCount: warnings.length,
         errors,
         warnings,
       },
-      `✗ Mutation VALIDATION FAILED: ${toolName}\nErrors: ${errors.join("; ")}\nWarnings: ${warnings.join("; ")}`
+      `✗ Mutation VALIDATION FAILED: ${toolName}\nErrors: ${errors.join('; ')}\nWarnings: ${warnings.join('; ')}`,
     );
   }
 
@@ -106,14 +109,14 @@ export class MutationLogger {
     payload: Record<string, any>,
     error: Error | string,
     durationMs: number,
-    context?: Partial<MutationLogContext>
+    context?: Partial<MutationLogContext>,
   ): void {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
 
     logger.error(
       {
-        event: "mutation_failed",
+        event: 'mutation_failed',
         toolName,
         durationMs: Math.round(durationMs),
         requestSize: JSON.stringify(payload).length,
@@ -122,7 +125,7 @@ export class MutationLogger {
         requestPayloadKeys: Object.keys(payload),
         ...context,
       },
-      `✗ Mutation FAILED: ${toolName} (${Math.round(durationMs)}ms)\nError: ${errorMessage}`
+      `✗ Mutation FAILED: ${toolName} (${Math.round(durationMs)}ms)\nError: ${errorMessage}`,
     );
   }
 
@@ -133,7 +136,7 @@ export class MutationLogger {
     toolName: string,
     request: Record<string, any>,
     response: any,
-    isError: boolean
+    isError: boolean,
   ): void {
     const responseSize = JSON.stringify(response).length;
     const requestSize = JSON.stringify(request).length;
@@ -141,19 +144,19 @@ export class MutationLogger {
     if (isError) {
       logger.error(
         {
-          event: "mcp_mutation_error_response",
+          event: 'mcp_mutation_error_response',
           toolName,
           isError: true,
           requestSize,
           responseSize,
           responsePreview: this.truncateJson(response, 200),
         },
-        `MCP mutation error: ${toolName} returned error response (${responseSize}B)`
+        `MCP mutation error: ${toolName} returned error response (${responseSize}B)`,
       );
     } else {
       logger.debug(
         {
-          event: "mcp_mutation_response",
+          event: 'mcp_mutation_response',
           toolName,
           isError: false,
           requestSize,
@@ -161,7 +164,7 @@ export class MutationLogger {
           responseKeys: this.getObjectKeys(response),
           responsePreview: this.sanitizePayload(response),
         },
-        `MCP mutation response: ${toolName} (request: ${requestSize}B, response: ${responseSize}B)`
+        `MCP mutation response: ${toolName} (request: ${requestSize}B, response: ${responseSize}B)`,
       );
     }
   }
@@ -172,12 +175,12 @@ export class MutationLogger {
   private static sanitizePayload(payload: any): any {
     if (!payload) return payload;
 
-    const sensitiveFields = ["password", "token", "secret", "apiKey"];
+    const sensitiveFields = ['password', 'token', 'secret', 'apiKey'];
 
     const sanitized = { ...payload };
     for (const field of sensitiveFields) {
       if (field in sanitized) {
-        sanitized[field] = "[REDACTED]";
+        sanitized[field] = '[REDACTED]';
       }
     }
 
@@ -192,14 +195,14 @@ export class MutationLogger {
     if (json.length <= maxLength) {
       return obj;
     }
-    return JSON.parse(json.substring(0, maxLength) + "...");
+    return JSON.parse(json.substring(0, maxLength) + '...');
   }
 
   /**
    * Get top-level keys from an object.
    */
   private static getObjectKeys(obj: any): string[] {
-    if (!obj || typeof obj !== "object") {
+    if (!obj || typeof obj !== 'object') {
       return [];
     }
     return Object.keys(obj).slice(0, 10); // First 10 keys
@@ -212,20 +215,20 @@ export class MutationLogger {
     toolName: string,
     batchCount: number,
     totalEntities: number,
-    startTime: number
+    startTime: number,
   ): void {
     const durationMs = Math.round(performance.now() - startTime);
 
     logger.info(
       {
-        event: "mutation_batch_complete",
+        event: 'mutation_batch_complete',
         toolName,
         batchCount,
         totalEntities,
         durationMs,
         avgTimePerBatch: Math.round(durationMs / batchCount),
       },
-      `✓ Mutation batch complete: ${toolName} (${batchCount} batches, ${totalEntities} entities, ${durationMs}ms)`
+      `✓ Mutation batch complete: ${toolName} (${batchCount} batches, ${totalEntities} entities, ${durationMs}ms)`,
     );
   }
 
@@ -235,17 +238,17 @@ export class MutationLogger {
   static logSchemaIssue(
     toolName: string,
     issue: string,
-    discoveredSchema: any
+    discoveredSchema: any,
   ): void {
     logger.warn(
       {
-        event: "mutation_schema_issue",
+        event: 'mutation_schema_issue',
         toolName,
         issue,
         schemaParameters: discoveredSchema.parameters?.map((p: any) => p.name),
         requiredParameters: discoveredSchema.requiredParameters,
       },
-      `⚠ Mutation schema issue: ${toolName} - ${issue}`
+      `⚠ Mutation schema issue: ${toolName} - ${issue}`,
     );
   }
 }

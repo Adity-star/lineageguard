@@ -1,11 +1,8 @@
-import { RiskAssessment } from "./types.js";
-import { RiskMetrics } from "./calculator.js";
+import { RiskAssessment } from './types.js';
+import { RiskMetrics } from './calculator.js';
 
 export class RiskScorer {
-  score(metrics: RiskMetrics): Pick<
-    RiskAssessment,
-    "overallRisk" | "score"
-  > {
+  score(metrics: RiskMetrics): Pick<RiskAssessment, 'overallRisk' | 'score'> {
     let score = 0;
 
     // Downstream impact
@@ -61,21 +58,19 @@ export class RiskScorer {
     };
   }
 
-  private level(
-    score: number
-  ): RiskAssessment["overallRisk"] {
+  private level(score: number): RiskAssessment['overallRisk'] {
     if (score >= 75) {
-      return "CRITICAL";
+      return 'CRITICAL';
     }
 
     if (score >= 50) {
-      return "HIGH";
+      return 'HIGH';
     }
 
     if (score >= 25) {
-      return "MEDIUM";
+      return 'MEDIUM';
     }
 
-    return "LOW";
+    return 'LOW';
   }
 }

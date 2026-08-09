@@ -1,15 +1,15 @@
-import { ExecutionPlan } from "../planner/types.js";
-import { ContextBundle } from "../context/type.js";
-import { RiskAssessment } from "../risk/types.js";
-import { logger } from "../config/logger.js";
+import { ExecutionPlan } from '../planner/types.js';
+import { ContextBundle } from '../context/type.js';
+import { RiskAssessment } from '../risk/types.js';
+import { logger } from '../config/logger.js';
 
-import { PlatformAwareSQLGenerator } from "./platform-aware-sql-generator.js";
-import { SQLGenerator } from "./sql.js";
-import { RollbackGenerator } from "./rollback.js";
-import { DocumentationGenerator } from "./documentation.js";
-import { DbtGenerator } from "./db.js";
-import { GenerationValidator } from "./validator.js";
-import { GenerationResult } from "./types.js";
+import { PlatformAwareSQLGenerator } from './platform-aware-sql-generator.js';
+import { SQLGenerator } from './sql.js';
+import { RollbackGenerator } from './rollback.js';
+import { DocumentationGenerator } from './documentation.js';
+import { DbtGenerator } from './db.js';
+import { GenerationValidator } from './validator.js';
+import { GenerationResult } from './types.js';
 
 /**
  * Code Generation Engine - orchestrates generation of platform-aware DDL,
@@ -25,7 +25,7 @@ export class Generator {
     private readonly rollback = new RollbackGenerator(),
     private readonly documentation = new DocumentationGenerator(),
     private readonly dbt = new DbtGenerator(),
-    private readonly validator = new GenerationValidator()
+    private readonly validator = new GenerationValidator(),
   ) {}
 
   /**
@@ -39,37 +39,43 @@ export class Generator {
   async generate(
     context: ContextBundle,
     plan: ExecutionPlan,
-    risk: RiskAssessment
+    risk: RiskAssessment,
   ): Promise<GenerationResult> {
     logger.info(
       {
-        event: "generator_start",
+        event: 'generator_start',
         datasetName: context.dataset.name,
         platform: plan.platform || context.dataset.platform,
         fieldCount: context.schema.length,
       },
-      `Generator starting for ${context.dataset.name}`
+      `Generator starting for ${context.dataset.name}`,
     );
 
     // Step 1: Generate platform-aware DDL
     const ddl = await this.platformSQL.generate(context, plan);
 
-    logger.info({ event: "generator_ddl_generated" }, "✓ DDL Generated");
+    logger.info({ event: 'generator_ddl_generated' }, '✓ DDL Generated');
 
     // Step 2: Generate SQL artifact from DDL
     const sql = this.sql.generate(ddl.ddl, ddl.platform);
 
-    logger.info({ event: "generator_sql_generated" }, "✓ SQL Generated");
+    logger.info({ event: 'generator_sql_generated' }, '✓ SQL Generated');
 
     // Step 3: Generate rollback statements
     const rollback = this.rollback.generate(plan);
 
-    logger.info({ event: "generator_rollback_generated" }, "✓ Rollback Generated");
+    logger.info(
+      { event: 'generator_rollback_generated' },
+      '✓ Rollback Generated',
+    );
 
     // Step 4: Generate documentation
     const documentation = this.documentation.generate(plan, risk);
 
-    logger.info({ event: "generator_documentation_generated" }, "✓ Documentation Generated");
+    logger.info(
+      { event: 'generator_documentation_generated' },
+      '✓ Documentation Generated',
+    );
 
     // Step 5: Generate dbt artifacts (if applicable)
     const dbt = this.dbt.generate(plan);

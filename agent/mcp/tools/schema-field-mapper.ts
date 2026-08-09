@@ -1,30 +1,31 @@
-import { logger } from "../../config/logger.js";
-import { SchemaField, SchemaFieldSchema } from "../types.js";
+import { logger } from '../../config/logger.js';
+import { SchemaField, SchemaFieldSchema } from '../types.js';
 
 /**
  * Maps DataHub MCP server schema field responses to internal SchemaField model.
- * 
+ *
  * Handles variations in response format across DataHub MCP versions:
  * - field_path vs fieldPath vs path
  * - nativeDataType vs type vs nativeType
  * - isNullable vs nullable vs required
  * - And other naming variations
- * 
+ *
  * This isolation ensures the internal model remains stable even when
  * the MCP server changes its response format.
  */
 export class SchemaFieldMapper {
-
   static mapField(rawField: any): SchemaField {
-    if (!rawField || typeof rawField !== "object") {
-      throw new Error(`Invalid field object: expected object, got ${typeof rawField}`);
+    if (!rawField || typeof rawField !== 'object') {
+      throw new Error(
+        `Invalid field object: expected object, got ${typeof rawField}`,
+      );
     }
 
     // Extract fieldPath from various possible names
     const fieldPath = this.extractFieldPath(rawField);
     if (!fieldPath) {
       throw new Error(
-        `Missing field path in schema field. Expected one of: fieldPath, field_path, path, fieldName. Got keys: ${Object.keys(rawField).join(", ")}`
+        `Missing field path in schema field. Expected one of: fieldPath, field_path, path, fieldName. Got keys: ${Object.keys(rawField).join(', ')}`,
       );
     }
 
@@ -32,7 +33,7 @@ export class SchemaFieldMapper {
     const type = this.extractType(rawField);
     if (!type) {
       throw new Error(
-        `Missing type in schema field for "${fieldPath}". Expected one of: type, nativeDataType, nativeType. Got keys: ${Object.keys(rawField).join(", ")}`
+        `Missing type in schema field for "${fieldPath}". Expected one of: type, nativeDataType, nativeType. Got keys: ${Object.keys(rawField).join(', ')}`,
       );
     }
 
@@ -50,7 +51,7 @@ export class SchemaFieldMapper {
       type,
       nullable,
       description,
-      tags
+      tags,
     };
   }
 
@@ -70,8 +71,11 @@ export class SchemaFieldMapper {
       try {
         return this.mapField(field);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Failed to map field at index ${index}: ${errorMessage}`);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Failed to map field at index ${index}: ${errorMessage}`,
+        );
       }
     });
   }
@@ -81,11 +85,11 @@ export class SchemaFieldMapper {
    */
   private static extractFieldPath(field: any): string | null {
     // Try common naming conventions in order of preference
-    if (typeof field.fieldPath === "string") return field.fieldPath;
-    if (typeof field.field_path === "string") return field.field_path;
-    if (typeof field.path === "string") return field.path;
-    if (typeof field.fieldName === "string") return field.fieldName;
-    if (typeof field.name === "string") return field.name;
+    if (typeof field.fieldPath === 'string') return field.fieldPath;
+    if (typeof field.field_path === 'string') return field.field_path;
+    if (typeof field.path === 'string') return field.path;
+    if (typeof field.fieldName === 'string') return field.fieldName;
+    if (typeof field.name === 'string') return field.name;
     return null;
   }
 
@@ -94,22 +98,26 @@ export class SchemaFieldMapper {
    */
   private static extractType(field: any): string | null {
     // Try common naming conventions
-    if (typeof field.type === "string") return field.type;
-    if (typeof field.nativeDataType === "string") return field.nativeDataType;
-    if (typeof field.nativeType === "string") return field.nativeType;
-    if (typeof field.dataType === "string") return field.dataType;
-    
+    if (typeof field.type === 'string') return field.type;
+    if (typeof field.nativeDataType === 'string') return field.nativeDataType;
+    if (typeof field.nativeType === 'string') return field.nativeType;
+    if (typeof field.dataType === 'string') return field.dataType;
+
     // Handle complex type objects (e.g., { type: "STRING" })
-    if (field.type && typeof field.type === "object" && typeof field.type.type === "string") {
+    if (
+      field.type &&
+      typeof field.type === 'object' &&
+      typeof field.type.type === 'string'
+    ) {
       return field.type.type;
     }
-    
+
     return null;
   }
 
   /**
    * Extract nullable from various naming conventions.
-   * 
+   *
    * Handles:
    * - nullable: true/false
    * - isNullable: true/false
@@ -117,17 +125,17 @@ export class SchemaFieldMapper {
    */
   private static extractNullable(field: any): boolean {
     // Explicit nullable field
-    if (typeof field.nullable === "boolean") {
+    if (typeof field.nullable === 'boolean') {
       return field.nullable;
     }
 
     // Explicit isNullable field
-    if (typeof field.isNullable === "boolean") {
+    if (typeof field.isNullable === 'boolean') {
       return field.isNullable;
     }
 
     // Inverted required field
-    if (typeof field.required === "boolean") {
+    if (typeof field.required === 'boolean') {
       return !field.required;
     }
 
@@ -139,10 +147,10 @@ export class SchemaFieldMapper {
    * Extract description from various naming conventions.
    */
   private static extractDescription(field: any): string | undefined {
-    if (typeof field.description === "string") return field.description;
-    if (typeof field.doc === "string") return field.doc;
-    if (typeof field.comment === "string") return field.comment;
-    if (typeof field.documentation === "string") return field.documentation;
+    if (typeof field.description === 'string') return field.description;
+    if (typeof field.doc === 'string') return field.doc;
+    if (typeof field.comment === 'string') return field.comment;
+    if (typeof field.documentation === 'string') return field.documentation;
     return undefined;
   }
 
@@ -152,22 +160,22 @@ export class SchemaFieldMapper {
   private static extractTags(field: any): string[] {
     // Existing tags array
     if (Array.isArray(field.tags)) {
-      return field.tags.filter(tag => typeof tag === "string");
+      return field.tags.filter((tag: any) => typeof tag === 'string');
     }
 
     // DataHub-specific: editedTags array
     if (Array.isArray(field.editedTags)) {
-      return field.editedTags.filter(tag => typeof tag === "string");
+      return field.editedTags.filter((tag: any) => typeof tag === 'string');
     }
 
     // Alternative: labels array
     if (Array.isArray(field.labels)) {
-      return field.labels.filter(label => typeof label === "string");
+      return field.labels.filter((label: any) => typeof label === 'string');
     }
 
     // Alternative: tag_urns array
     if (Array.isArray(field.tag_urns)) {
-      return field.tag_urns.filter(urn => typeof urn === "string");
+      return field.tag_urns.filter((urn: any) => typeof urn === 'string');
     }
 
     return [];
@@ -175,19 +183,22 @@ export class SchemaFieldMapper {
 
   /**
    * Validate and parse a raw MCP response, using internal SchemaField schema.
-   * 
+   *
    * Should only be called AFTER mapping from DataHub format.
    */
-  static validateMappedField(field: SchemaField): { valid: boolean; error?: string } {
+  static validateMappedField(field: SchemaField): {
+    valid: boolean;
+    error?: string;
+  } {
     try {
       SchemaFieldSchema.parse(field);
       return { valid: true };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return { valid: false, error: errorMessage };
     }
   }
-
 
   static mapAndValidate(rawField: any): SchemaField {
     // Map from DataHub format to internal format
@@ -197,7 +208,7 @@ export class SchemaFieldMapper {
     const validation = this.validateMappedField(mapped);
     if (!validation.valid) {
       throw new Error(
-        `Schema field validation failed after mapping: ${validation.error}. Mapped object: ${JSON.stringify(mapped)}`
+        `Schema field validation failed after mapping: ${validation.error}. Mapped object: ${JSON.stringify(mapped)}`,
       );
     }
 
@@ -212,8 +223,11 @@ export class SchemaFieldMapper {
       try {
         return this.mapAndValidate(field);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Failed to map field at index ${index}: ${errorMessage}. Raw field: ${JSON.stringify(field)}`);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Failed to map field at index ${index}: ${errorMessage}. Raw field: ${JSON.stringify(field)}`,
+        );
       }
     });
   }
@@ -226,20 +240,22 @@ export class SchemaFieldMapper {
     requestPayload: any,
     rawResponse: any[],
     mappedFields: SchemaField[],
-    durationMs: number
+    durationMs: number,
   ): void {
     logger.debug(
       {
-        event: "schema_field_mapping_complete",
+        event: 'schema_field_mapping_complete',
         toolName,
         requestPayload,
         rawResponseCount: rawResponse?.length ?? 0,
         mappedFieldCount: mappedFields.length,
         durationMs: Math.round(durationMs),
-        sampleRawField: rawResponse && rawResponse.length > 0 ? rawResponse[0] : undefined,
-        sampleMappedField: mappedFields.length > 0 ? mappedFields[0] : undefined,
+        sampleRawField:
+          rawResponse && rawResponse.length > 0 ? rawResponse[0] : undefined,
+        sampleMappedField:
+          mappedFields.length > 0 ? mappedFields[0] : undefined,
       },
-      `Mapped ${mappedFields.length} schema fields from MCP response`
+      `Mapped ${mappedFields.length} schema fields from MCP response`,
     );
   }
 }

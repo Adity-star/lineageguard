@@ -1,20 +1,20 @@
-export * from "./client";
-export * from "./transport";
-export * from "./errors";
-export * from "./types";
+export * from './client.js';
+export * from './transport.js';
+export * from './errors.js';
+export * from './types.js';
 
-export * from "./datahub-client";
+export * from './datahub-client.js';
 
-export * from "./mutation-registry";
-export * from "./mutation-validator";
+export * from './mutation-registry.js';
+export * from './mutation-validator.js';
 
-export * from "./tools/search";
-export * from "./tools/entities";
-export * from "./tools/schema";
-export * from "./tools/schema-field-mapper";
-export * from "./tools/lineage";
-export * from "./tools/lineage-mapper";
-export * from "./tools/queries";
-export * from "./tools/documents";
-export * from "./tools/mutations";
-export * from "./tools/mcp-response-unwrapper";
+export * from './tools/search.js';
+export * from './tools/entities.js';
+export * from './tools/schema.js';
+export * from './tools/schema-field-mapper.js';
+export * from './tools/lineage.js';
+export * from './tools/lineage-mapper.js';
+export * from './tools/queries.js';
+export * from './tools/documents.js';
+export * from './tools/mutations.js';
+export * from './tools/mcp-response-unwrapper.js';

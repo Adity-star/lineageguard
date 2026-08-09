@@ -1,6 +1,6 @@
-import OpenAI from "openai";
+import OpenAI from 'openai';
 
-import { logger } from "../config/logger.js";
+import { logger } from '../config/logger.js';
 
 export interface GrokConfig {
   apiKey: string;
@@ -13,7 +13,7 @@ export interface GrokConfig {
 export interface MessageRequest {
   system?: string;
   messages: Array<{
-    role: "user" | "assistant";
+    role: 'user' | 'assistant';
     content: string;
   }>;
   maxTokens?: number;
@@ -38,10 +38,10 @@ export class GrokClient {
   constructor(config: GrokConfig) {
     this.client = new OpenAI({
       apiKey: config.apiKey,
-      baseURL: config.baseURL ?? "https://api.groq.com/openai/v1",
+      baseURL: config.baseURL ?? 'https://api.groq.com/openai/v1',
     });
 
-    this.model = config.model ?? "llama-3.3-70b-versatile";
+    this.model = config.model ?? 'llama-3.3-70b-versatile';
     this.maxTokens = config.maxTokens ?? 4096;
     this.temperature = config.temperature ?? 0;
   }
@@ -51,7 +51,7 @@ export class GrokClient {
 
     try {
       logger.debug({
-        event: "grok_request_start",
+        event: 'grok_request_start',
         model: this.model,
         messageCount: request.messages.length,
       });
@@ -60,7 +60,7 @@ export class GrokClient {
 
       if (request.system) {
         messages.push({
-          role: "system" as const,
+          role: 'system' as const,
           content: request.system,
         });
       }
@@ -75,7 +75,7 @@ export class GrokClient {
       });
 
       const result: MessageResponse = {
-        content: response.choices[0]?.message?.content ?? "",
+        content: response.choices[0]?.message?.content ?? '',
         model: response.model,
         usage: {
           inputTokens: response.usage?.prompt_tokens ?? 0,
@@ -84,7 +84,7 @@ export class GrokClient {
       };
 
       logger.debug({
-        event: "grok_request_success",
+        event: 'grok_request_success',
         durationMs: performance.now() - started,
         inputTokens: result.usage.inputTokens,
         outputTokens: result.usage.outputTokens,
@@ -93,15 +93,15 @@ export class GrokClient {
       return result;
     } catch (error) {
       logger.error({
-        event: "grok_request_failed",
+        event: 'grok_request_failed',
         durationMs: performance.now() - started,
         error,
       });
 
       throw new Error(
         `Grok API request failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       );
     }
   }
@@ -111,7 +111,7 @@ export class GrokClient {
 
     try {
       logger.debug({
-        event: "grok_stream_start",
+        event: 'grok_stream_start',
         model: this.model,
       });
 
@@ -119,7 +119,7 @@ export class GrokClient {
 
       if (request.system) {
         messages.push({
-          role: "system" as const,
+          role: 'system' as const,
           content: request.system,
         });
       }
@@ -144,7 +144,7 @@ export class GrokClient {
         }
 
         logger.debug({
-          event: "grok_stream_complete",
+          event: 'grok_stream_complete',
           durationMs: performance.now() - started,
         });
       }
@@ -152,15 +152,15 @@ export class GrokClient {
       return iterate();
     } catch (error) {
       logger.error({
-        event: "grok_stream_failed",
+        event: 'grok_stream_failed',
         durationMs: performance.now() - started,
         error,
       });
 
       throw new Error(
         `Grok API stream failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       );
     }
   }

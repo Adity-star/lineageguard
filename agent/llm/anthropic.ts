@@ -97,7 +97,7 @@ export class AnthropicClient {
       });
 
       throw new Error(
-        `Anthropic API request failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Anthropic API request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -123,11 +123,14 @@ export class AnthropicClient {
         params.system = request.system;
       }
 
-      const stream = await this.client.messages.create(params) as any;
+      const stream = (await this.client.messages.create(params)) as any;
 
       async function* iterate() {
         for await (const event of stream) {
-          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          if (
+            event.type === 'content_block_delta' &&
+            event.delta.type === 'text_delta'
+          ) {
             yield event.delta.text;
           }
         }
@@ -147,7 +150,7 @@ export class AnthropicClient {
       });
 
       throw new Error(
-        `Anthropic API stream failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Anthropic API stream failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

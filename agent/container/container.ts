@@ -1,22 +1,30 @@
-import { config } from "../config/config.js";
-import { logger } from "../config/logger.js";
-import { ContextEngine } from "../context/context-engine.js";
-import { PlanningEngine } from "../planner/planning-engine.js";
-import { RiskEngine } from "../risk/risk-engine.js";
-import { Generator } from "../generators/generator.js";
-import { ImpactEngine } from "../impact/impact-engine.js";
-import { ApprovalEngine } from "../approval/approval-engine.js";
-import { GitHubClient } from "../github/github-client.js";
-import { GitHubEngine } from "../github/github-engine.js";
-import { Orchestrator } from "../orchestration/orchestrator.js";
-import { MCPTransport } from "../mcp/transport.js";
-import { MCPClient } from "../mcp/client.js";
-import { DataHubClient } from "../mcp/datahub-client.js";
-import { Planner, LLMClient } from "../planner/planner.js";
-import { MetadataWriter } from "../impact/metadata-writer.js";
-import { ContextStage, PlanningStage, RiskStage, GeneratorStage, ImpactStage, ApprovalStage, GitHubStage } from "../orchestration/stages/index.js";
-import { createContainer } from "./production-container.js";
-import { IdempotencyService } from "../utils/idempotency.js";
+import { config } from '../config/config.js';
+import { logger } from '../config/logger.js';
+import { ContextEngine } from '../context/context-engine.js';
+import { PlanningEngine } from '../planner/planning-engine.js';
+import { RiskEngine } from '../risk/risk-engine.js';
+import { Generator } from '../generators/generator.js';
+import { ImpactEngine } from '../impact/impact-engine.js';
+import { ApprovalEngine } from '../approval/approval-engine.js';
+import { GitHubClient } from '../github/github-client.js';
+import { GitHubEngine } from '../github/github-engine.js';
+import { Orchestrator } from '../orchestration/orchestrator.js';
+import { MCPTransport } from '../mcp/transport.js';
+import { MCPClient } from '../mcp/client.js';
+import { DataHubClient } from '../mcp/datahub-client.js';
+import { Planner, LLMClient } from '../planner/planner.js';
+import { MetadataWriter } from '../impact/metadata-writer.js';
+import {
+  ContextStage,
+  PlanningStage,
+  RiskStage,
+  GeneratorStage,
+  ImpactStage,
+  ApprovalStage,
+  GitHubStage,
+} from '../orchestration/stages/index.js';
+import { createContainer } from './production-container.js';
+import { IdempotencyService } from '../utils/idempotency.js';
 
 /**
  * Development Container
@@ -27,7 +35,6 @@ import { IdempotencyService } from "../utils/idempotency.js";
  */
 
 export class DevelopmentContainer {
-
   readonly context: ContextEngine;
 
   readonly planning: PlanningEngine;
@@ -45,7 +52,6 @@ export class DevelopmentContainer {
   readonly orchestrator: Orchestrator;
 
   constructor() {
-
     /**
      * Infrastructure
      */
@@ -72,6 +78,20 @@ export class DevelopmentContainer {
       requestReviewers: async (prNumber, reviewers) => {
         // Mock implementation
       },
+      createBranch: async (request) => {
+        // Mock implementation
+      },
+      getBranch: async (request) => {
+        // Mock implementation
+        return { exists: false };
+      },
+      commitFile: async (request) => {
+        // Mock implementation
+      },
+      checkPullRequestExists: async (request) => {
+        // Mock implementation
+        return { exists: false };
+      },
     };
 
     /**
@@ -81,7 +101,7 @@ export class DevelopmentContainer {
     // Note: Generator now uses PlatformAwareSQLGenerator internally
     // and does not require PrismaGenerator as a dependency
     // Prisma is only used for agent's internal persistence (Run, GeneratedArtifact, ImpactReport, Writeback)
-    
+
     this.generator = new Generator();
 
     /**
@@ -101,18 +121,53 @@ export class DevelopmentContainer {
      * Application
      */
 
+    this.context = new ContextEngine(datahubClient);
+
+    // Mock LLM client for development
+    const mockLLMClient: any = {
+      generate: async () => JSON.stringify({
+        summary: "Mock plan",
+        intent: "mock",
+        affectedDataset: "mock",
+        affectedColumns: [],
+        requiredChanges: [],
+        confidence: 0.5,
+        requiresApproval: false,
+      }),
+    };
+    this.planning = new PlanningEngine(new Planner(mockLLMClient));
+    this.risk = new RiskEngine();
+
+    // Mock metadata writer for development
+    const mockMetadataWriter: any = {
+      write: async () => undefined,
+    };
+    this.impact = new ImpactEngine(mockMetadataWriter);
+    this.approval = new ApprovalEngine();
+    this.github = new GitHubEngine(githubClient);
+
     const contextStage = new ContextStage(this.context, mockIdempotencyService);
-    const planningStage = new PlanningStage(this.planning, mockIdempotencyService);
+    const planningStage = new PlanningStage(
+      this.planning,
+      mockIdempotencyService,
+    );
     const riskStage = new RiskStage(this.risk, mockIdempotencyService);
-    const generatorStage = new GeneratorStage(this.generator, mockIdempotencyService);
+    const generatorStage = new GeneratorStage(
+      this.generator,
+      mockIdempotencyService,
+    );
     const impactStage = new ImpactStage(this.impact, mockIdempotencyService);
-    const approvalStage = new ApprovalStage(this.approval, mockIdempotencyService, false);
+    const approvalStage = new ApprovalStage(
+      this.approval,
+      mockIdempotencyService,
+      false,
+    );
     const githubStage = new GitHubStage(
       this.github,
       config.github.owner,
       config.github.repository,
       config.github.baseBranch,
-      mockIdempotencyService
+      mockIdempotencyService,
     );
 
     this.orchestrator = new Orchestrator(
@@ -128,11 +183,9 @@ export class DevelopmentContainer {
       config.github.owner,
       config.github.repository,
       config.github.baseBranch,
-      mockIdempotencyService
+      mockIdempotencyService,
     );
-
   }
-
 }
 
 export const container = createContainer();

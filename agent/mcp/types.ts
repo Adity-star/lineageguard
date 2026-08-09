@@ -1,20 +1,20 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 /* -------------------------------------------------- */
 /* Shared */
 /* -------------------------------------------------- */
 
 export const EntityTypeSchema = z.enum([
-  "dataset",
-  "dashboard",
-  "chart",
-  "dataJob",
-  "mlModel",
-  "container",
-  "domain",
-  "tag",
-  "glossaryTerm",
-  "assertion"
+  'dataset',
+  'dashboard',
+  'chart',
+  'dataJob',
+  'mlModel',
+  'container',
+  'domain',
+  'tag',
+  'glossaryTerm',
+  'assertion',
 ]);
 
 export type EntityType = z.infer<typeof EntityTypeSchema>;
@@ -32,7 +32,7 @@ export const SearchResultSchema = z.object({
   name: z.string(),
   entityType: EntityTypeSchema,
   score: z.number(),
-  description: z.string().optional()
+  description: z.string().optional(),
 });
 
 export type SearchResult = z.infer<typeof SearchResultSchema>;
@@ -46,7 +46,7 @@ export const SchemaFieldSchema = z.object({
   type: z.string(),
   nullable: z.boolean(),
   description: z.string().optional(),
-  tags: z.array(z.string()).default([])
+  tags: z.array(z.string()).default([]),
 });
 
 export type SchemaField = z.infer<typeof SchemaFieldSchema>;
@@ -58,7 +58,7 @@ export type SchemaField = z.infer<typeof SchemaFieldSchema>;
 export const OwnerSchema = z.object({
   urn: z.string(),
   name: z.string(),
-  type: z.string()
+  type: z.string(),
 });
 
 export type Owner = z.infer<typeof OwnerSchema>;
@@ -70,7 +70,7 @@ export type Owner = z.infer<typeof OwnerSchema>;
 export const DocumentationSchema = z.object({
   title: z.string(),
   content: z.string(),
-  lastUpdated: z.string().optional()
+  lastUpdated: z.string().optional(),
 });
 
 export type Documentation = z.infer<typeof DocumentationSchema>;
@@ -92,28 +92,38 @@ export const DatasetSchema = z.object({
 
   tags: z.array(z.string()).default([]),
 
-  glossaryTerms: z.array(z.object({
-    urn: z.string(),
-    name: z.string(),
-    description: z.string().optional(),
-  })).default([]),
+  glossaryTerms: z
+    .array(
+      z.object({
+        urn: z.string(),
+        name: z.string(),
+        description: z.string().optional(),
+      }),
+    )
+    .default([]),
 
   domain: z.string().optional(),
 
-  quality: z.object({
-    passedChecks: z.number().default(0),
-    failedChecks: z.number().default(0),
-  }).optional(),
+  quality: z
+    .object({
+      passedChecks: z.number().default(0),
+      failedChecks: z.number().default(0),
+    })
+    .optional(),
 
-  certification: z.object({
-    certified: z.boolean().default(false),
-  }).optional(),
+  certification: z
+    .object({
+      certified: z.boolean().default(false),
+    })
+    .optional(),
 
-  deprecation: z.object({
-    deprecated: z.boolean().default(false),
-    note: z.string().optional(),
-    decommissionDate: z.string().optional(),
-  }).optional(),
+  deprecation: z
+    .object({
+      deprecated: z.boolean().default(false),
+      note: z.string().optional(),
+      decommissionDate: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type Dataset = z.infer<typeof DatasetSchema>;
@@ -127,7 +137,7 @@ export const LineageNodeSchema = z.object({
 
   name: z.string(),
 
-  entityType: EntityTypeSchema
+  entityType: EntityTypeSchema,
 });
 
 export type LineageNode = z.infer<typeof LineageNodeSchema>;
@@ -135,7 +145,7 @@ export type LineageNode = z.infer<typeof LineageNodeSchema>;
 export const LineageSchema = z.object({
   upstream: z.array(LineageNodeSchema),
 
-  downstream: z.array(LineageNodeSchema)
+  downstream: z.array(LineageNodeSchema),
 });
 
 export type Lineage = z.infer<typeof LineageSchema>;
@@ -149,7 +159,7 @@ export const DatasetQuerySchema = z.object({
 
   sql: z.string(),
 
-  lastSeen: z.string().optional()
+  lastSeen: z.string().optional(),
 });
 
 export type DatasetQuery = z.infer<typeof DatasetQuerySchema>;
@@ -165,7 +175,7 @@ export const DocumentSchema = z.object({
 
   snippet: z.string(),
 
-  url: z.string().optional()
+  url: z.string().optional(),
 });
 
 export type Document = z.infer<typeof DocumentSchema>;
@@ -197,10 +207,16 @@ export interface ChangeRequest {
   requestedBy: string;
 
   /** Change priority – drives approval threshold */
-  priority?: "low" | "medium" | "high";
+  priority?: 'low' | 'medium' | 'high';
 
   /** Type of schema change: add_column | remove_column | rename_column | modify_column | create_table | drop_table */
-  changeType?: "add_column" | "remove_column" | "rename_column" | "modify_column" | "create_table" | "drop_table";
+  changeType?:
+    | 'add_column'
+    | 'remove_column'
+    | 'rename_column'
+    | 'modify_column'
+    | 'create_table'
+    | 'drop_table';
 
   /** URN of the schema entity if different from the dataset URN */
   schemaUrn?: string;

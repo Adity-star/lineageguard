@@ -1,29 +1,23 @@
-import { logger } from "../config/logger.js";
+import { logger } from '../config/logger.js';
 
-import { ContextState } from "./state.js";
+import { ContextState } from './state.js';
 
 export interface PipelineStage {
   readonly name: string;
 
-  execute(
-    state: ContextState
-  ): Promise<ContextState>;
+  execute(state: ContextState): Promise<ContextState>;
 }
 
 export class ContextPipeline {
-  constructor(
-    private readonly stages: PipelineStage[]
-  ) {}
+  constructor(private readonly stages: PipelineStage[]) {}
 
-  async execute(
-    initialState: ContextState
-  ): Promise<ContextState> {
+  async execute(initialState: ContextState): Promise<ContextState> {
     let state = initialState;
 
     for (const stage of this.stages) {
       logger.info({
         stage: stage.name,
-        message: "Running stage",
+        message: 'Running stage',
       });
 
       const started = performance.now();

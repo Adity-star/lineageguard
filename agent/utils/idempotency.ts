@@ -1,7 +1,11 @@
-import { PrismaClient, IdempotencyStatus } from "@prisma/client";
-import { logger } from "../config/logger.js";
-import { AppError } from "./errors.js";
-import { MetricsSink, NoopMetricsSink, IdempotencyMetrics } from "./idempotency-metrics.js";
+import { PrismaClient, IdempotencyStatus } from '@prisma/client';
+import { logger } from '../config/logger.js';
+import { AppError } from './errors.js';
+import {
+  MetricsSink,
+  NoopMetricsSink,
+  IdempotencyMetrics,
+} from './idempotency-metrics.js';
 
 /**
  * Idempotency configuration options
@@ -58,7 +62,7 @@ export interface IdempotencyResult<T = any> {
  */
 export class IdempotencyError extends AppError {
   constructor(message: string) {
-    super(message, "IDEMPOTENCY_ERROR", 409);
+    super(message, 'IDEMPOTENCY_ERROR', 409);
   }
 }
 
@@ -66,34 +70,34 @@ export class IdempotencyError extends AppError {
  * Operation types for idempotency scoping
  */
 export const OperationType = {
-  WORKFLOW_EXECUTION: "workflow_execution",
-  CONTEXT_BUILD: "context_build",
-  PLANNING: "planning",
-  RISK_ASSESSMENT: "risk_assessment",
-  GENERATION: "generation",
-  IMPACT_WRITEBACK: "impact_writeback",
-  APPROVAL_DECISION: "approval_decision",
-  GITHUB_PR_CREATION: "github_pr_creation",
-  METADATA_WRITEBACK: "metadata_writeback",
-  CHANGE_REQUEST: "change_request",
+  WORKFLOW_EXECUTION: 'workflow_execution',
+  CONTEXT_BUILD: 'context_build',
+  PLANNING: 'planning',
+  RISK_ASSESSMENT: 'risk_assessment',
+  GENERATION: 'generation',
+  IMPACT_WRITEBACK: 'impact_writeback',
+  APPROVAL_DECISION: 'approval_decision',
+  GITHUB_PR_CREATION: 'github_pr_creation',
+  METADATA_WRITEBACK: 'metadata_writeback',
+  CHANGE_REQUEST: 'change_request',
 } as const;
 
-export type OperationType = typeof OperationType[keyof typeof OperationType];
+export type OperationType = (typeof OperationType)[keyof typeof OperationType];
 
 /**
  * Default TTLs in seconds per operation type
  */
 export const DEFAULT_TTL_SECONDS: Record<string, number> = {
   [OperationType.WORKFLOW_EXECUTION]: 86400, // 24 hours
-  [OperationType.CONTEXT_BUILD]: 3600,       // 1 hour
-  [OperationType.PLANNING]: 21600,          // 6 hours
-  [OperationType.RISK_ASSESSMENT]: 21600,    // 6 hours
-  [OperationType.GENERATION]: 86400,         // 24 hours
-  [OperationType.IMPACT_WRITEBACK]: 43200,   // 12 hours
+  [OperationType.CONTEXT_BUILD]: 3600, // 1 hour
+  [OperationType.PLANNING]: 21600, // 6 hours
+  [OperationType.RISK_ASSESSMENT]: 21600, // 6 hours
+  [OperationType.GENERATION]: 86400, // 24 hours
+  [OperationType.IMPACT_WRITEBACK]: 43200, // 12 hours
   [OperationType.APPROVAL_DECISION]: 172800, // 48 hours
   [OperationType.GITHUB_PR_CREATION]: 604800, // 7 days
-  [OperationType.METADATA_WRITEBACK]: 43200,  // 12 hours
-  [OperationType.CHANGE_REQUEST]: 86400,     // 24 hours
+  [OperationType.METADATA_WRITEBACK]: 43200, // 12 hours
+  [OperationType.CHANGE_REQUEST]: 86400, // 24 hours
 };
 
 /**
@@ -104,13 +108,13 @@ export class IdempotencyService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly metrics: MetricsSink = new NoopMetricsSink(),
-    private readonly pendingTimeoutMinutes = 10
+    private readonly pendingTimeoutMinutes = 10,
   ) {}
 
   /**
    * Check if an operation has already been executed or is currently execution.
    * If it does not exist, claims the slot as 'PENDING'.
-   * 
+   *
    * Returns:
    * - isDuplicate: true + cachedResult (if COMPLETED)
    * - isDuplicate: true + status PENDING (if another execution is currently running within timeout)
@@ -118,15 +122,21 @@ export class IdempotencyService {
    */
   async check<T>(options: IdempotencyOptions): Promise<IdempotencyResult<T>> {
     const startTime = Date.now();
-    const ttl = options.maxAgeSeconds || DEFAULT_TTL_SECONDS[options.operationType] || 86400;
+    const ttl =
+      options.maxAgeSeconds ||
+      DEFAULT_TTL_SECONDS[options.operationType] ||
+      86400;
     const expiresAt = new Date(startTime + ttl * 1000);
 
-    logger.debug({
-      event: "idempotency_check_started",
-      key: options.key,
-      operationType: options.operationType,
-      tenantId: options.tenantId,
-    }, "Idempotency check started");
+    logger.debug(
+      {
+        event: 'idempotency_check_started',
+        key: options.key,
+        operationType: options.operationType,
+        tenantId: options.tenantId,
+      },
+      'Idempotency check started',
+    );
 
     try {
       // 1. Transaction 1: Try to claim slot by inserting a PENDING record.
@@ -137,7 +147,7 @@ export class IdempotencyService {
           where: {
             operationType_tenantId_key: {
               operationType: options.operationType,
-              tenantId: options.tenantId || "default",
+              tenantId: options.tenantId || 'default',
               key: options.key,
             },
           },
@@ -152,11 +162,14 @@ export class IdempotencyService {
             await tx.idempotencyRecord.delete({
               where: { id: existing.id },
             });
-            logger.info({
-              event: "idempotency_expired",
-              key: options.key,
-              operationType: options.operationType,
-            }, "Expired idempotency record deleted");
+            logger.info(
+              {
+                event: 'idempotency_expired',
+                key: options.key,
+                operationType: options.operationType,
+              },
+              'Expired idempotency record deleted',
+            );
             this.metrics.increment(IdempotencyMetrics.cacheMiss);
             return null; // Return null so we can create a new record in transaction 2 or outside
           }
@@ -168,14 +181,17 @@ export class IdempotencyService {
 
             if (pendingAgeMs > maxPendingMs) {
               // Stale PENDING record detected. Overwrite/release it.
-              logger.warn({
-                event: "idempotency_pending_stale",
-                key: options.key,
-                operationType: options.operationType,
-                recordId: existing.id,
-                ageMinutes: Math.round(pendingAgeMs / 60000),
-              }, "Stale PENDING idempotency record detected, releasing slot");
-              
+              logger.warn(
+                {
+                  event: 'idempotency_pending_stale',
+                  key: options.key,
+                  operationType: options.operationType,
+                  recordId: existing.id,
+                  ageMinutes: Math.round(pendingAgeMs / 60000),
+                },
+                'Stale PENDING idempotency record detected, releasing slot',
+              );
+
               const updated = await tx.idempotencyRecord.update({
                 where: { id: existing.id },
                 data: {
@@ -198,7 +214,7 @@ export class IdempotencyService {
           data: {
             key: options.key,
             operationType: options.operationType,
-            tenantId: options.tenantId || "default",
+            tenantId: options.tenantId || 'default',
             status: IdempotencyStatus.PENDING,
             expiresAt,
           },
@@ -207,7 +223,10 @@ export class IdempotencyService {
       });
 
       const lookupDuration = Date.now() - startTime;
-      this.metrics.histogram(IdempotencyMetrics.lookupLatencyMs, lookupDuration);
+      this.metrics.histogram(
+        IdempotencyMetrics.lookupLatencyMs,
+        lookupDuration,
+      );
 
       if (!record) {
         // Re-executing because the old one expired and was deleted in the transaction.
@@ -216,42 +235,59 @@ export class IdempotencyService {
           data: {
             key: options.key,
             operationType: options.operationType,
-            tenantId: options.tenantId || "default",
+            tenantId: options.tenantId || 'default',
             status: IdempotencyStatus.PENDING,
             expiresAt,
           },
         });
-        
-        logger.info({
-          event: "idempotency_miss",
-          key: options.key,
-          operationType: options.operationType,
-          recordId: created.id,
-        }, "Idempotency miss: new slot claimed");
 
-        return { isDuplicate: false, recordId: created.id, status: IdempotencyStatus.PENDING };
+        logger.info(
+          {
+            event: 'idempotency_miss',
+            key: options.key,
+            operationType: options.operationType,
+            recordId: created.id,
+          },
+          'Idempotency miss: new slot claimed',
+        );
+
+        return {
+          isDuplicate: false,
+          recordId: created.id,
+          status: IdempotencyStatus.PENDING,
+        };
       }
 
       // If we got the record back and it was newly created by our transaction
       if (record.createdAt.getTime() >= startTime) {
-        logger.info({
-          event: "idempotency_record_created",
-          key: options.key,
-          operationType: options.operationType,
-          recordId: record.id,
-        }, "Idempotency record slot claimed");
+        logger.info(
+          {
+            event: 'idempotency_record_created',
+            key: options.key,
+            operationType: options.operationType,
+            recordId: record.id,
+          },
+          'Idempotency record slot claimed',
+        );
         this.metrics.increment(IdempotencyMetrics.cacheMiss);
-        return { isDuplicate: false, recordId: record.id, status: IdempotencyStatus.PENDING };
+        return {
+          isDuplicate: false,
+          recordId: record.id,
+          status: IdempotencyStatus.PENDING,
+        };
       }
 
       // Existing active record found (duplicate detection)
-      logger.info({
-        event: "idempotency_hit",
-        key: options.key,
-        operationType: options.operationType,
-        recordId: record.id,
-        status: record.status,
-      }, "Duplicate operation detected via idempotency record");
+      logger.info(
+        {
+          event: 'idempotency_hit',
+          key: options.key,
+          operationType: options.operationType,
+          recordId: record.id,
+          status: record.status,
+        },
+        'Duplicate operation detected via idempotency record',
+      );
 
       this.metrics.increment(IdempotencyMetrics.cacheHit);
       this.metrics.increment(IdempotencyMetrics.duplicatePrevented);
@@ -262,23 +298,25 @@ export class IdempotencyService {
         recordId: record.id,
         status: record.status,
       };
-
     } catch (error: any) {
       // Catch unique key constraint violation (P2002) in case of concurrent create calls outside check-transaction block
-      if (error.code === "P2002") {
+      if (error.code === 'P2002') {
         this.metrics.increment(IdempotencyMetrics.uniqueConflict);
-        logger.info({
-          event: "idempotency_unique_conflict",
-          key: options.key,
-          operationType: options.operationType,
-        }, "Concurrent unique key conflict resolved, returning duplicate = true");
+        logger.info(
+          {
+            event: 'idempotency_unique_conflict',
+            key: options.key,
+            operationType: options.operationType,
+          },
+          'Concurrent unique key conflict resolved, returning duplicate = true',
+        );
 
         // Fetch the winner's record
         const record = await this.prisma.idempotencyRecord.findUnique({
           where: {
             operationType_tenantId_key: {
               operationType: options.operationType,
-              tenantId: options.tenantId || "default",
+              tenantId: options.tenantId || 'default',
               key: options.key,
             },
           },
@@ -287,8 +325,8 @@ export class IdempotencyService {
         return {
           isDuplicate: true,
           cachedResult: record?.result as T,
-          recordId: record?.id ?? undefined,
-          status: record?.status ?? undefined,
+          ...(record?.id && { recordId: record.id }),
+          ...(record?.status && { status: record.status }),
         };
       }
 
@@ -302,17 +340,20 @@ export class IdempotencyService {
   async record<T>(
     options: IdempotencyOptions,
     result: T,
-    entityId?: string
+    entityId?: string,
   ): Promise<string> {
     const startTime = Date.now();
-    const ttl = options.maxAgeSeconds || DEFAULT_TTL_SECONDS[options.operationType] || 86400;
+    const ttl =
+      options.maxAgeSeconds ||
+      DEFAULT_TTL_SECONDS[options.operationType] ||
+      86400;
     const expiresAt = new Date(startTime + ttl * 1000);
 
     const record = await this.prisma.idempotencyRecord.upsert({
       where: {
         operationType_tenantId_key: {
           operationType: options.operationType,
-          tenantId: options.tenantId || "default",
+          tenantId: options.tenantId || 'default',
           key: options.key,
         },
       },
@@ -325,7 +366,7 @@ export class IdempotencyService {
       create: {
         key: options.key,
         operationType: options.operationType,
-        tenantId: options.tenantId || "default",
+        tenantId: options.tenantId || 'default',
         status: IdempotencyStatus.COMPLETED,
         result: result as any,
         expiresAt,
@@ -336,13 +377,16 @@ export class IdempotencyService {
     const duration = Date.now() - startTime;
     this.metrics.histogram(IdempotencyMetrics.recordLatencyMs, duration);
 
-    logger.info({
-      event: "idempotency_record_completed",
-      key: options.key,
-      operationType: options.operationType,
-      recordId: record.id,
-      entityId,
-    }, "Operation result recorded for idempotency");
+    logger.info(
+      {
+        event: 'idempotency_record_completed',
+        key: options.key,
+        operationType: options.operationType,
+        recordId: record.id,
+        entityId,
+      },
+      'Operation result recorded for idempotency',
+    );
 
     return record.id;
   }
@@ -356,7 +400,7 @@ export class IdempotencyService {
         where: {
           operationType_tenantId_key: {
             operationType: options.operationType,
-            tenantId: options.tenantId || "default",
+            tenantId: options.tenantId || 'default',
             key: options.key,
           },
         },
@@ -365,11 +409,14 @@ export class IdempotencyService {
         },
       });
 
-      logger.info({
-        event: "idempotency_record_failed",
-        key: options.key,
-        operationType: options.operationType,
-      }, "Idempotency record marked as FAILED");
+      logger.info(
+        {
+          event: 'idempotency_record_failed',
+          key: options.key,
+          operationType: options.operationType,
+        },
+        'Idempotency record marked as FAILED',
+      );
       return true;
     } catch {
       return false;
@@ -382,12 +429,12 @@ export class IdempotencyService {
   static generateKey(params: Record<string, any>): string {
     const sorted = Object.keys(params)
       .sort()
-      .map(key => {
+      .map((key) => {
         const val = params[key];
         return `${key}:${typeof val === 'object' && val !== null ? JSON.stringify(val) : String(val)}`;
       })
       .join('|');
-    
+
     return Buffer.from(sorted).toString('base64');
   }
 }
@@ -400,34 +447,43 @@ export async function withIdempotency<T>(
   operation: () => Promise<T>,
   service: IdempotencyService,
   entityIdExtractor?: (result: T) => string | undefined,
-  idempotencyHitCallback?: (cachedResult: T) => void
+  idempotencyHitCallback?: (cachedResult: T) => void,
 ): Promise<T> {
   const checkResult = await service.check<T>(options);
-  
+
   if (checkResult.isDuplicate) {
-    if (checkResult.status === IdempotencyStatus.COMPLETED && checkResult.cachedResult !== undefined) {
-      logger.info({
-        event: "idempotency_cache_hit",
-        key: options.key,
-        operationType: options.operationType,
-        recordId: checkResult.recordId,
-        cachedResult: typeof checkResult.cachedResult === 'object' ? {
-          ...(checkResult.cachedResult as any),
-          // Don't log sensitive information
-        } : checkResult.cachedResult,
-      }, "Returning cached result from idempotency check");
-      
+    if (
+      checkResult.status === IdempotencyStatus.COMPLETED &&
+      checkResult.cachedResult !== undefined
+    ) {
+      logger.info(
+        {
+          event: 'idempotency_cache_hit',
+          key: options.key,
+          operationType: options.operationType,
+          recordId: checkResult.recordId,
+          cachedResult:
+            typeof checkResult.cachedResult === 'object'
+              ? {
+                  ...(checkResult.cachedResult as any),
+                  // Don't log sensitive information
+                }
+              : checkResult.cachedResult,
+        },
+        'Returning cached result from idempotency check',
+      );
+
       // Call custom callback if provided
       if (idempotencyHitCallback) {
         idempotencyHitCallback(checkResult.cachedResult);
       }
-      
+
       return checkResult.cachedResult;
     }
 
     if (checkResult.status === IdempotencyStatus.PENDING) {
       throw new IdempotencyError(
-        `Another execution is currently running for this operation with key: ${options.key}`
+        `Another execution is currently running for this operation with key: ${options.key}`,
       );
     }
   }

@@ -1,5 +1,5 @@
-import { ChangeRequest } from "../mcp/types.js";
-import { ContextBundle } from "../context/type.js";
+import { ChangeRequest } from '../mcp/types.js';
+import { ContextBundle } from '../context/type.js';
 
 export interface PromptMessages {
   system: string;
@@ -7,10 +7,7 @@ export interface PromptMessages {
 }
 
 export class PlanningPromptBuilder {
-  build(
-    request: ChangeRequest,
-    context: ContextBundle
-  ): PromptMessages {
+  build(request: ChangeRequest, context: ContextBundle): PromptMessages {
     return {
       system: this.buildSystemPrompt(),
       user: this.buildUserPrompt(request, context),
@@ -76,7 +73,7 @@ Return JSON matching this structure:
 
   private buildUserPrompt(
     request: ChangeRequest,
-    context: ContextBundle
+    context: ContextBundle,
   ): string {
     return JSON.stringify(
       {
@@ -84,7 +81,7 @@ Return JSON matching this structure:
         context,
       },
       null,
-      2
+      2,
     );
   }
 }

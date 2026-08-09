@@ -3,15 +3,17 @@ import { z } from 'zod';
 // Sanitize user input to prevent injection attacks
 export function sanitizeInput(input: string): string {
   if (typeof input !== 'string') return '';
-  
-  return input
-    // Remove potential SQL injection patterns
-    .replace(/['";\\]/g, '')
-    // Remove potential command injection
-    .replace(/[;&|`$()]/g, '')
-    // Limit length
-    .slice(0, 10000)
-    .trim();
+
+  return (
+    input
+      // Remove potential SQL injection patterns
+      .replace(/['";\\]/g, '')
+      // Remove potential command injection
+      .replace(/[;&|`$()]/g, '')
+      // Limit length
+      .slice(0, 10000)
+      .trim()
+  );
 }
 
 // Validate email format
@@ -29,14 +31,16 @@ export function isValidUrn(urn: string): boolean {
 export function sanitizeUrn(urn: string): string {
   if (typeof urn !== 'string') return '';
 
-  return urn
-    // Remove only truly dangerous characters for URNs
-    .replace(/['";\\]/g, '')
-    // Remove command injection chars EXCEPT parentheses (valid in URNs)
-    .replace(/[;&|`$]/g, '')
-    // Limit length
-    .slice(0, 500)
-    .trim();
+  return (
+    urn
+      // Remove only truly dangerous characters for URNs
+      .replace(/['";\\]/g, '')
+      // Remove command injection chars EXCEPT parentheses (valid in URNs)
+      .replace(/[;&|`$]/g, '')
+      // Limit length
+      .slice(0, 500)
+      .trim()
+  );
 }
 
 // Validate priority values
@@ -47,15 +51,17 @@ export function isValidPriority(priority: string): boolean {
 // Sanitize LLM prompt to prevent prompt injection
 export function sanitizePrompt(prompt: string): string {
   if (typeof prompt !== 'string') return '';
-  
-  return prompt
-    // Remove potential prompt injection patterns
-    .replace(/ignore (previous|all) instructions/gi, '')
-    .replace(/system:/gi, '')
-    .replace(/assistant:/gi, '')
-    // Limit length
-    .slice(0, 5000)
-    .trim();
+
+  return (
+    prompt
+      // Remove potential prompt injection patterns
+      .replace(/ignore (previous|all) instructions/gi, '')
+      .replace(/system:/gi, '')
+      .replace(/assistant:/gi, '')
+      // Limit length
+      .slice(0, 5000)
+      .trim()
+  );
 }
 
 // Mask sensitive data for logging
@@ -68,15 +74,17 @@ export function maskToken(token: string): string {
 // Sanitize SQL to prevent injection (basic sanitization)
 export function sanitizeSQL(sql: string): string {
   if (typeof sql !== 'string') return '';
-  
-  return sql
-    // Remove potential SQL injection patterns
-    .replace(/--.*$/gm, '') // Remove comments
-    .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
-    .replace(/\b(DROP|DELETE|TRUNCATE|ALTER|EXEC|EXECUTE)\b/gi, '') // Remove dangerous keywords
-    // Limit length
-    .slice(0, 10000)
-    .trim();
+
+  return (
+    sql
+      // Remove potential SQL injection patterns
+      .replace(/--.*$/gm, '') // Remove comments
+      .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
+      .replace(/\b(DROP|DELETE|TRUNCATE|ALTER|EXEC|EXECUTE)\b/gi, '') // Remove dangerous keywords
+      // Limit length
+      .slice(0, 10000)
+      .trim()
+  );
 }
 
 // Zod schemas for request validation

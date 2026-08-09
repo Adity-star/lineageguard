@@ -20,7 +20,20 @@ let globalContainer: ReturnType<typeof createContainer> | null = null;
 app.use(express.json());
 
 // In-memory store for demo purposes (replace with database in production)
-const requestStore = new Map<string, ChangeRequest>();
+const requestStore = new Map<string, {
+  id: string;
+  request: ChangeRequest;
+  result: unknown;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  approval?: {
+    approved: boolean;
+    reviewer: string;
+    comment: string;
+    decidedAt: string;
+  };
+}>();
 const metricsStore = {
   schemaChanges: 127,
   pendingReviews: 8,
@@ -64,7 +77,6 @@ app.get('/api/v1/metrics', (req: Request, res: Response) => {
 
 // Submit schema change request
 app.post('/api/v1/requests', async (req: Request, res: Response) => {
-
   try {
     const { description, datasetUrn, requestedBy, priority } = req.body;
 
@@ -79,7 +91,11 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         status: 'error',
-        error: 'Invalid input: ' + validationResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
+        error:
+          'Invalid input: ' +
+          validationResult.error.issues
+            .map((e) => `${e.path.join('.')}: ${e.message}`)
+            .join(', '),
       });
     }
 
@@ -114,14 +130,19 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
       priority: validatedData.priority,
     };
 
-    logger.info({
-      event: 'processing_request',
-      description: request.description,
-      requestedBy: request.requestedBy,
-    }, 'Processing schema change request');
+    logger.info(
+      {
+        event: 'processing_request',
+        description: request.description,
+        requestedBy: request.requestedBy,
+      },
+      'Processing schema change request',
+    );
 
     if (!globalContainer) {
-      throw new Error('Server not properly initialized: container is not available');
+      throw new Error(
+        'Server not properly initialized: container is not available',
+      );
     }
 
     const result = await globalContainer.orchestrator.execute(request);
@@ -143,28 +164,30 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
 
     res.json({
       status: 'success',
-      data: { 
-        ...result, 
+      data: {
+        ...result,
         id: requestId,
-        performance: result.performance 
+        performance: result.performance,
       },
     });
   } catch (error: unknown) {
-    const typedError = error instanceof Error
-      ? error
-      : {
-          message: String(error),
-          stack: undefined,
-          name: undefined,
-          cause: undefined,
-          constructor: { name: undefined },
-        };
+    const typedError =
+      error instanceof Error
+        ? error
+        : {
+            message: String(error),
+            stack: undefined,
+            name: undefined,
+            cause: undefined,
+            constructor: { name: undefined },
+          };
 
     // Log full error details with proper error serialization
+    const errorRequestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     logger.error(
       {
         err: error,
-        requestId,
+        requestId: errorRequestId,
         errorType: typedError.constructor?.name,
         errorMessage: typedError.message,
         errorStack: typedError.stack,
@@ -172,24 +195,28 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
         errorName: typedError.name,
         rawError: String(error),
       },
-      'Failed to process request'
+      'Failed to process request',
     );
 
     // Determine user-friendly error message
-    let userMessage = 'An unexpected error occurred while processing your request';
+    let userMessage =
+      'An unexpected error occurred while processing your request';
     let statusCode = 500;
 
     if (typedError.message?.includes('Stage "context" failed')) {
-      userMessage = 'Unable to retrieve dataset metadata. Please check the dataset URN and try again.';
+      userMessage =
+        'Unable to retrieve dataset metadata. Please check the dataset URN and try again.';
       statusCode = 400;
     } else if (typedError.message?.includes('Stage "planning" failed')) {
-      userMessage = 'Unable to generate execution plan. The request description may be unclear.';
+      userMessage =
+        'Unable to generate execution plan. The request description may be unclear.';
       statusCode = 400;
     } else if (typedError.message?.includes('Stage "risk" failed')) {
       userMessage = 'Unable to assess risk. Please try again.';
       statusCode = 500;
     } else if (typedError.message?.includes('Stage "generator" failed')) {
-      userMessage = 'Unable to generate migration. The schema change may not be supported.';
+      userMessage =
+        'Unable to generate migration. The schema change may not be supported.';
       statusCode = 400;
     } else if (typedError.message?.includes('Stage "impact" failed')) {
       userMessage = 'Unable to analyze impact. Please try again.';
@@ -198,7 +225,8 @@ app.post('/api/v1/requests', async (req: Request, res: Response) => {
       userMessage = 'Unable to process approval. Please try again.';
       statusCode = 500;
     } else if (typedError.message?.includes('Stage "github" failed')) {
-      userMessage = 'Unable to create pull request. Please check GitHub credentials and try again.';
+      userMessage =
+        'Unable to create pull request. Please check GitHub credentials and try again.';
       statusCode = 500;
     } else if (typedError.message?.includes('Missing required fields')) {
       userMessage = typedError.message;
@@ -246,18 +274,22 @@ app.get('/api/v1/requests', (req: Request, res: Response) => {
 
   // Filter by status if provided
   if (status) {
-    requests = requests.filter((r: unknown) => (r as { status: string }).status === status);
+    requests = requests.filter(
+      (r: unknown) => (r as { status: string }).status === status,
+    );
   }
 
   // Sort by createdAt descending
-  requests.sort((a: unknown, b: unknown) => 
-    new Date((b as { createdAt: string }).createdAt).getTime() - new Date((a as { createdAt: string }).createdAt).getTime()
+  requests.sort(
+    (a: unknown, b: unknown) =>
+      new Date((b as { createdAt: string }).createdAt).getTime() -
+      new Date((a as { createdAt: string }).createdAt).getTime(),
   );
 
   // Apply pagination
   const paginatedRequests = requests.slice(
     parseInt(offset as string),
-    parseInt(offset as string) + parseInt(limit as string)
+    parseInt(offset as string) + parseInt(limit as string),
   );
 
   res.json({
@@ -290,7 +322,11 @@ app.post('/api/v1/requests/:id/approval', (req: Request, res: Response) => {
   if (!validationResult.success) {
     return res.status(400).json({
       status: 'error',
-      error: 'Invalid approval input: ' + validationResult.error.issues.map((e) => `${e.path.map(String).join('.')}: ${e.message}`).join(', '),
+      error:
+        'Invalid approval input: ' +
+        validationResult.error.issues
+          .map((e) => `${e.path.map(String).join('.')}: ${e.message}`)
+          .join(', '),
     });
   }
 
@@ -313,28 +349,34 @@ app.post('/api/v1/requests/:id/approval', (req: Request, res: Response) => {
   }
 
   // Update the request with approval decision
-  storedRequest.approval = {
-    approved: validatedData.approved,
-    reviewer: validatedData.reviewer,
-    comment: validatedData.comment,
-    decidedAt: validatedData.decidedAt || new Date().toISOString(),
+  const requestWithApproval = {
+    ...storedRequest,
+    approval: {
+      approved: validatedData.approved,
+      reviewer: validatedData.reviewer,
+      comment: validatedData.comment || '',
+      decidedAt: validatedData.decidedAt || new Date().toISOString(),
+    },
+    status: validatedData.approved ? 'approved' : 'rejected',
+    updatedAt: new Date().toISOString(),
   };
-  storedRequest.status = validatedData.approved ? 'approved' : 'rejected';
-  storedRequest.updatedAt = new Date().toISOString();
 
-  requestStore.set(id, storedRequest);
+  requestStore.set(id, requestWithApproval);
 
   // Update metrics
   if (validatedData.approved) {
     metricsStore.pendingReviews--;
   }
 
-  logger.info({
-    event: 'approval_processed',
-    requestId: id,
-    approved: validatedData.approved,
-    reviewer: validatedData.reviewer,
-  }, 'Approval processed');
+  logger.info(
+    {
+      event: 'approval_processed',
+      requestId: id,
+      approved: validatedData.approved,
+      reviewer: validatedData.reviewer,
+    },
+    'Approval processed',
+  );
 
   res.json({
     status: 'success',
@@ -353,7 +395,9 @@ app.get('/api/v1/datasets', (req: Request, res: Response) => {
       name: 'customers',
       platform: 'snowflake',
       description: 'Customer master data',
-      owners: [{ urn: 'urn:li:corpuser:alice', name: 'Alice', type: 'CORP_USER' }],
+      owners: [
+        { urn: 'urn:li:corpuser:alice', name: 'Alice', type: 'CORP_USER' },
+      ],
       tags: ['pii', 'core'],
       glossaryTerms: [],
       domain: 'urn:li:domain:customer',
@@ -376,13 +420,15 @@ app.get('/api/v1/datasets', (req: Request, res: Response) => {
 
   if (search) {
     filteredDatasets = filteredDatasets.filter((d: unknown) =>
-      (d as { name: string }).name.toLowerCase().includes((search as string).toLowerCase())
+      (d as { name: string }).name
+        .toLowerCase()
+        .includes((search as string).toLowerCase()),
     );
   }
 
   if (platform) {
-    filteredDatasets = filteredDatasets.filter((d: unknown) =>
-      (d as { platform: string }).platform === platform
+    filteredDatasets = filteredDatasets.filter(
+      (d: unknown) => (d as { platform: string }).platform === platform,
     );
   }
 
@@ -402,7 +448,9 @@ app.get('/api/v1/datasets/:urn', (req: Request, res: Response) => {
     name: 'customers',
     platform: 'snowflake',
     description: 'Customer master data',
-    owners: [{ urn: 'urn:li:corpuser:alice', name: 'Alice', type: 'CORP_USER' }],
+    owners: [
+      { urn: 'urn:li:corpuser:alice', name: 'Alice', type: 'CORP_USER' },
+    ],
     tags: ['pii', 'core'],
     glossaryTerms: [],
     domain: 'urn:li:domain:customer',
@@ -452,7 +500,9 @@ app.get('/api/v1/pull-requests', (req: Request, res: Response) => {
   let filteredPRs = pullRequests;
 
   if (status) {
-    filteredPRs = filteredPRs.filter((pr: unknown) => (pr as { status: string }).status === status);
+    filteredPRs = filteredPRs.filter(
+      (pr: unknown) => (pr as { status: string }).status === status,
+    );
   }
 
   res.json({
@@ -509,22 +559,31 @@ export async function startServer(port: number): Promise<void> {
 
   // Initialize MCP client before starting server
   try {
-    logger.info({
-      event: "mcp_initialization_started",
-    }, "🔌 Initializing MCP client...");
-    
+    logger.info(
+      {
+        event: 'mcp_initialization_started',
+      },
+      '🔌 Initializing MCP client...',
+    );
+
     await globalContainer.getMcpClient().initialize();
-    
-    logger.info({
-      event: "mcp_initialization_completed",
-      isConnected: globalContainer.getMcpClient().isConnected(),
-    }, "✅ MCP client initialized successfully");
+
+    logger.info(
+      {
+        event: 'mcp_initialization_completed',
+        isConnected: globalContainer.getMcpClient().isConnected(),
+      },
+      '✅ MCP client initialized successfully',
+    );
   } catch (error) {
-    logger.error({
-      event: "mcp_initialization_failed",
-      error: error instanceof Error ? error.message : String(error),
-      errorStack: error instanceof Error ? error.stack : undefined,
-    }, "❌ Failed to initialize MCP client");
+    logger.error(
+      {
+        event: 'mcp_initialization_failed',
+        error: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+      },
+      '❌ Failed to initialize MCP client',
+    );
     throw error;
   }
 

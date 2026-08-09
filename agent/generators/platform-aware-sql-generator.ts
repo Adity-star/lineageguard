@@ -1,9 +1,9 @@
-import { ExecutionPlan } from "../planner/types.js";
-import { ContextBundle } from "../context/type.js";
-import { DDLGenerator, DDLGenerationOptions } from "./ddl-generator.js";
-import { SQLValidator } from "./sql-validator.js";
-import { DDLArtifact } from "./types.js";
-import { logger } from "../config/logger.js";
+import { ExecutionPlan } from '../planner/types.js';
+import { ContextBundle } from '../context/type.js';
+import { DDLGenerator, DDLGenerationOptions } from './ddl-generator.js';
+import { SQLValidator } from './sql-validator.js';
+import { DDLArtifact } from './types.js';
+import { logger } from '../config/logger.js';
 
 /**
  * Platform-aware SQL generator that replaces PrismaGenerator.
@@ -36,34 +36,36 @@ export class PlatformAwareSQLGenerator {
    */
   public async generate(
     context: ContextBundle,
-    plan: ExecutionPlan
+    plan: ExecutionPlan,
   ): Promise<DDLArtifact> {
     const startTime = performance.now();
 
     try {
       logger.info(
         {
-          event: "platform_aware_sql_generation_start",
+          event: 'platform_aware_sql_generation_start',
           datasetName: context.dataset.name,
           platform: plan.platform || context.dataset.platform,
           fieldCount: context.schema.length,
           planActions: plan.requiredChanges?.length || 0,
         },
-        `PlatformAwareSQLGenerator starting for ${context.dataset.name}`
+        `PlatformAwareSQLGenerator starting for ${context.dataset.name}`,
       );
 
       // Extract platform from plan or context
-      let platform =
-        plan.platform || context.dataset.platform || "unknown";
+      let platform = plan.platform || context.dataset.platform || 'unknown';
 
       // CRITICAL: Resolve HDFS to appropriate SQL dialect before any generation
-      if (platform.toLowerCase() === "hdfs") {
-        logger.warn({
-          event: "hdfs_platform_resolution",
-          originalPlatform: platform,
-          resolvedPlatform: "hive",
-        }, `Resolving HDFS platform to Hive SQL for DDL generation`);
-        platform = "hive"; // Resolve HDFS to Hive SQL
+      if (platform.toLowerCase() === 'hdfs') {
+        logger.warn(
+          {
+            event: 'hdfs_platform_resolution',
+            originalPlatform: platform,
+            resolvedPlatform: 'hive',
+          },
+          `Resolving HDFS platform to Hive SQL for DDL generation`,
+        );
+        platform = 'hive'; // Resolve HDFS to Hive SQL
       }
 
       const tableName = context.dataset.name;
@@ -72,63 +74,94 @@ export class PlatformAwareSQLGenerator {
       // Validate we have schema fields
       if (!context.schema || context.schema.length === 0) {
         throw new Error(
-          `No schema fields available for ${tableName}. Cannot generate DDL.`
+          `No schema fields available for ${tableName}. Cannot generate DDL.`,
         );
       }
 
       // Determine operation type from execution plan
       // CRITICAL: Always trust planner's explicit type over detection
-      let operationType = "create_table"; // Default fallback
+      let operationType = 'create_table'; // Default fallback
 
       if (plan.requiredChanges && plan.requiredChanges.length > 0) {
         const firstChange = plan.requiredChanges[0];
-        const explicitType = firstChange.type?.toLowerCase().trim().replace(/\s+/g, "_") || "";
-
-        logger.info({
-          event: "planner_explicit_type",
-          explicitType,
-          fullChange: firstChange,
-          originalType: firstChange.type,
-        }, `Planner's explicit type: ${explicitType}`);
-
-        // TRUST the planner's explicit type - this is the source of truth
-        if (explicitType === "add_column") {
-          operationType = "add_column";
-          logger.info({ event: "using_planner_add_column" }, `Using planner's explicit add_column type`);
-        } else if (explicitType === "drop_column") {
-          operationType = "drop_column";
-          logger.info({ event: "using_planner_drop_column" }, `Using planner's explicit drop_column type`);
-        } else if (explicitType === "create_table") {
-          operationType = "create_table";
-          logger.info({ event: "using_planner_create_table" }, `Using planner's explicit create_table type`);
+        if (!firstChange) {
+          logger.warn(
+            { event: 'first_change_undefined' },
+            'First change is undefined, defaulting to create_table',
+          );
+          operationType = 'create_table';
         } else {
-          // Fallback to detection if planner type is unknown
-          operationType = this.determineOperationType(plan);
-          logger.warn({
-            event: "unknown_planner_type_fallback",
-            explicitType,
-            detectedType: operationType,
-          }, `Unknown planner type '${explicitType}', falling back to detection: ${operationType}`);
+          const explicitType =
+            firstChange.type?.toLowerCase().trim().replace(/\s+/g, '_') || '';
+
+          logger.info(
+            {
+              event: 'planner_explicit_type',
+              explicitType,
+              fullChange: firstChange,
+              originalType: firstChange.type,
+            },
+            `Planner's explicit type: ${explicitType}`,
+          );
+
+          // TRUST the planner's explicit type - this is the source of truth
+          if (explicitType === 'add_column') {
+            operationType = 'add_column';
+            logger.info(
+              { event: 'using_planner_add_column' },
+              `Using planner's explicit add_column type`,
+            );
+          } else if (explicitType === 'drop_column') {
+            operationType = 'drop_column';
+            logger.info(
+              { event: 'using_planner_drop_column' },
+              `Using planner's explicit drop_column type`,
+            );
+          } else if (explicitType === 'create_table') {
+            operationType = 'create_table';
+            logger.info(
+              { event: 'using_planner_create_table' },
+              `Using planner's explicit create_table type`,
+            );
+          } else {
+            // Fallback to detection if planner type is unknown
+            operationType = this.determineOperationType(plan);
+            logger.warn(
+              {
+                event: 'unknown_planner_type_fallback',
+                explicitType,
+                detectedType: operationType,
+              },
+              `Unknown planner type '${explicitType}', falling back to detection: ${operationType}`,
+            );
+          }
         }
       } else {
         // No required changes, fallback to detection
         operationType = this.determineOperationType(plan);
-        logger.warn({
-          event: "no_required_changes_fallback",
-          detectedType: operationType,
-        }, `No required changes, using detected type: ${operationType}`);
+        logger.warn(
+          {
+            event: 'no_required_changes_fallback',
+            detectedType: operationType,
+          },
+          `No required changes, using detected type: ${operationType}`,
+        );
       }
 
-      logger.info({
-        event: "final_operation_type",
-        operationType,
-        planActions: plan.requiredChanges,
-        actualSchemaFields: context.schema?.length || 0,
-        actualSchemaSample: context.schema?.slice(0, 3).map(f => f.fieldPath) || [],
-        affectedColumns: plan.affectedColumns,
-        planSummary: plan.summary,
-        planIntent: plan.intent,
-      }, `Final operation type: ${operationType}`);
+      logger.info(
+        {
+          event: 'final_operation_type',
+          operationType,
+          planActions: plan.requiredChanges,
+          actualSchemaFields: context.schema?.length || 0,
+          actualSchemaSample:
+            context.schema?.slice(0, 3).map((f) => f.fieldPath) || [],
+          affectedColumns: plan.affectedColumns,
+          planSummary: plan.summary,
+          planIntent: plan.intent,
+        },
+        `Final operation type: ${operationType}`,
+      );
 
       const finalOperationType = operationType;
 
@@ -137,72 +170,92 @@ export class PlatformAwareSQLGenerator {
 
       // Generate DDL based on operation type
       switch (finalOperationType) {
-        case "add_column":
+        case 'add_column':
           // Generate ALTER TABLE ADD COLUMN statements
           const columnNames = this.extractColumnNames(plan);
-          logger.info({
-            event: "generating_add_column",
-            columnNames,
-            schemaFields: context.schema.map(f => f.fieldPath),
-            operationType: finalOperationType,
-            affectedColumns: plan.affectedColumns,
-          }, `Generating ADD COLUMN for: ${columnNames.join(", ")}`);
+          logger.info(
+            {
+              event: 'generating_add_column',
+              columnNames,
+              schemaFields: context.schema.map((f) => f.fieldPath),
+              operationType: finalOperationType,
+              affectedColumns: plan.affectedColumns,
+            },
+            `Generating ADD COLUMN for: ${columnNames.join(', ')}`,
+          );
 
           if (columnNames.length === 0) {
-            logger.error({
-              event: "no_columns_for_add_column",
-              plan,
-              affectedColumns: plan.affectedColumns,
-              requiredChanges: plan.requiredChanges,
-            }, `No columns found for ADD COLUMN operation - affectedColumns is empty`);
-            throw new Error("ADD COLUMN operation requires affectedColumns in plan");
+            logger.error(
+              {
+                event: 'no_columns_for_add_column',
+                plan,
+                affectedColumns: plan.affectedColumns,
+                requiredChanges: plan.requiredChanges,
+              },
+              `No columns found for ADD COLUMN operation - affectedColumns is empty`,
+            );
+            throw new Error(
+              'ADD COLUMN operation requires affectedColumns in plan',
+            );
           }
 
-          logger.info({
-            event: "generating_alter_statements",
-            columnCount: columnNames.length,
-          }, `Generating ${columnNames.length} ALTER TABLE statements`);
-
-          const alterStatements = columnNames.map(columnName =>
-            this.generateAlterAddColumn(context, plan, columnName)
+          logger.info(
+            {
+              event: 'generating_alter_statements',
+              columnCount: columnNames.length,
+            },
+            `Generating ${columnNames.length} ALTER TABLE statements`,
           );
-          ddlStatement = alterStatements.join("\n\n");
+
+          const alterStatements = columnNames.map((columnName) =>
+            this.generateAlterAddColumn(context, plan, columnName),
+          );
+          ddlStatement = alterStatements.join('\n\n');
           fieldCount = columnNames.length;
-          logger.info({
-            event: "alter_statements_generated",
-            statementCount: alterStatements.length,
-            firstStatement: alterStatements[0]?.substring(0, 100),
-          }, `Generated ${alterStatements.length} ALTER statements`);
+          logger.info(
+            {
+              event: 'alter_statements_generated',
+              statementCount: alterStatements.length,
+              firstStatement: alterStatements[0]?.substring(0, 100),
+            },
+            `Generated ${alterStatements.length} ALTER statements`,
+          );
           break;
 
-        case "drop_column":
+        case 'drop_column':
           // Generate ALTER TABLE DROP COLUMN statements
           const dropColumnNames = this.extractColumnNames(plan);
-          logger.info({
-            event: "generating_drop_column",
-            columnNames: dropColumnNames,
-          }, `Generating DROP COLUMN for: ${dropColumnNames.join(", ")}`);
-          
-          const dropStatements = dropColumnNames.map(columnName =>
-            this.generateAlterDropColumn(context, plan, columnName)
+          logger.info(
+            {
+              event: 'generating_drop_column',
+              columnNames: dropColumnNames,
+            },
+            `Generating DROP COLUMN for: ${dropColumnNames.join(', ')}`,
           );
-          ddlStatement = dropStatements.join("\n\n");
+
+          const dropStatements = dropColumnNames.map((columnName) =>
+            this.generateAlterDropColumn(context, plan, columnName),
+          );
+          ddlStatement = dropStatements.join('\n\n');
           fieldCount = dropColumnNames.length;
           break;
 
-        case "create_table":
+        case 'create_table':
           // Generate CREATE TABLE statement
-          logger.info({
-            event: "generating_create_table",
-            schemaFields: context.schema.map(f => f.fieldPath),
-          }, `Generating CREATE TABLE with ${context.schema.length} fields`);
-          
+          logger.info(
+            {
+              event: 'generating_create_table',
+              schemaFields: context.schema.map((f) => f.fieldPath),
+            },
+            `Generating CREATE TABLE with ${context.schema.length} fields`,
+          );
+
           const options: DDLGenerationOptions = {
             platform: platform as any,
             tableName,
-            schemaName,
             ifNotExists: true,
-            validationStatus: "generated",
+            validationStatus: 'generated',
+            ...(schemaName && { schemaName }),
           };
           const createArtifact = this.ddl.generate(context.schema, options);
           ddlStatement = createArtifact.ddl;
@@ -211,20 +264,26 @@ export class PlatformAwareSQLGenerator {
 
         default:
           // Unknown operation type - this should not happen
-          logger.error({
-            event: "unknown_operation_type_in_switch",
-            operationType: finalOperationType,
-            plan
-          }, `Unknown operation type '${finalOperationType}' in switch statement - defaulting to CREATE TABLE`);
-          
+          logger.error(
+            {
+              event: 'unknown_operation_type_in_switch',
+              operationType: finalOperationType,
+              plan,
+            },
+            `Unknown operation type '${finalOperationType}' in switch statement - defaulting to CREATE TABLE`,
+          );
+
           const defaultOptions: DDLGenerationOptions = {
             platform: platform as any,
             tableName,
-            schemaName,
             ifNotExists: true,
-            validationStatus: "generated",
+            validationStatus: 'generated',
+            ...(schemaName && { schemaName }),
           };
-          const defaultArtifact = this.ddl.generate(context.schema, defaultOptions);
+          const defaultArtifact = this.ddl.generate(
+            context.schema,
+            defaultOptions,
+          );
           ddlStatement = defaultArtifact.ddl;
           fieldCount = defaultArtifact.fieldCount;
           break;
@@ -236,11 +295,11 @@ export class PlatformAwareSQLGenerator {
         platform: platform as any,
         tableName,
         operationType: finalOperationType,
-        validationStatus: "generated",
+        validationStatus: 'generated',
         fieldCount,
         notes: [
           `Generated ${finalOperationType.toUpperCase()} DDL for ${platform.toUpperCase()}`,
-          `Affected columns: ${plan.affectedColumns.join(", ")}`,
+          `Affected columns: ${plan.affectedColumns.join(', ')}`,
         ],
       };
 
@@ -255,14 +314,14 @@ export class PlatformAwareSQLGenerator {
         artifact.ddl,
         artifact.platform as string,
         finalOperationType,
-        plan.affectedColumns
+        plan.affectedColumns,
       );
 
       // Update artifact with validation results
       if (validationResult.valid) {
         artifact = {
           ...artifact,
-          validationStatus: "validated",
+          validationStatus: 'validated',
           notes: [
             ...(artifact.notes || []),
             `✓ DDL validated for ${artifact.platform.toUpperCase()}`,
@@ -271,18 +330,18 @@ export class PlatformAwareSQLGenerator {
 
         logger.info(
           {
-            event: "platform_aware_sql_validation_passed",
+            event: 'platform_aware_sql_validation_passed',
             platform: artifact.platform,
             tableName: artifact.tableName,
             warnings: validationResult.warnings.length,
           },
-          `✓ DDL validation passed`
+          `✓ DDL validation passed`,
         );
       } else {
         // Mark as unvalidated with errors
         artifact = {
           ...artifact,
-          validationStatus: "unvalidated",
+          validationStatus: 'unvalidated',
           validationErrors: validationResult.errors,
           notes: [
             ...(artifact.notes || []),
@@ -292,13 +351,13 @@ export class PlatformAwareSQLGenerator {
 
         logger.warn(
           {
-            event: "platform_aware_sql_validation_failed",
+            event: 'platform_aware_sql_validation_failed',
             platform: artifact.platform,
             tableName: artifact.tableName,
             errors: validationResult.errors,
             warnings: validationResult.warnings,
           },
-          `⚠ DDL validation found errors - review before applying`
+          `⚠ DDL validation found errors - review before applying`,
         );
       }
 
@@ -312,7 +371,7 @@ export class PlatformAwareSQLGenerator {
 
       logger.info(
         {
-          event: "platform_aware_sql_generation_success",
+          event: 'platform_aware_sql_generation_success',
           platform: artifact.platform,
           tableName: artifact.tableName,
           fieldCount: artifact.fieldCount,
@@ -320,7 +379,7 @@ export class PlatformAwareSQLGenerator {
           operationType,
           durationMs: performance.now() - startTime,
         },
-        `✓ Platform-aware SQL Generated (${artifact.platform}, ${operationType})`
+        `✓ Platform-aware SQL Generated (${artifact.platform}, ${operationType})`,
       );
 
       return artifact;
@@ -330,13 +389,13 @@ export class PlatformAwareSQLGenerator {
 
       logger.error(
         {
-          event: "platform_aware_sql_generation_failed",
+          event: 'platform_aware_sql_generation_failed',
           platform: plan.platform || context.dataset.platform,
           datasetName: context.dataset.name,
           error: errorMessage,
           durationMs: performance.now() - startTime,
         },
-        `PlatformAwareSQLGenerator failed: ${errorMessage}`
+        `PlatformAwareSQLGenerator failed: ${errorMessage}`,
       );
 
       throw error;
@@ -351,63 +410,84 @@ export class PlatformAwareSQLGenerator {
   private enforceOperationTypeConsistency(
     detectedType: string,
     plan: ExecutionPlan,
-    context: ContextBundle
+    context: ContextBundle,
   ): string {
     // Always trust the planner's explicit operation type if it's set correctly
     if (plan.requiredChanges && plan.requiredChanges.length > 0) {
       const firstChange = plan.requiredChanges[0];
-      const explicitType = firstChange.type?.toLowerCase().trim().replace(/\s+/g, "_") || "";
+      if (!firstChange) {
+        return detectedType;
+      }
+      const explicitType =
+        firstChange.type?.toLowerCase().trim().replace(/\s+/g, '_') || '';
 
-      if (explicitType === "add_column") {
-        logger.info({
-          event: "using_explicit_planner_type",
-          explicitType,
-        }, `Using planner's explicit type: add_column`);
-        return "add_column";
+      if (explicitType === 'add_column') {
+        logger.info(
+          {
+            event: 'using_explicit_planner_type',
+            explicitType,
+          },
+          `Using planner's explicit type: add_column`,
+        );
+        return 'add_column';
       }
 
-      if (explicitType === "drop_column") {
-        logger.info({
-          event: "using_explicit_planner_type",
-          explicitType,
-        }, `Using planner's explicit type: drop_column`);
-        return "drop_column";
+      if (explicitType === 'drop_column') {
+        logger.info(
+          {
+            event: 'using_explicit_planner_type',
+            explicitType,
+          },
+          `Using planner's explicit type: drop_column`,
+        );
+        return 'drop_column';
       }
 
-      if (explicitType === "create_table") {
-        logger.info({
-          event: "using_explicit_planner_type",
-          explicitType,
-        }, `Using planner's explicit type: create_table`);
-        return "create_table";
+      if (explicitType === 'create_table') {
+        logger.info(
+          {
+            event: 'using_explicit_planner_type',
+            explicitType,
+          },
+          `Using planner's explicit type: create_table`,
+        );
+        return 'create_table';
       }
     }
 
     // If we have existing schema fields, it's likely an ALTER operation
     if (context.schema && context.schema.length > 0) {
-      const detectedLower = detectedType.toLowerCase().trim().replace(/\s+/g, "_");
+      const detectedLower = detectedType
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '_');
 
       // If the plan explicitly says "add_column" or similar, trust it
-      if (detectedLower === "add_column" ||
-          detectedLower.includes("add") && detectedLower.includes("column")) {
-        return "add_column";
+      if (
+        detectedLower === 'add_column' ||
+        (detectedLower.includes('add') && detectedLower.includes('column'))
+      ) {
+        return 'add_column';
       }
 
       // If plan says "create_table" but we have existing schema, this is likely wrong
-      if (detectedLower === "create_table" && plan.affectedColumns.length > 0) {
-        logger.warn({
-          event: "conflicting_operation_type",
-          detected: detectedType,
-          existingSchemaFields: context.schema.length,
-          affectedColumns: plan.affectedColumns,
-        }, `Detected CREATE TABLE but existing schema has ${context.schema.length} fields - forcing ADD COLUMN`);
-        return "add_column";
+      if (detectedLower === 'create_table' && plan.affectedColumns.length > 0) {
+        logger.warn(
+          {
+            event: 'conflicting_operation_type',
+            detected: detectedType,
+            existingSchemaFields: context.schema.length,
+            affectedColumns: plan.affectedColumns,
+          },
+          `Detected CREATE TABLE but existing schema has ${context.schema.length} fields - forcing ADD COLUMN`,
+        );
+        return 'add_column';
       }
     }
 
     // If no existing schema, CREATE TABLE is appropriate
     if (!context.schema || context.schema.length === 0) {
-      return "create_table";
+      return 'create_table';
     }
 
     return detectedType;
@@ -418,73 +498,110 @@ export class PlatformAwareSQLGenerator {
    */
   private determineOperationType(plan: ExecutionPlan): string {
     if (!plan.requiredChanges || plan.requiredChanges.length === 0) {
-      logger.warn({
-        event: "no_required_changes",
-        plan,
-      }, `No required changes in plan, defaulting to create_table`);
-      return "create_table"; // Default to CREATE TABLE
+      logger.warn(
+        {
+          event: 'no_required_changes',
+          plan,
+        },
+        `No required changes in plan, defaulting to create_table`,
+      );
+      return 'create_table'; // Default to CREATE TABLE
     }
 
     const firstChange = plan.requiredChanges[0];
     if (!firstChange) {
-      logger.warn({
-        event: "first_change_undefined",
-        plan,
-      }, `First change is undefined, defaulting to create_table`);
-      return "create_table";
+      logger.warn(
+        {
+          event: 'first_change_undefined',
+          plan,
+        },
+        `First change is undefined, defaulting to create_table`,
+      );
+      return 'create_table';
     }
 
-    const changeType = firstChange.type?.toLowerCase().trim().replace(/\s+/g, "_") || "";
-    const changeDescription = firstChange.description?.toLowerCase() || "";
+    const changeType =
+      firstChange.type?.toLowerCase().trim().replace(/\s+/g, '_') || '';
+    const changeDescription = firstChange.description?.toLowerCase() || '';
 
-    logger.info({
-      event: "operation_type_detection",
-      changeType,
-      changeDescription,
-      fullChange: firstChange,
-    }, `Detecting operation type from change: ${changeType}`);
+    logger.info(
+      {
+        event: 'operation_type_detection',
+        changeType,
+        changeDescription,
+        fullChange: firstChange,
+      },
+      `Detecting operation type from change: ${changeType}`,
+    );
 
     // Check for add column operations - EXACT match first
-    if (changeType === "add_column") {
-      logger.info({ event: "operation_type_add_column_exact" }, `Detected ADD COLUMN operation (exact match)`);
-      return "add_column";
+    if (changeType === 'add_column') {
+      logger.info(
+        { event: 'operation_type_add_column_exact' },
+        `Detected ADD COLUMN operation (exact match)`,
+      );
+      return 'add_column';
     }
 
     // Check for add column operations - partial match
-    if (changeType.includes("add") && changeType.includes("column")) {
-      logger.info({ event: "operation_type_add_column_partial" }, `Detected ADD COLUMN operation (partial match)`);
-      return "add_column";
+    if (changeType.includes('add') && changeType.includes('column')) {
+      logger.info(
+        { event: 'operation_type_add_column_partial' },
+        `Detected ADD COLUMN operation (partial match)`,
+      );
+      return 'add_column';
     }
 
     // Check for add column operations - description match
-    if (changeDescription.includes("add") && changeDescription.includes("column")) {
-      logger.info({ event: "operation_type_add_column_description" }, `Detected ADD COLUMN operation (description match)`);
-      return "add_column";
+    if (
+      changeDescription.includes('add') &&
+      changeDescription.includes('column')
+    ) {
+      logger.info(
+        { event: 'operation_type_add_column_description' },
+        `Detected ADD COLUMN operation (description match)`,
+      );
+      return 'add_column';
     }
 
     // Check for drop column operations
-    if (changeType === "drop_column" ||
-        changeType.includes("drop") && changeType.includes("column") ||
-        changeDescription.includes("drop") && changeDescription.includes("column")) {
-      logger.info({ event: "operation_type_drop_column" }, `Detected DROP COLUMN operation`);
-      return "drop_column";
+    if (
+      changeType === 'drop_column' ||
+      (changeType.includes('drop') && changeType.includes('column')) ||
+      (changeDescription.includes('drop') &&
+        changeDescription.includes('column'))
+    ) {
+      logger.info(
+        { event: 'operation_type_drop_column' },
+        `Detected DROP COLUMN operation`,
+      );
+      return 'drop_column';
     }
 
     // Check for create table operations
-    if (changeType === "create_table" ||
-        changeType.includes("create") && changeType.includes("table") ||
-        changeDescription.includes("create") && changeDescription.includes("table")) {
-      logger.info({ event: "operation_type_create_table" }, `Detected CREATE TABLE operation`);
-      return "create_table";
+    if (
+      changeType === 'create_table' ||
+      (changeType.includes('create') && changeType.includes('table')) ||
+      (changeDescription.includes('create') &&
+        changeDescription.includes('table'))
+    ) {
+      logger.info(
+        { event: 'operation_type_create_table' },
+        `Detected CREATE TABLE operation`,
+      );
+      return 'create_table';
     }
 
     // Default to CREATE TABLE for unknown operations
-    logger.warn({
-      event: "unknown_operation_type",
-      changeType,
-      changeDescription,
-    }, `Unknown operation type, defaulting to create_table`);
-    return "create_table";
+    logger.warn(
+      {
+        event: 'unknown_operation_type',
+        changeType,
+        changeDescription,
+      },
+      `Unknown operation type, defaulting to create_table`,
+    );
+    return 'create_table';
   }
 
   /**
@@ -493,29 +610,43 @@ export class PlatformAwareSQLGenerator {
   private extractColumnNames(plan: ExecutionPlan): string[] {
     const columns = plan.affectedColumns || [];
 
-    logger.info({
-      event: "extract_column_names",
-      affectedColumns: plan.affectedColumns,
-      extractedColumns: columns,
-      requiredChanges: plan.requiredChanges,
-    }, `Extracted ${columns.length} column names from plan`);
+    logger.info(
+      {
+        event: 'extract_column_names',
+        affectedColumns: plan.affectedColumns,
+        extractedColumns: columns,
+        requiredChanges: plan.requiredChanges,
+      },
+      `Extracted ${columns.length} column names from plan`,
+    );
 
-    if (columns.length === 0 && plan.requiredChanges && plan.requiredChanges.length > 0) {
+    if (
+      columns.length === 0 &&
+      plan.requiredChanges &&
+      plan.requiredChanges.length > 0
+    ) {
       // Fallback: try to extract from required changes descriptions
       const fallbackColumns: string[] = [];
       for (const change of plan.requiredChanges) {
-        const match = change.description?.match(/(?:add|drop|rename)\s+(?:column\s+)?(\w+)/i);
-        if (match) {
-          fallbackColumns.push(match[1]);
+        if (change.description) {
+          const match = change.description.match(
+            /(?:add|drop|rename)\s+(?:column\s+)?(\w+)/i,
+          );
+          if (match && match[1]) {
+            fallbackColumns.push(match[1]);
+          }
         }
       }
 
       if (fallbackColumns.length > 0) {
-        logger.warn({
-          event: "column_names_fallback",
-          originalAffectedColumns: plan.affectedColumns,
-          fallbackColumns,
-        }, `No affectedColumns, extracted ${fallbackColumns.length} columns from requiredChanges descriptions`);
+        logger.warn(
+          {
+            event: 'column_names_fallback',
+            originalAffectedColumns: plan.affectedColumns,
+            fallbackColumns,
+          },
+          `No affectedColumns, extracted ${fallbackColumns.length} columns from requiredChanges descriptions`,
+        );
         return fallbackColumns;
       }
     }
@@ -530,74 +661,83 @@ export class PlatformAwareSQLGenerator {
   public generateAlterAddColumn(
     context: ContextBundle,
     plan: ExecutionPlan,
-    columnName: string
+    columnName: string,
   ): string {
-    let platform = plan.platform || context.dataset.platform || "unknown";
+    let platform = plan.platform || context.dataset.platform || 'unknown';
 
     // Resolve HDFS to Hive SQL
-    if (platform.toLowerCase() === "hdfs") {
-      platform = "hive";
+    if (platform.toLowerCase() === 'hdfs') {
+      platform = 'hive';
     }
 
     const tableName = context.dataset.name;
 
-    logger.info({
-      event: "alter_add_column_lookup",
-      tableName,
-      columnName,
-      platform,
-      availableFields: context.schema.map(f => f.fieldPath),
-    }, `Looking for column ${columnName} in schema`);
+    logger.info(
+      {
+        event: 'alter_add_column_lookup',
+        tableName,
+        columnName,
+        platform,
+        availableFields: context.schema.map((f) => f.fieldPath),
+      },
+      `Looking for column ${columnName} in schema`,
+    );
 
     // Find the column in the schema to get its type
     const field = context.schema.find((f) => f.fieldPath === columnName);
     if (!field) {
       logger.warn(
         {
-          event: "column_not_found_in_schema",
+          event: 'column_not_found_in_schema',
           tableName,
           columnName,
-          availableFields: context.schema.map(f => f.fieldPath),
+          availableFields: context.schema.map((f) => f.fieldPath),
         },
-        `Column ${columnName} not found in schema for ${tableName}. Using documented default datatype VARCHAR(255)`
+        `Column ${columnName} not found in schema for ${tableName}. Using documented default datatype VARCHAR(255)`,
       );
 
       // Create a synthetic field with documented default datatype for new columns
       const syntheticField = {
         fieldPath: columnName,
-        type: "VARCHAR(255)",
+        type: 'VARCHAR(255)',
         nullable: true,
         tags: [],
         description: `New column ${columnName} (datatype not specified in request, using documented default VARCHAR(255))`,
       };
 
-      logger.info({
-        event: "using_synthetic_field",
-        columnName,
-        defaultType: "VARCHAR(255)",
-        assumption: "Documented default for missing datatype",
-      }, `Using synthetic field for ${columnName} with documented default`);
+      logger.info(
+        {
+          event: 'using_synthetic_field',
+          columnName,
+          defaultType: 'VARCHAR(255)',
+          assumption: 'Documented default for missing datatype',
+        },
+        `Using synthetic field for ${columnName} with documented default`,
+      );
 
       return this.ddl.generateAlterAddColumn(
         tableName,
         syntheticField,
         platform as any,
-        plan.schemaName
+        plan.schemaName,
       );
     }
 
-    logger.info({
-      event: "column_found_in_schema",
-      columnName,
-      fieldType: field.type,
-      fieldNullable: field.nullable,
-    }, `Found column ${columnName} with type ${field.type}`);
+    logger.info(
+      {
+        event: 'column_found_in_schema',
+        columnName,
+        fieldType: field.type,
+        fieldNullable: field.nullable,
+      },
+      `Found column ${columnName} with type ${field.type}`,
+    );
 
     return this.ddl.generateAlterAddColumn(
       tableName,
       field,
       platform as any,
-      plan.schemaName
+      plan.schemaName,
     );
   }
 
@@ -607,16 +747,16 @@ export class PlatformAwareSQLGenerator {
   public generateAlterDropColumn(
     context: ContextBundle,
     plan: ExecutionPlan,
-    columnName: string
+    columnName: string,
   ): string {
-    const platform = plan.platform || context.dataset.platform || "unknown";
+    const platform = plan.platform || context.dataset.platform || 'unknown';
     const tableName = context.dataset.name;
 
     return this.ddl.generateAlterDropColumn(
       tableName,
       columnName,
       platform as any,
-      plan.schemaName
+      plan.schemaName,
     );
   }
 }

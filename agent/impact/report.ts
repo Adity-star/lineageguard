@@ -1,29 +1,24 @@
-import { ContextBundle } from "../context/type.js";
-import { ExecutionPlan } from "../planner/types.js";
-import { RiskAssessment } from "../risk/types.js";
+import { ContextBundle } from '../context/type.js';
+import { ExecutionPlan } from '../planner/types.js';
+import { RiskAssessment } from '../risk/types.js';
 
-import { ImpactScore } from "./scorer.js";
-import { Recommendation } from "./types.js";
-import {
-  ImpactReport,
-  ImpactedAsset,
-} from "./types.js";
+import { ImpactScore } from './scorer.js';
+import { Recommendation } from './types.js';
+import { ImpactReport, ImpactedAsset } from './types.js';
 
 export class ReportBuilder {
-
   build(
     context: ContextBundle,
     plan: any,
     risk: RiskAssessment,
     impact: ImpactScore,
-    recommendations: Recommendation[]
+    recommendations: Recommendation[],
   ): ImpactReport {
-
     const executionPlan = plan.plan || plan;
 
     // Log current plan data for debugging
     console.log({
-      event: "impact_report_building",
+      event: 'impact_report_building',
       riskScore: risk.score,
       impactScore: impact.score,
       scoresAligned: risk.score === impact.score,
@@ -35,83 +30,80 @@ export class ReportBuilder {
     });
 
     return {
-
-      summary: executionPlan.summary || executionPlan.intent || "Schema change request",
+      summary:
+        executionPlan.summary ||
+        executionPlan.intent ||
+        'Schema change request',
 
       score: impact.score,
 
       level: impact.level,
 
-      requiresApproval:
-        impact.requiresApproval,
+      requiresApproval: impact.requiresApproval,
 
-      affectedColumns:
-        executionPlan.affectedColumns || [],
+      affectedColumns: executionPlan.affectedColumns || [],
 
-      affectedAssets:
-        this.collectAssets(context),
+      affectedAssets: this.collectAssets(context),
 
       recommendations,
 
       triggeredRules: impact.triggeredRules,
 
-      generatedAt:
-        new Date().toISOString(),
+      generatedAt: new Date().toISOString(),
 
-      approvedAt: undefined, 
+      approvedAt: undefined,
 
       metadata: {
+        generatedBy: 'LineageGuard',
 
-        generatedBy:
-          "LineageGuard",
-
-        version: "1.0.0",
-
+        version: '1.0.0',
       },
-
     };
-
   }
 
-  private collectAssets(
-    context: ContextBundle
-  ): ImpactedAsset[] {
-
+  private collectAssets(context: ContextBundle): ImpactedAsset[] {
     const assets: ImpactedAsset[] = [];
 
     if (context.dataset?.urn && context.dataset?.name) {
       assets.push({
         urn: context.dataset.urn,
         name: context.dataset.name,
-        type: "DATASET",
+        type: 'DATASET',
       });
     }
 
     const downstream = context.lineage?.downstream || [];
-    
-    console.log({
-      event: "collecting_downstream_assets",
-      downstreamCount: downstream.length,
-      downstreamSample: downstream.slice(0, 3).map(d => ({ urn: d.urn, name: d.name })),
-    }, "Collecting downstream assets from context");
+
+    console.log(
+      {
+        event: 'collecting_downstream_assets',
+        downstreamCount: downstream.length,
+        downstreamSample: downstream
+          .slice(0, 3)
+          .map((d) => ({ urn: d.urn, name: d.name })),
+      },
+      'Collecting downstream assets from context',
+    );
 
     for (const dataset of downstream) {
       if (dataset?.urn && dataset?.name) {
         assets.push({
           urn: dataset.urn,
           name: dataset.name,
-          type: "DATASET",
+          type: 'DATASET',
         });
       }
     }
 
-    console.log({
-      event: "collected_assets",
-      totalAssets: assets.length,
-      assets: assets.map(a => ({ name: a.name, type: a.type })),
-    }, "Collected impacted assets");
+    console.log(
+      {
+        event: 'collected_assets',
+        totalAssets: assets.length,
+        assets: assets.map((a) => ({ name: a.name, type: a.type })),
+      },
+      'Collected impacted assets',
+    );
 
     return assets;
   }
-
 }

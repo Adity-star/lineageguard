@@ -1,35 +1,21 @@
 export enum WorkflowEvent {
+  STARTED = 'workflow.started',
 
-  STARTED = "workflow.started",
+  CONTEXT_COLLECTED = 'workflow.context',
 
-  CONTEXT_COLLECTED =
-    "workflow.context",
+  PLAN_CREATED = 'workflow.plan',
 
-  PLAN_CREATED =
-    "workflow.plan",
+  RISK_CALCULATED = 'workflow.risk',
 
-  RISK_CALCULATED =
-    "workflow.risk",
+  ARTIFACTS_GENERATED = 'workflow.generator',
 
-  ARTIFACTS_GENERATED =
-    "workflow.generator",
+  IMPACT_WRITTEN = 'workflow.impact',
 
-  IMPACT_WRITTEN =
-    "workflow.impact",
+  COMPLETED = 'workflow.completed',
 
-  COMPLETED =
-    "workflow.completed",
-
-  FAILED =
-    "workflow.failed",
-
+  FAILED = 'workflow.failed',
 }
 
 export interface WorkflowListener {
-
-  (
-    event: WorkflowEvent,
-    payload?: unknown
-  ): Promise<void> | void;
-
+  (event: WorkflowEvent, payload?: unknown): Promise<void> | void;
 }

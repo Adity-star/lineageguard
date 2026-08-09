@@ -46,7 +46,11 @@ export type IdempotencyMetricKey =
  * Implement this with your metrics library of choice and inject into IdempotencyService.
  */
 export interface MetricsSink {
-  increment(metric: string, value?: number, tags?: Record<string, string>): void;
+  increment(
+    metric: string,
+    value?: number,
+    tags?: Record<string, string>,
+  ): void;
   histogram(metric: string, value: number, tags?: Record<string, string>): void;
 }
 
@@ -54,6 +58,14 @@ export interface MetricsSink {
  * No-op sink — used when no metrics backend is configured.
  */
 export class NoopMetricsSink implements MetricsSink {
-  increment(_metric: string, _value?: number, _tags?: Record<string, string>): void {}
-  histogram(_metric: string, _value: number, _tags?: Record<string, string>): void {}
+  increment(
+    _metric: string,
+    _value?: number,
+    _tags?: Record<string, string>,
+  ): void {}
+  histogram(
+    _metric: string,
+    _value: number,
+    _tags?: Record<string, string>,
+  ): void {}
 }

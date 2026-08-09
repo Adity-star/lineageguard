@@ -1,34 +1,24 @@
-import { ContextBundle } from "../context/type.js";
-import { ExecutionPlan } from "../planner/types.js";
+import { ContextBundle } from '../context/type.js';
+import { ExecutionPlan } from '../planner/types.js';
 
-import { RiskCalculator } from "./calculator.js";
-import { RecommendationEngine } from "./recommendations.js";
-import { RiskScorer } from "./scorer.js";
-import { RiskAssessment } from "./types.js";
-import { RiskValidator } from "./validator.js";
+import { RiskCalculator } from './calculator.js';
+import { RecommendationEngine } from './recommendations.js';
+import { RiskScorer } from './scorer.js';
+import { RiskAssessment } from './types.js';
+import { RiskValidator } from './validator.js';
 
 export class RiskEngine {
   constructor(
     private readonly calculator = new RiskCalculator(),
     private readonly scorer = new RiskScorer(),
-    private readonly recommendations =
-      new RecommendationEngine(),
-    private readonly validator =
-      new RiskValidator()
+    private readonly recommendations = new RecommendationEngine(),
+    private readonly validator = new RiskValidator(),
   ) {}
 
-  assess(
-    plan: ExecutionPlan,
-    context: ContextBundle
-  ): RiskAssessment {
-    const metrics =
-      this.calculator.calculate(
-        plan,
-        context
-      );
+  assess(plan: ExecutionPlan, context: ContextBundle): RiskAssessment {
+    const metrics = this.calculator.calculate(plan, context);
 
-    const scored =
-      this.scorer.score(metrics);
+    const scored = this.scorer.score(metrics);
 
     const findings = [];
 
@@ -36,29 +26,26 @@ export class RiskEngine {
       findings.push({
         severity:
           metrics.downstreamDatasets > 10
-            ? ("HIGH" as const)
-            : ("MEDIUM" as const),
-        category: "LINEAGE" as const,
-        message:
-          `${metrics.downstreamDatasets} downstream dataset(s) may be affected.`,
+            ? ('HIGH' as const)
+            : ('MEDIUM' as const),
+        category: 'LINEAGE' as const,
+        message: `${metrics.downstreamDatasets} downstream dataset(s) may be affected.`,
       });
     }
 
     if (!metrics.hasDocumentation) {
       findings.push({
-        severity: "LOW" as const,
-        category: "DOCUMENTATION" as const,
-        message:
-          "Dataset has no documentation.",
+        severity: 'LOW' as const,
+        category: 'DOCUMENTATION' as const,
+        message: 'Dataset has no documentation.',
       });
     }
 
     if (!metrics.hasOwner) {
       findings.push({
-        severity: "MEDIUM" as const,
-        category: "GOVERNANCE" as const,
-        message:
-          "Dataset has no assigned owner.",
+        severity: 'MEDIUM' as const,
+        category: 'GOVERNANCE' as const,
+        message: 'Dataset has no assigned owner.',
       });
     }
 
@@ -68,8 +55,7 @@ export class RiskEngine {
       score: scored.score,
 
       affectedAssets: {
-        datasets:
-          metrics.downstreamDatasets,
+        datasets: metrics.downstreamDatasets,
 
         dashboards: 0,
 
@@ -78,20 +64,13 @@ export class RiskEngine {
 
       findings,
 
-      recommendations:
-        this.recommendations
-          .generate(
-            metrics,
-            scored.overallRisk
-          )
-          .map(r => r.title),
+      recommendations: this.recommendations
+        .generate(metrics, scored.overallRisk)
+        .map((r) => r.title),
 
-      requiresApproval:
-        metrics.requiresApproval,
+      requiresApproval: metrics.requiresApproval,
     };
 
-    return this.validator.validate(
-      assessment
-    );
+    return this.validator.validate(assessment);
   }
 }

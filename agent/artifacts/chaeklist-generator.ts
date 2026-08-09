@@ -1,58 +1,55 @@
-import { ExecutionPlan } from "../planner/types.js";
-import { RiskAssessment } from "../risk/types.js";
+import { ExecutionPlan } from '../planner/types.js';
+import { RiskAssessment } from '../risk/types.js';
 
-import { ChecklistItem } from "./types";
+import { ChecklistItem } from './types.js';
 
 export class ChecklistGenerator {
-  generate(
-    plan: ExecutionPlan,
-    risk: RiskAssessment
-  ): ChecklistItem[] {
+  generate(plan: ExecutionPlan, risk: RiskAssessment): ChecklistItem[] {
     const checklist: ChecklistItem[] = [];
 
     checklist.push({
-      title: "Review generated migration",
+      title: 'Review generated migration',
       completed: false,
     });
 
     checklist.push({
-      title: "Validate impacted datasets",
+      title: 'Validate impacted datasets',
       completed: false,
     });
 
     if (risk.requiresApproval) {
       checklist.push({
-        title: "Obtain required approval",
+        title: 'Obtain required approval',
         completed: false,
       });
     }
 
     if (risk.score >= 50) {
       checklist.push({
-        title: "Test in staging environment",
+        title: 'Test in staging environment',
         completed: false,
       });
 
       checklist.push({
-        title: "Verify downstream consumers",
+        title: 'Verify downstream consumers',
         completed: false,
       });
     }
 
     if (plan.missingInformation.length > 0) {
       checklist.push({
-        title: "Resolve missing information",
+        title: 'Resolve missing information',
         completed: false,
       });
     }
 
     checklist.push({
-      title: "Prepare rollback plan",
+      title: 'Prepare rollback plan',
       completed: false,
     });
 
     checklist.push({
-      title: "Monitor deployment",
+      title: 'Monitor deployment',
       completed: false,
     });
 

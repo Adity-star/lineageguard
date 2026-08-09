@@ -13,7 +13,7 @@ export class RetryError extends Error {
   constructor(
     message: string,
     public readonly attempts: number,
-    public readonly lastError: any
+    public readonly lastError: any,
   ) {
     super(message, { cause: lastError });
     this.name = 'RetryError';
@@ -22,7 +22,7 @@ export class RetryError extends Error {
 
 export async function withRetry<T>(
   fn: () => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): Promise<T> {
   const {
     maxAttempts = 3,
@@ -46,7 +46,7 @@ export async function withRetry<T>(
         throw new RetryError(
           `Operation failed after ${attempt} attempt(s)`,
           attempt,
-          error
+          error,
         );
       }
 
@@ -68,7 +68,7 @@ export async function withRetry<T>(
   throw new RetryError(
     `Operation failed after ${maxAttempts} attempt(s)`,
     maxAttempts,
-    lastError
+    lastError,
   );
 }
 

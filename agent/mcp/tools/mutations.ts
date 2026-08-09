@@ -1,9 +1,9 @@
-import { z } from "zod";
-import { MCPClient } from "../client.js";
-import { MutationValidator } from "../mutation-validator.js";
-import { MutationToolRegistry } from "../mutation-registry.js";
-import { MutationLogger } from "../mutation-logger.js";
-import { logger } from "../../config/logger.js";
+import { z } from 'zod';
+import { MCPClient } from '../client.js';
+import { MutationValidator } from '../mutation-validator.js';
+import { MutationToolRegistry } from '../mutation-registry.js';
+import { MutationLogger } from '../mutation-logger.js';
+import { logger } from '../../config/logger.js';
 
 /* ------------------------------------------------------------------ */
 /* Input / output schemas                                               */
@@ -27,7 +27,9 @@ const UpdateDescriptionResponseSchema = z.object({
   message: z.string(),
 });
 
-export type UpdateDescriptionResponse = z.infer<typeof UpdateDescriptionResponseSchema>;
+export type UpdateDescriptionResponse = z.infer<
+  typeof UpdateDescriptionResponseSchema
+>;
 
 /* ------------------------------------------------------------------ */
 /* MutationTool                                                         */
@@ -38,7 +40,7 @@ export class MutationTool {
 
   constructor(
     private readonly client: MCPClient,
-    private readonly registry: MutationToolRegistry
+    private readonly registry: MutationToolRegistry,
   ) {
     this.validator = new MutationValidator(registry);
   }
@@ -49,7 +51,7 @@ export class MutationTool {
 
   /**
    * Add one or more tags to a dataset or schema field.
-   * 
+   *
    * @param entityUrns Dataset URN(s) - will be converted to array
    * @param tagUrns Tag URN(s) - will be converted to array
    * @param fieldPath Optional – when set, tags are applied to the column
@@ -57,9 +59,9 @@ export class MutationTool {
   async addTags(
     entityUrns: string | string[],
     tagUrns: string | string[],
-    fieldPath?: string
+    fieldPath?: string,
   ): Promise<MutationResult> {
-    const toolName = "add_tags";
+    const toolName = 'add_tags';
     const startTime = performance.now();
 
     try {
@@ -67,8 +69,14 @@ export class MutationTool {
       let result = this.validator.buildAddTagsPayload(entityUrns, tagUrns);
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       // Add fieldPath if provided
@@ -79,8 +87,12 @@ export class MutationTool {
       const payload = result.payload!;
 
       // Log mutation start with detailed context
-      const entityCount = Array.isArray(payload.entity_urns) ? payload.entity_urns.length : 0;
-      const tagCount = Array.isArray(payload.tag_urns) ? payload.tag_urns.length : 0;
+      const entityCount = Array.isArray(payload.entity_urns)
+        ? payload.entity_urns.length
+        : 0;
+      const tagCount = Array.isArray(payload.tag_urns)
+        ? payload.tag_urns.length
+        : 0;
       MutationLogger.logMutationStart(toolName, payload, {
         entityCount,
         totalItems: tagCount,
@@ -89,19 +101,26 @@ export class MutationTool {
       const response = await this.client.executeTool(
         toolName,
         payload,
-        MutationResultSchema
+        MutationResultSchema,
       );
 
       // Log success with response details
       const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
-        entityCount,
-        totalItems: tagCount,
-      });
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          entityCount,
+          totalItems: tagCount,
+        },
+      );
 
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
@@ -114,9 +133,9 @@ export class MutationTool {
   async removeTags(
     entityUrns: string | string[],
     tagUrns: string | string[],
-    fieldPath?: string
+    fieldPath?: string,
   ): Promise<MutationResult> {
-    const toolName = "remove_tags";
+    const toolName = 'remove_tags';
     const startTime = performance.now();
 
     try {
@@ -124,8 +143,14 @@ export class MutationTool {
       let result = this.validator.buildRemoveTagsPayload(entityUrns, tagUrns);
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       if (fieldPath && result.payload) {
@@ -134,25 +159,39 @@ export class MutationTool {
 
       const payload = result.payload!;
 
-      const entityCount = Array.isArray(payload.entity_urns) ? payload.entity_urns.length : 0;
-      const tagCount = Array.isArray(payload.tag_urns) ? payload.tag_urns.length : 0;
-      MutationLogger.logMutationStart(toolName, payload, { entityCount, totalItems: tagCount });
-
-      const response = await this.client.executeTool(
-        toolName,
-        payload,
-        MutationResultSchema
-      );
-
-      const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
+      const entityCount = Array.isArray(payload.entity_urns)
+        ? payload.entity_urns.length
+        : 0;
+      const tagCount = Array.isArray(payload.tag_urns)
+        ? payload.tag_urns.length
+        : 0;
+      MutationLogger.logMutationStart(toolName, payload, {
         entityCount,
         totalItems: tagCount,
       });
 
+      const response = await this.client.executeTool(
+        toolName,
+        payload,
+        MutationResultSchema,
+      );
+
+      const durationMs = performance.now() - startTime;
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          entityCount,
+          totalItems: tagCount,
+        },
+      );
+
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
@@ -170,17 +209,23 @@ export class MutationTool {
   async addTerms(
     entityUrns: string | string[],
     termUrns: string | string[],
-    fieldPath?: string
+    fieldPath?: string,
   ): Promise<MutationResult> {
-    const toolName = "add_terms";
+    const toolName = 'add_terms';
     const startTime = performance.now();
 
     try {
       let result = this.validator.buildAddTermsPayload(entityUrns, termUrns);
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       if (fieldPath && result.payload) {
@@ -189,25 +234,39 @@ export class MutationTool {
 
       const payload = result.payload!;
 
-      const entityCount = Array.isArray(payload.entity_urns) ? payload.entity_urns.length : 0;
-      const termCount = Array.isArray(payload.term_urns) ? payload.term_urns.length : 0;
-      MutationLogger.logMutationStart(toolName, payload, { entityCount, totalItems: termCount });
-
-      const response = await this.client.executeTool(
-        toolName,
-        payload,
-        MutationResultSchema
-      );
-
-      const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
+      const entityCount = Array.isArray(payload.entity_urns)
+        ? payload.entity_urns.length
+        : 0;
+      const termCount = Array.isArray(payload.term_urns)
+        ? payload.term_urns.length
+        : 0;
+      MutationLogger.logMutationStart(toolName, payload, {
         entityCount,
         totalItems: termCount,
       });
 
+      const response = await this.client.executeTool(
+        toolName,
+        payload,
+        MutationResultSchema,
+      );
+
+      const durationMs = performance.now() - startTime;
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          entityCount,
+          totalItems: termCount,
+        },
+      );
+
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
@@ -220,17 +279,23 @@ export class MutationTool {
   async removeTerms(
     entityUrns: string | string[],
     termUrns: string | string[],
-    fieldPath?: string
+    fieldPath?: string,
   ): Promise<MutationResult> {
-    const toolName = "remove_terms";
+    const toolName = 'remove_terms';
     const startTime = performance.now();
 
     try {
       let result = this.validator.buildRemoveTermsPayload(entityUrns, termUrns);
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       if (fieldPath && result.payload) {
@@ -239,25 +304,39 @@ export class MutationTool {
 
       const payload = result.payload!;
 
-      const entityCount = Array.isArray(payload.entity_urns) ? payload.entity_urns.length : 0;
-      const termCount = Array.isArray(payload.term_urns) ? payload.term_urns.length : 0;
-      MutationLogger.logMutationStart(toolName, payload, { entityCount, totalItems: termCount });
-
-      const response = await this.client.executeTool(
-        toolName,
-        payload,
-        MutationResultSchema
-      );
-
-      const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
+      const entityCount = Array.isArray(payload.entity_urns)
+        ? payload.entity_urns.length
+        : 0;
+      const termCount = Array.isArray(payload.term_urns)
+        ? payload.term_urns.length
+        : 0;
+      MutationLogger.logMutationStart(toolName, payload, {
         entityCount,
         totalItems: termCount,
       });
 
+      const response = await this.client.executeTool(
+        toolName,
+        payload,
+        MutationResultSchema,
+      );
+
+      const durationMs = performance.now() - startTime;
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          entityCount,
+          totalItems: termCount,
+        },
+      );
+
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
@@ -274,40 +353,60 @@ export class MutationTool {
    */
   async addOwners(
     entityUrns: string | string[],
-    owners: Array<{ owner_urn: string; ownership_type?: string }>
+    owners: Array<{ owner_urn: string; ownership_type?: string }>,
   ): Promise<MutationResult> {
-    const toolName = "add_owners";
+    const toolName = 'add_owners';
     const startTime = performance.now();
 
     try {
       const result = this.validator.buildAddOwnersPayload(entityUrns, owners);
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       const payload = result.payload!;
 
-      const entityCount = Array.isArray(payload.entity_urns) ? payload.entity_urns.length : 0;
-      const ownerCount = Array.isArray(payload.owners) ? payload.owners.length : 0;
-      MutationLogger.logMutationStart(toolName, payload, { entityCount, totalItems: ownerCount });
-
-      const response = await this.client.executeTool(
-        toolName,
-        payload,
-        MutationResultSchema
-      );
-
-      const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
+      const entityCount = Array.isArray(payload.entity_urns)
+        ? payload.entity_urns.length
+        : 0;
+      const ownerCount = Array.isArray(payload.owners)
+        ? payload.owners.length
+        : 0;
+      MutationLogger.logMutationStart(toolName, payload, {
         entityCount,
         totalItems: ownerCount,
       });
 
+      const response = await this.client.executeTool(
+        toolName,
+        payload,
+        MutationResultSchema,
+      );
+
+      const durationMs = performance.now() - startTime;
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          entityCount,
+          totalItems: ownerCount,
+        },
+      );
+
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
@@ -319,40 +418,63 @@ export class MutationTool {
    */
   async removeOwners(
     entityUrns: string | string[],
-    ownerUrns: string | string[]
+    ownerUrns: string | string[],
   ): Promise<MutationResult> {
-    const toolName = "remove_owners";
+    const toolName = 'remove_owners';
     const startTime = performance.now();
 
     try {
-      const result = this.validator.buildRemoveOwnersPayload(entityUrns, ownerUrns);
+      const result = this.validator.buildRemoveOwnersPayload(
+        entityUrns,
+        ownerUrns,
+      );
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       const payload = result.payload!;
 
-      const entityCount = Array.isArray(payload.entity_urns) ? payload.entity_urns.length : 0;
-      const ownerCount = Array.isArray(payload.owner_urns) ? payload.owner_urns.length : 0;
-      MutationLogger.logMutationStart(toolName, payload, { entityCount, totalItems: ownerCount });
-
-      const response = await this.client.executeTool(
-        toolName,
-        payload,
-        MutationResultSchema
-      );
-
-      const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
+      const entityCount = Array.isArray(payload.entity_urns)
+        ? payload.entity_urns.length
+        : 0;
+      const ownerCount = Array.isArray(payload.owner_urns)
+        ? payload.owner_urns.length
+        : 0;
+      MutationLogger.logMutationStart(toolName, payload, {
         entityCount,
         totalItems: ownerCount,
       });
 
+      const response = await this.client.executeTool(
+        toolName,
+        payload,
+        MutationResultSchema,
+      );
+
+      const durationMs = performance.now() - startTime;
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          entityCount,
+          totalItems: ownerCount,
+        },
+      );
+
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
@@ -369,38 +491,56 @@ export class MutationTool {
    */
   async setDomain(
     entityUrns: string | string[],
-    domainUrn: string
+    domainUrn: string,
   ): Promise<MutationResult> {
-    const toolName = "set_domains";
+    const toolName = 'set_domains';
     const startTime = performance.now();
 
     try {
-      const result = this.validator.buildSetDomainPayload(entityUrns, domainUrn);
+      const result = this.validator.buildSetDomainPayload(
+        entityUrns,
+        domainUrn,
+      );
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       const payload = result.payload!;
 
-      const entityCount = Array.isArray(payload.entity_urns) ? payload.entity_urns.length : 0;
+      const entityCount = Array.isArray(payload.entity_urns)
+        ? payload.entity_urns.length
+        : 0;
       MutationLogger.logMutationStart(toolName, payload, { entityCount });
 
       const response = await this.client.executeTool(
         toolName,
         payload,
-        MutationResultSchema
+        MutationResultSchema,
       );
 
       const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
-        entityCount,
-      });
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          entityCount,
+        },
+      );
 
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
@@ -410,39 +550,52 @@ export class MutationTool {
   /**
    * Remove domain membership from a dataset.
    */
-  async removeDomain(
-    entityUrns: string | string[]
-  ): Promise<MutationResult> {
-    const toolName = "remove_domains";
+  async removeDomain(entityUrns: string | string[]): Promise<MutationResult> {
+    const toolName = 'remove_domains';
     const startTime = performance.now();
 
     try {
       const result = this.validator.buildRemoveDomainPayload(entityUrns);
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       const payload = result.payload!;
 
-      const entityCount = Array.isArray(payload.entity_urns) ? payload.entity_urns.length : 0;
+      const entityCount = Array.isArray(payload.entity_urns)
+        ? payload.entity_urns.length
+        : 0;
       MutationLogger.logMutationStart(toolName, payload, { entityCount });
 
       const response = await this.client.executeTool(
         toolName,
         payload,
-        MutationResultSchema
+        MutationResultSchema,
       );
 
       const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
-        entityCount,
-      });
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          entityCount,
+        },
+      );
 
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
@@ -459,21 +612,27 @@ export class MutationTool {
    */
   async updateDatasetDescription(
     urn: string,
-    description: string
+    description: string,
   ): Promise<UpdateDescriptionResponse> {
-    const toolName = "update_description";
+    const toolName = 'update_description';
     const startTime = performance.now();
 
     try {
       const result = this.validator.buildUpdateDescriptionPayload(
         urn,
         description,
-        undefined // No fieldPath for dataset-level description
+        undefined, // No fieldPath for dataset-level description
       );
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       const payload = result.payload!;
@@ -485,17 +644,24 @@ export class MutationTool {
       const response = await this.client.executeTool(
         toolName,
         payload,
-        UpdateDescriptionResponseSchema
+        UpdateDescriptionResponseSchema,
       );
 
       const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
-        descriptionLength: description.length,
-      });
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          descriptionLength: description.length,
+        },
+      );
 
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
@@ -509,21 +675,27 @@ export class MutationTool {
   async updateFieldDescription(
     entityUrn: string,
     fieldPath: string,
-    description: string
+    description: string,
   ): Promise<UpdateDescriptionResponse> {
-    const toolName = "update_description";
+    const toolName = 'update_description';
     const startTime = performance.now();
 
     try {
       const result = this.validator.buildUpdateDescriptionPayload(
         entityUrn,
         description,
-        fieldPath
+        fieldPath,
       );
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       const payload = result.payload!;
@@ -536,18 +708,25 @@ export class MutationTool {
       const response = await this.client.executeTool(
         toolName,
         payload,
-        UpdateDescriptionResponseSchema
+        UpdateDescriptionResponseSchema,
       );
 
       const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
-        descriptionLength: description.length,
-        fieldPath,
-      });
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          descriptionLength: description.length,
+          fieldPath,
+        },
+      );
 
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
@@ -561,7 +740,7 @@ export class MutationTool {
   async updateDescription(
     entityUrn: string,
     description: string,
-    fieldPath?: string
+    fieldPath?: string,
   ): Promise<UpdateDescriptionResponse> {
     if (fieldPath) {
       return this.updateFieldDescription(entityUrn, fieldPath, description);
@@ -580,43 +759,61 @@ export class MutationTool {
    */
   async addStructuredProperties(
     entityUrns: string | string[],
-    propertyValues: Record<string, unknown[]>
+    propertyValues: Record<string, unknown[]>,
   ): Promise<MutationResult> {
-    const toolName = "add_structured_properties";
+    const toolName = 'add_structured_properties';
     const startTime = performance.now();
 
     try {
       const result = this.validator.buildAddStructuredPropertiesPayload(
         entityUrns,
-        propertyValues
+        propertyValues,
       );
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       const payload = result.payload!;
 
-      const entityCount = Array.isArray(payload.entity_urns) ? payload.entity_urns.length : 0;
+      const entityCount = Array.isArray(payload.entity_urns)
+        ? payload.entity_urns.length
+        : 0;
       const propertyCount = Object.keys(propertyValues).length;
-      MutationLogger.logMutationStart(toolName, payload, { entityCount, propertyCount });
-
-      const response = await this.client.executeTool(
-        toolName,
-        payload,
-        MutationResultSchema
-      );
-
-      const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
+      MutationLogger.logMutationStart(toolName, payload, {
         entityCount,
         propertyCount,
       });
 
+      const response = await this.client.executeTool(
+        toolName,
+        payload,
+        MutationResultSchema,
+      );
+
+      const durationMs = performance.now() - startTime;
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          entityCount,
+          propertyCount,
+        },
+      );
+
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
@@ -628,43 +825,63 @@ export class MutationTool {
    */
   async removeStructuredProperties(
     entityUrns: string | string[],
-    propertyUrns: string | string[]
+    propertyUrns: string | string[],
   ): Promise<MutationResult> {
-    const toolName = "remove_structured_properties";
+    const toolName = 'remove_structured_properties';
     const startTime = performance.now();
 
     try {
       const result = this.validator.buildRemoveStructuredPropertiesPayload(
         entityUrns,
-        propertyUrns
+        propertyUrns,
       );
 
       if (!result.valid) {
-        MutationLogger.logValidationFailure(toolName, result.errors, result.warnings);
-        throw new Error(`Invalid payload for ${toolName}: ${result.errors.join("; ")}`);
+        MutationLogger.logValidationFailure(
+          toolName,
+          result.errors,
+          result.warnings,
+        );
+        throw new Error(
+          `Invalid payload for ${toolName}: ${result.errors.join('; ')}`,
+        );
       }
 
       const payload = result.payload!;
 
-      const entityCount = Array.isArray(payload.entity_urns) ? payload.entity_urns.length : 0;
-      const propertyCount = Array.isArray(payload.property_urns) ? payload.property_urns.length : 0;
-      MutationLogger.logMutationStart(toolName, payload, { entityCount, propertyCount });
-
-      const response = await this.client.executeTool(
-        toolName,
-        payload,
-        MutationResultSchema
-      );
-
-      const durationMs = performance.now() - startTime;
-      MutationLogger.logMutationSuccess(toolName, payload, response.data, durationMs, {
+      const entityCount = Array.isArray(payload.entity_urns)
+        ? payload.entity_urns.length
+        : 0;
+      const propertyCount = Array.isArray(payload.property_urns)
+        ? payload.property_urns.length
+        : 0;
+      MutationLogger.logMutationStart(toolName, payload, {
         entityCount,
         propertyCount,
       });
 
+      const response = await this.client.executeTool(
+        toolName,
+        payload,
+        MutationResultSchema,
+      );
+
+      const durationMs = performance.now() - startTime;
+      MutationLogger.logMutationSuccess(
+        toolName,
+        payload,
+        response.data,
+        durationMs,
+        {
+          entityCount,
+          propertyCount,
+        },
+      );
+
       return response.data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const durationMs = performance.now() - startTime;
       MutationLogger.logMutationFailure(toolName, {}, errorMessage, durationMs);
       throw error;
