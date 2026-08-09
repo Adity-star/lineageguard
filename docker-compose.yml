@@ -1,58 +1,139 @@
 services:
-  # Backend Agent API
-  agent:
-    build:
-      context: ./agent
-      dockerfile: Dockerfile
-    container_name: lineageguard-agent
-    ports:
-      - "3001:3001"
+  # ====================
+  # DataHub Services
+  # ====================
+  
+  mysql:
+    image: mysql:8.0
+    container_name: datahub-mysql
+    hostname: mysql
     environment:
-      - NODE_ENV=production
-      - LOG_LEVEL=info
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - DATAHUB_GMS_URL=${DATAHUB_GMS_URL:-http://datahub:8080}
-      - DATAHUB_GMS_TOKEN=${DATAHUB_GMS_TOKEN:-}
-      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
-      - GITHUB_OWNER=${GITHUB_OWNER:-}
-      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-}
-      - GITHUB_BASE_BRANCH=${GITHUB_BASE_BRANCH:-main}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://lineageguard:lineageguard@postgres:5432/lineageguard}
+      - MYSQL_ROOT_PASSWORD=datahub
+      - MYSQL_DATABASE=datahub
     networks:
       - lineageguard-network
-    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pdatahub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.1
+    container_name: datahub-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=false
+    networks:
+      - lineageguard-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 30s
 
-  # Frontend Web App
-  web:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
-    container_name: lineageguard-web
-    ports:
-      - "3000:3000"
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: datahub-zookeeper
     environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
     networks:
       - lineageguard-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: datahub-kafka
     depends_on:
-      agent:
+      zookeeper:
         condition: service_healthy
-    restart: unless-stopped
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+    networks:
+      - lineageguard-network
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  datahub-gms:
+    image: acryldata/datahub-gms:0.13.0
+    container_name: datahub-gms
+    depends_on:
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      - DATAHUB_SERVER_MODE=quickstart
+      - DATAHUB_GRAPH_SERVICE_ENABLED=true
+      - DATAHUB_GRAPH_SERVICE_IMPL=com.linkedin.datahub.graph.service.DatasetGraphService
+      - DATAHUB_GRAPH_SERVICE_MODULES=io.acryl.datahub.graph.GraphServiceModule
+      - DATAHUB_MAE_JAVA_OPTS=-Xms1g -Xmx1g
+      - ELSATICSEARCH_HOST=elasticsearch
+      - ELSATICSEARCH_PORT=9200
+      - KAFKA_BOOTSTRAP_SERVER=kafka:9092
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=datahub
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=datahub
+      - DATAHUB_IS_INT=true
+      - DATAHUB_IS_ALSO_DATAHUB_FRONTEND=true
+      - DATAHUB_SKIP_TELEMETRY=true
+    networks:
+      - lineageguard-network
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 120s
 
-  # PostgreSQL Database (optional - for production use)
+  datahub-frontend:
+    image: acryldata/datahub-frontend-react:0.13.0
+    container_name: datahub-frontend
+    depends_on:
+      datahub-gms:
+        condition: service_healthy
+    environment:
+      - DATAHUB_GMS_URL=http://datahub-gms:8080
+    networks:
+      - lineageguard-network
+    ports:
+      - "9002:9002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9002"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ====================
+  # LineageGuard Services
+  # ====================
+
+  # PostgreSQL for LineageGuard
   postgres:
     image: postgres:16-alpine
     container_name: lineageguard-postgres
@@ -66,12 +147,81 @@ services:
       - lineageguard-network
     ports:
       - "5432:5432"
-    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U lineageguard"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
+
+  # LineageGuard Agent
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    container_name: lineageguard-agent
+    depends_on:
+      postgres:
+        condition: service_healthy
+      datahub-gms:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      # Grok LLM Configuration
+      - GROK_API_KEY=${GROK_API_KEY}
+      - GROK_MODEL=${GROK_MODEL:-llama-3.3-70b-versatile}
+      - GROK_BASE_URL=${GROK_BASE_URL:-https://api.groq.com/openai/v1}
+      # DataHub Configuration
+      - DATAHUB_GMS_URL=http://datahub-gms:8080
+      - DATAHUB_GMS_TOKEN=${DATAHUB_GMS_TOKEN}
+      - TOOLS_IS_MUTATION_ENABLED=true
+      # GitHub Configuration
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_OWNER=${GITHUB_OWNER}
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+      - GITHUB_BASE_BRANCH=${GITHUB_BASE_BRANCH:-main}
+      # Database Configuration
+      - DATABASE_URL=postgresql://lineageguard:lineageguard@postgres:5432/lineageguard
+      # Idempotency Configuration
+      - IDEMPOTENCY_CLEANUP_INTERVAL_MS=300000
+      - IDEMPOTENCY_RETENTION_BUFFER_HOURS=1
+      - IDEMPOTENCY_PENDING_TIMEOUT_MINUTES=10
+    networks:
+      - lineageguard-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Frontend Web App
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: lineageguard-web
+    depends_on:
+      agent:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    networks:
+      - lineageguard-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   lineageguard-network:

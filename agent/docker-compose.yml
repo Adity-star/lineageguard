@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: lineageguard
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NODE_ENV=production
       - LOG_LEVEL=info
@@ -27,7 +27,15 @@ services:
       - lineageguard-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3000/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -37,7 +45,7 @@ services:
     image: acryldata/datahub-gms:latest
     container_name: datahub-gms
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
       - DATAHUB_GMS_URL=http://localhost:8080
       - DATAHUB_SERVER_NAME=datahub
@@ -76,19 +84,19 @@ services:
     container_name: broker
     hostname: broker
     ports:
-      - "9092:9092"
-      - "9101:9101"
+      - '9092:9092'
+      - '9101:9101'
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://broker:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
       KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
-      KAFKA_CONFLUENT_METRICS_REPORTER_TOPIC_ENABLE: "false"
-      KAFKA_CONFLUENT_METRICS_ENABLE: "false"
+      KAFKA_CONFLUENT_METRICS_REPORTER_TOPIC_ENABLE: 'false'
+      KAFKA_CONFLUENT_METRICS_ENABLE: 'false'
       KAFKA_JMX_PORT: 9101
       KAFKA_JMX_HOSTNAME: broker
     networks:
@@ -101,9 +109,9 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - 'ES_JAVA_OPTS=-Xms1g -Xmx1g'
     ports:
-      - "9200:9200"
+      - '9200:9200'
     networks:
       - lineageguard-network
     restart: unless-stopped
@@ -116,8 +124,8 @@ services:
       - NEO4J_dbms_memory_heap_initial__size=512m
       - NEO4J_dbms_memory_heap_max__size=512m
     ports:
-      - "7474:7474"
-      - "7687:7687"
+      - '7474:7474'
+      - '7687:7687'
     networks:
       - lineageguard-network
     restart: unless-stopped
@@ -131,7 +139,7 @@ services:
       - MYSQL_USER=datahub
       - MYSQL_PASSWORD=datahub
     ports:
-      - "3306:3306"
+      - '3306:3306'
     networks:
       - lineageguard-network
     restart: unless-stopped

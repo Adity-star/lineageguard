@@ -67,20 +67,20 @@ DataHub Writeback (Metadata Updates)
 ```mermaid
 graph TD
     Entry[Entry Points<br/>CLI | API | Direct] --> Container
-
+    
     subgraph Container [Dependency Injection]
         Prod[ProductionContainer]
         Dev[DevelopmentContainer]
     end
 
     Container --> Orchestrator
-
+    
     subgraph Orchestrator [Orchestrator]
         Orch[Orchestrator<br/>Workflow Coordination]
     end
 
     Orchestrator --> Pipeline
-
+    
     subgraph Pipeline [7-Stage Pipeline]
         Context[Context Stage]
         Planning[Planning Stage]
@@ -89,7 +89,7 @@ graph TD
         Impact[Impact Stage]
         Approval[Approval Stage]
         GitHub[GitHub Stage]
-
+        
         Context --> Planning
         Planning --> Risk
         Risk --> Generator
@@ -97,9 +97,9 @@ graph TD
         Impact --> Approval
         Approval --> GitHub
     end
-
+    
     Pipeline --> State[StateStore<br/>Data Flow]
-
+    
     subgraph External [External Integrations]
         DataHub[DataHub via MCP<br/>mcp-server-datahub]
         Grok[Grok LLM<br/>Planning]
@@ -111,7 +111,7 @@ graph TD
     Planning --> Grok
     GitHub --> GitHubAPI
     Orchestrator --> Postgres
-
+    
     subgraph Support [Supporting Services]
         Idempotency[Idempotency Service]
         Logger[Structured Logging]
@@ -124,6 +124,7 @@ graph TD
     Pipeline --> Performance
     Container --> Config
 ```
+
 
 ## Entry Points
 
@@ -1865,34 +1866,7 @@ interface WorkflowState {
 
 **performance**: Timing metrics for each stage and total duration
 
-## Testing
-
-### Test Structure
-
-```
-agent/tests/
-└── unit/
-    ├── context/
-    ├── planner/
-    ├── risk/
-    ├── generators/
-    ├── impact/
-    ├── approval/
-    └── github/
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Run unit tests
-npm run test:unit
-
-# Run with coverage
-npm run test:coverage
-```
+### Testing
 
 ### Example Test Requests
 
@@ -2048,19 +2022,6 @@ npm run prisma:migrate
 
 # Open Prisma Studio
 npm run prisma:studio
-```
-
-### Testing
-
-```bash
-# Run tests
-npm test
-
-# Run unit tests
-npm run test:unit
-
-# Run with coverage
-npm run test:coverage
 ```
 
 ### Linting
