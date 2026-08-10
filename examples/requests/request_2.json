@@ -1,5 +1,0 @@
-{
-  "description": "Drop columns shipment_info.destination and shipment_info.target from SampleHdfsDataset",
-  "datasetUrn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
-  "requestedBy": "aditya@example.com"
-}

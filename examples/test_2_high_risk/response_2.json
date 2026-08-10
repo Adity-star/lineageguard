@@ -1,0 +1,262 @@
+{
+  "status": "success",
+  "data": {
+    "request": {
+      "description": "Drop these three existing columns from SampleHdfsDataset: shipment_info.destination, shipment_info.target, shipment_info.geo_info.lat.",
+      "datasetUrn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
+      "requestedBy": "aditya@example.com",
+      "priority": "high"
+    },
+    "runId": "req_1786384252672_t2wlendp3",
+    "context": {
+      "dataset": {
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
+        "name": "SampleHdfsDataset",
+        "platform": "hdfs",
+        "description": "",
+        "owners": [],
+        "tags": [],
+        "glossaryTerms": []
+      },
+      "schema": [
+        {
+          "fieldPath": "shipment_info",
+          "type": "varchar(100)",
+          "nullable": false,
+          "description": "Shipment info description",
+          "tags": ["Legacy"]
+        },
+        {
+          "fieldPath": "shipment_info.date",
+          "type": "Date",
+          "nullable": false,
+          "description": "Shipment info date description",
+          "tags": []
+        },
+        {
+          "fieldPath": "shipment_info.destination",
+          "type": "varchar(100)",
+          "nullable": false,
+          "description": "Shipment info destination description",
+          "tags": []
+        },
+        {
+          "fieldPath": "shipment_info.geo_info",
+          "type": "varchar(100)",
+          "nullable": false,
+          "description": "Shipment info geo_info description",
+          "tags": []
+        },
+        {
+          "fieldPath": "shipment_info.geo_info.lat",
+          "type": "float",
+          "nullable": false,
+          "description": "Shipment info geo_info lat",
+          "tags": []
+        },
+        {
+          "fieldPath": "shipment_info.geo_info.lng",
+          "type": "float",
+          "nullable": false,
+          "description": "Shipment info geo_info lng",
+          "tags": []
+        },
+        {
+          "fieldPath": "shipment_info.target",
+          "type": "text",
+          "nullable": false,
+          "description": "Shipment info target description",
+          "tags": []
+        }
+      ],
+      "lineage": { "upstream": [], "downstream": [] },
+      "queries": [],
+      "documents": [],
+      "statistics": {
+        "totalFields": 7,
+        "upstreamCount": 0,
+        "downstreamCount": 0,
+        "queryCount": 0,
+        "documentCount": 0,
+        "ownerCount": 0,
+        "glossaryTermCount": 0,
+        "tagCount": 0,
+        "dashboardCount": 0,
+        "pipelineCount": 0,
+        "dbtModelCount": 0
+      },
+      "owners": [],
+      "glossaryTerms": [],
+      "tags": [],
+      "structuredProperties": {},
+      "usage": { "queryCount": 0 },
+      "quality": { "passedChecks": 0, "failedChecks": 0 },
+      "certification": { "certified": false },
+      "deprecation": { "deprecated": false },
+      "relatedDashboards": [],
+      "relatedPipelines": [],
+      "relatedDbtModels": [],
+      "provenance": {
+        "datasetUrn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
+        "retrievedAt": "2026-08-10T17:52:01.454Z",
+        "source": "datahub",
+        "retrievalDurationMs": 66516.65329999999
+      }
+    },
+    "plan": {
+      "summary": "Drop columns shipment_info.destination, shipment_info.target, shipment_info.geo_info.lat from SampleHdfsDataset",
+      "intent": "drop_column",
+      "affectedDataset": "SampleHdfsDataset",
+      "affectedColumns": [
+        "shipment_info.destination",
+        "shipment_info.target",
+        "shipment_info.geo_info.lat"
+      ],
+      "assumptions": [],
+      "missingInformation": [],
+      "requiredChanges": [
+        {
+          "type": "drop_column",
+          "description": "Drop column shipment_info.destination"
+        },
+        {
+          "type": "drop_column",
+          "description": "Drop column shipment_info.target"
+        },
+        {
+          "type": "drop_column",
+          "description": "Drop column shipment_info.geo_info.lat"
+        }
+      ],
+      "confidence": 0.95,
+      "requiresApproval": false
+    },
+    "risk": {
+      "overallRisk": "MEDIUM",
+      "score": 30,
+      "affectedAssets": { "datasets": 0, "dashboards": 0, "queries": 0 },
+      "findings": [
+        {
+          "severity": "LOW",
+          "category": "DOCUMENTATION",
+          "message": "Dataset has no documentation."
+        },
+        {
+          "severity": "MEDIUM",
+          "category": "GOVERNANCE",
+          "message": "Dataset has no assigned owner."
+        }
+      ],
+      "recommendations": ["Add Documentation", "Assign Dataset Owner"],
+      "requiresApproval": true
+    },
+    "generation": {
+      "ddl": {
+        "ddl": "ALTER TABLE \"SampleHdfsDataset\" DROP COLUMN \"shipment_info.destination\";\n\nALTER TABLE \"SampleHdfsDataset\" DROP COLUMN \"shipment_info.target\";\n\nALTER TABLE \"SampleHdfsDataset\" DROP COLUMN \"shipment_info.geo_info.lat\";",
+        "platform": "hive",
+        "tableName": "SampleHdfsDataset",
+        "operationType": "drop_column",
+        "validationStatus": "validated",
+        "fieldCount": 3,
+        "notes": [
+          "Generated DROP_COLUMN DDL for HIVE",
+          "Affected columns: shipment_info.destination, shipment_info.target, shipment_info.geo_info.lat",
+          "✓ DDL validated for HIVE"
+        ]
+      },
+      "sql": {
+        "migration": "ALTER TABLE \"SampleHdfsDataset\" DROP COLUMN \"shipment_info.destination\";\n\nALTER TABLE \"SampleHdfsDataset\" DROP COLUMN \"shipment_info.target\";\n\nALTER TABLE \"SampleHdfsDataset\" DROP COLUMN \"shipment_info.geo_info.lat\";",
+        "formatted": "-- =====================================\n-- Generated by LineageGuard\n-- Platform: hive\n-- Review before applying\n-- =====================================\nALTER TABLE \"SampleHdfsDataset\" DROP COLUMN \"shipment_info.destination\";\n\nALTER TABLE \"SampleHdfsDataset\" DROP COLUMN \"shipment_info.target\";\n\nALTER TABLE \"SampleHdfsDataset\" DROP COLUMN \"shipment_info.geo_info.lat\";",
+        "platform": "hive"
+      },
+      "rollback": {
+        "sql": "-- Manual rollback required.\n-- Restore dropped column from backup:\n-- shipment_info.destination\n\n-- Manual rollback required.\n-- Restore dropped column from backup:\n-- shipment_info.target\n\n-- Manual rollback required.\n-- Restore dropped column from backup:\n-- shipment_info.geo_info.lat",
+        "automatic": false,
+        "operationType": "drop_column"
+      },
+      "documentation": {
+        "markdown": "# LineageGuard Change Report\n\n## Change Summary\n\n| Field | Value |\n|---|---|\n| Dataset | `SampleHdfsDataset` |\n| Platform | `hdfs` |\n| Operation | `drop_column` |\n| Risk | `MEDIUM` |\n| Risk Score | `30/100` |\n| Approval | `Required` |\n| Status | `PENDING` |\n\n## Requested Change\n\nDrop columns shipment_info.destination, shipment_info.target, shipment_info.geo_info.lat from SampleHdfsDataset\n\n## Affected Columns\n\n- `shipment_info.destination`\n- `shipment_info.target`\n- `shipment_info.geo_info.lat`\n\n## Execution Plan\n\ndrop_column\n\n## Risk Assessment\n\n**Level:** `MEDIUM`\n**Score:** `30/100`\n\n### Findings\n\n- DOCUMENTATION: Dataset has no documentation.\n- GOVERNANCE: Dataset has no assigned owner.\n\n### Recommendations\n\n- Add Documentation\n- Assign Dataset Owner\n\n## Impact Analysis\n\n### Affected Assets\n\n- `SampleHdfsDataset` (affected column: `shipment_info.destination`)\n- `SampleHdfsDataset` (affected column: `shipment_info.target`)\n- `SampleHdfsDataset` (affected column: `shipment_info.geo_info.lat`)\n\n> No downstream assets were detected in the available DataHub lineage context.\n\n## Approval\n\n**Status:** `PENDING`\n\n**Reason:** Change requires approval before execution\n\n## Migration\n\nThe following validated migration will be applied:\n\n```sql\n<See migration.sql for the validated DDL>\n```\n\n## Rollback\n\n<See ROLLBACK.sql for rollback strategy>\n\n## LineageGuard Metadata\n\n* Generated by: `LineageGuard`\n* Version: `1.0.0`\n* Generated at: `2026-08-10T17:52:08.423Z`\n* Run ID: `req_1786384252672_t2wlendp3`"
+      },
+      "dbt": { "files": ["models/**/*.sql", "models/**/*.yml"] }
+    },
+    "impact": {
+      "summary": "Drop columns shipment_info.destination, shipment_info.target, shipment_info.geo_info.lat from SampleHdfsDataset",
+      "score": 30,
+      "level": "MEDIUM",
+      "requiresApproval": true,
+      "affectedColumns": [
+        "shipment_info.destination",
+        "shipment_info.target",
+        "shipment_info.geo_info.lat"
+      ],
+      "affectedAssets": [
+        {
+          "urn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
+          "name": "SampleHdfsDataset",
+          "type": "DATASET"
+        }
+      ],
+      "recommendations": [
+        {
+          "id": "approval",
+          "title": "Require Manual Approval",
+          "description": "This schema change should be reviewed and approved before execution.",
+          "required": true
+        },
+        {
+          "id": "backup-column",
+          "title": "Create Backup",
+          "description": "Back up affected data before removing the column.",
+          "required": true
+        },
+        {
+          "id": "documentation",
+          "title": "Improve Documentation",
+          "description": "Add documentation for this dataset before making structural changes.",
+          "required": false
+        },
+        {
+          "id": "assign-owner",
+          "title": "Assign Dataset Owner",
+          "description": "Ownership should be assigned before deployment.",
+          "required": true
+        }
+      ],
+      "triggeredRules": [
+        {
+          "id": "drop-column",
+          "description": "Dropping a column",
+          "weight": 35
+        },
+        {
+          "id": "missing-owner",
+          "description": "Dataset has no owner",
+          "weight": 10
+        },
+        {
+          "id": "missing-documentation",
+          "description": "Dataset lacks documentation",
+          "weight": 10
+        }
+      ],
+      "generatedAt": "2026-08-10T17:52:08.620Z",
+      "metadata": { "generatedBy": "LineageGuard", "version": "1.0.0" }
+    },
+    "approval": {
+      "reason": "Awaiting manual approval",
+      "status": "PENDING",
+      "reviewedBy": "LineageGuard"
+    },
+    "performance": {
+      "contextMs": 71205.86869999999,
+      "planningMs": 2157.9087,
+      "riskMs": 157.41200000001118,
+      "generationMs": 176.2373999999836,
+      "impactMs": 29497.63750000001,
+      "approvalMs": 90.60649999999441,
+      "githubMs": 2.1718000000109896,
+      "totalMs": 105427.7002
+    },
+    "id": "req_1786384358201_sie9j2zdm"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "description": "Drop these three existing columns from SampleHdfsDataset: shipment_info.destination, shipment_info.target, shipment_info.geo_info.lat.",
+  "datasetUrn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
+  "requestedBy": "aditya@example.com",
+  "priority": "high"
+}

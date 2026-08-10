@@ -1,0 +1,6 @@
+{
+  "description": "Add a nullable customer_segment column to SampleHdfsDataset for customer segmentation",
+  "datasetUrn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
+  "requestedBy": "aditya@example.com",
+  "priority": "medium"
+}

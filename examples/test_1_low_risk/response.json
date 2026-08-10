@@ -1,0 +1,235 @@
+{
+  "status": "success",
+  "data": {
+    "request": {
+      "description": "Add a nullable customer_segment column to SampleHdfsDataset for customer segmentation",
+      "datasetUrn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
+      "requestedBy": "aditya@example.com",
+      "priority": "medium"
+    },
+    "runId": "req_1786381863734_25m3x33j2",
+    "context": {
+      "dataset": {
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
+        "name": "SampleHdfsDataset",
+        "platform": "hdfs",
+        "description": "",
+        "owners": [],
+        "tags": [],
+        "glossaryTerms": []
+      },
+      "schema": [
+        {
+          "fieldPath": "shipment_info",
+          "type": "varchar(100)",
+          "nullable": false,
+          "description": "Shipment info description",
+          "tags": ["Legacy"]
+        },
+        {
+          "fieldPath": "shipment_info.date",
+          "type": "Date",
+          "nullable": false,
+          "description": "Shipment info date description",
+          "tags": []
+        },
+        {
+          "fieldPath": "shipment_info.destination",
+          "type": "varchar(100)",
+          "nullable": false,
+          "description": "Shipment info destination description",
+          "tags": []
+        },
+        {
+          "fieldPath": "shipment_info.geo_info",
+          "type": "varchar(100)",
+          "nullable": false,
+          "description": "Shipment info geo_info description",
+          "tags": []
+        },
+        {
+          "fieldPath": "shipment_info.geo_info.lat",
+          "type": "float",
+          "nullable": false,
+          "description": "Shipment info geo_info lat",
+          "tags": []
+        },
+        {
+          "fieldPath": "shipment_info.geo_info.lng",
+          "type": "float",
+          "nullable": false,
+          "description": "Shipment info geo_info lng",
+          "tags": []
+        },
+        {
+          "fieldPath": "shipment_info.target",
+          "type": "text",
+          "nullable": false,
+          "description": "Shipment info target description",
+          "tags": []
+        }
+      ],
+      "lineage": { "upstream": [], "downstream": [] },
+      "queries": [],
+      "documents": [],
+      "statistics": {
+        "totalFields": 7,
+        "upstreamCount": 0,
+        "downstreamCount": 0,
+        "queryCount": 0,
+        "documentCount": 0,
+        "ownerCount": 0,
+        "glossaryTermCount": 0,
+        "tagCount": 0,
+        "dashboardCount": 0,
+        "pipelineCount": 0,
+        "dbtModelCount": 0
+      },
+      "owners": [],
+      "glossaryTerms": [],
+      "tags": [],
+      "structuredProperties": {},
+      "usage": { "queryCount": 0 },
+      "quality": { "passedChecks": 0, "failedChecks": 0 },
+      "certification": { "certified": false },
+      "deprecation": { "deprecated": false },
+      "relatedDashboards": [],
+      "relatedPipelines": [],
+      "relatedDbtModels": [],
+      "provenance": {
+        "datasetUrn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
+        "retrievedAt": "2026-08-10T17:11:21.277Z",
+        "source": "datahub",
+        "retrievalDurationMs": 16352.496700000003
+      }
+    },
+    "plan": {
+      "summary": "Add a nullable customer_segment column to SampleHdfsDataset",
+      "intent": "Add a new column for customer segmentation",
+      "affectedDataset": "SampleHdfsDataset",
+      "affectedColumns": ["customer_segment"],
+      "assumptions": [],
+      "missingInformation": ["datatype"],
+      "requiredChanges": [
+        {
+          "type": "add_column",
+          "description": "Add column customer_segment with unknown datatype"
+        }
+      ],
+      "confidence": 0.95,
+      "requiresApproval": false
+    },
+    "risk": {
+      "overallRisk": "LOW",
+      "score": 20,
+      "affectedAssets": { "datasets": 0, "dashboards": 0, "queries": 0 },
+      "findings": [
+        {
+          "severity": "LOW",
+          "category": "DOCUMENTATION",
+          "message": "Dataset has no documentation."
+        },
+        {
+          "severity": "MEDIUM",
+          "category": "GOVERNANCE",
+          "message": "Dataset has no assigned owner."
+        }
+      ],
+      "recommendations": ["Add Documentation", "Assign Dataset Owner"],
+      "requiresApproval": false
+    },
+    "generation": {
+      "ddl": {
+        "ddl": "ALTER TABLE \"SampleHdfsDataset\" ADD COLUMN \"customer_segment\" VARCHAR(256) NULL;",
+        "platform": "hive",
+        "tableName": "SampleHdfsDataset",
+        "operationType": "add_column",
+        "validationStatus": "validated",
+        "fieldCount": 1,
+        "notes": [
+          "Generated ADD_COLUMN DDL for HIVE",
+          "Affected columns: customer_segment",
+          "✓ DDL validated for HIVE"
+        ]
+      },
+      "sql": {
+        "migration": "ALTER TABLE \"SampleHdfsDataset\" ADD COLUMN \"customer_segment\" VARCHAR(256) NULL;",
+        "formatted": "-- =====================================\n-- Generated by LineageGuard\n-- Platform: hive\n-- Review before applying\n-- =====================================\nALTER TABLE \"SampleHdfsDataset\" ADD COLUMN \"customer_segment\" VARCHAR(256) NULL;",
+        "platform": "hive"
+      },
+      "rollback": {
+        "sql": "ALTER TABLE SampleHdfsDataset DROP COLUMN customer_segment;",
+        "automatic": true,
+        "operationType": "add_column"
+      },
+      "documentation": {
+        "markdown": "# LineageGuard Change Report\n\n## Change Summary\n\n| Field | Value |\n|---|---|\n| Dataset | `SampleHdfsDataset` |\n| Platform | `hdfs` |\n| Operation | `add_column` |\n| Risk | `LOW` |\n| Risk Score | `20/100` |\n| Approval | `Not Required` |\n| Status | `PENDING` |\n\n## Requested Change\n\nAdd a nullable customer_segment column to SampleHdfsDataset\n\n## Affected Columns\n\n- `customer_segment`\n\n## Execution Plan\n\nAdd a new column for customer segmentation\n\n## Risk Assessment\n\n**Level:** `LOW`\n**Score:** `20/100`\n\n### Findings\n\n- DOCUMENTATION: Dataset has no documentation.\n- GOVERNANCE: Dataset has no assigned owner.\n\n### Recommendations\n\n- Add Documentation\n- Assign Dataset Owner\n\n## Impact Analysis\n\n### Affected Assets\n\n- `SampleHdfsDataset` (affected column: `customer_segment`)\n\n> No downstream assets were detected in the available DataHub lineage context.\n\n## Approval\n\n**Status:** `PENDING`\n\n**Reason:** Change requires approval before execution\n\n## Migration\n\nThe following validated migration will be applied:\n\n```sql\n<See migration.sql for the validated DDL>\n```\n\n## Rollback\n\n<See ROLLBACK.sql for rollback strategy>\n\n## LineageGuard Metadata\n\n* Generated by: `LineageGuard`\n* Version: `1.0.0`\n* Generated at: `2026-08-10T17:11:22.774Z`\n* Run ID: `req_1786381863734_25m3x33j2`"
+      },
+      "dbt": { "files": ["models/**/*.yml"] }
+    },
+    "impact": {
+      "summary": "Add a nullable customer_segment column to SampleHdfsDataset",
+      "score": 20,
+      "level": "LOW",
+      "requiresApproval": false,
+      "affectedColumns": ["customer_segment"],
+      "affectedAssets": [
+        {
+          "urn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
+          "name": "SampleHdfsDataset",
+          "type": "DATASET"
+        }
+      ],
+      "recommendations": [
+        {
+          "id": "documentation",
+          "title": "Improve Documentation",
+          "description": "Add documentation for this dataset before making structural changes.",
+          "required": false
+        },
+        {
+          "id": "assign-owner",
+          "title": "Assign Dataset Owner",
+          "description": "Ownership should be assigned before deployment.",
+          "required": true
+        }
+      ],
+      "triggeredRules": [
+        {
+          "id": "missing-owner",
+          "description": "Dataset has no owner",
+          "weight": 10
+        },
+        {
+          "id": "missing-documentation",
+          "description": "Dataset lacks documentation",
+          "weight": 10
+        }
+      ],
+      "generatedAt": "2026-08-10T17:11:22.803Z",
+      "metadata": { "generatedBy": "LineageGuard", "version": "1.0.0" }
+    },
+    "approval": {
+      "reason": "Auto-approved: Low risk change",
+      "status": "APPROVED",
+      "reviewedAt": "2026-08-10T10:11:06.912Z",
+      "reviewedBy": "LineageGuard"
+    },
+    "github": {
+      "number": 3,
+      "url": "https://github.com/Adity-star/lineageguard/pull/3",
+      "branch": "add-a-new-column-for-customer-segmentation/samplehdfsdataset/customer-segment"
+    },
+    "performance": {
+      "contextMs": 16539.516999999993,
+      "planningMs": 1257.3329000000085,
+      "riskMs": 51.26950000000943,
+      "generationMs": 43.18899999999849,
+      "impactMs": 17184.41949999999,
+      "approvalMs": 31.45909999999276,
+      "githubMs": 19094.558200000014,
+      "totalMs": 55347.26539999999
+    },
+    "id": "req_1786381919119_smbun1h0m"
+  }
+}
