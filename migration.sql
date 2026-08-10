@@ -1,0 +1,1 @@
+ALTER TABLE "SampleHdfsDataset" DROP COLUMN "shipment_info";
