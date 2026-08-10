@@ -18,6 +18,7 @@ export class RollbackGenerator {
       return {
         automatic: false,
         sql: '-- No changes to rollback.',
+        operationType: 'none',
       };
     }
 
@@ -30,6 +31,36 @@ export class RollbackGenerator {
       },
       `Rollback operation type: ${operationType}`,
     );
+
+    // Special handling for drop_column to use affectedColumns directly
+    if (operationType === 'drop_column' && plan.affectedColumns && plan.affectedColumns.length > 0) {
+      logger.info(
+        {
+          event: 'rollback_drop_using_affected_columns',
+          affectedColumns: plan.affectedColumns,
+        },
+        `Using affectedColumns for DROP rollback: ${plan.affectedColumns.join(', ')}`,
+      );
+      let rollback: string;
+      if (plan.affectedColumns.length === 1) {
+        rollback = `-- Manual rollback required.\n-- Restore dropped column from backup:\n-- ${plan.affectedColumns[0]}`;
+      } else {
+        rollback = `-- Manual rollback required.\n-- Restore dropped columns from backup:\n${plan.affectedColumns.map(col => `-- ${col}`).join('\n')}`;
+      }
+      logger.info(
+        {
+          event: 'rollback_generation_complete',
+          automatic: false,
+          statementCount: plan.affectedColumns.length,
+        },
+        `Rollback SQL generated: manual`,
+      );
+      return {
+        automatic: false,
+        sql: rollback,
+        operationType: 'drop_column',
+      };
+    }
 
     const statements = plan.requiredChanges.map((change) => {
       const changeType =
@@ -75,9 +106,10 @@ export class RollbackGenerator {
         (changeType.includes('drop') && changeType.includes('column'))
       ) {
         // For DROP COLUMN, rollback is ADD COLUMN (but we need original schema)
+        // Fallback to extracting from description if we didn't handle it above
         const columnName = this.extractColumnName(change);
         if (columnName) {
-          return `-- Manual rollback required: Restore column ${columnName} from backup`;
+          return `-- Manual rollback required.\n-- Restore dropped column from backup:\n-- ${columnName}`;
         }
       }
 
@@ -114,6 +146,7 @@ export class RollbackGenerator {
     return {
       automatic,
       sql,
+      operationType,
     };
   }
 
