@@ -1,0 +1,25 @@
+                    LINEAGEGUARD
+
+    User Request
+         │
+         ▼
+    DataHub Context        ← DataHub + MCP
+         │
+         ▼
+     LLM Planning          ← Grok LLM
+         │
+         ▼
+   Risk + Impact          ← Governance Engine
+     Analysis
+         │
+         ▼
+   SQL Generation         ← Platform-aware SQL
+         │
+         ▼
+   Approval Gate          ← Risk-based Rules
+         │
+         ▼
+     GitHub PR            ← GitHub API
+         │
+         ▼
+  DataHub Writeback      ← Metadata Updates
