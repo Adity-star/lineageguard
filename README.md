@@ -323,6 +323,12 @@ Start DataHub:
 datahub docker quickstart
 ```
 
+Start PostgreSQL:
+
+```bash
+docker run --name lineageguard-postgres -e POSTGRES_PASSWORD=lineageguard -e POSTGRES_DB=lineageguard -p 5432:5432 -d postgres:latest
+```
+
 Install and configure the agent:
 
 ```bash
