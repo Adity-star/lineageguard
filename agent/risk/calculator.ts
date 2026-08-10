@@ -59,9 +59,7 @@ export class RiskCalculator {
     );
 
     // Extract operation type from plan for risk scoring
-    const operationType = plan.requiredChanges && plan.requiredChanges.length > 0
-      ? plan.requiredChanges[0].type
-      : plan.intent;
+    const operationType = plan.requiredChanges?.[0]?.type ?? plan.intent;
 
     return {
       affectedColumns: plan.affectedColumns?.length || 0,

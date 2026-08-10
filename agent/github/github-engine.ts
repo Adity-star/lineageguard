@@ -587,7 +587,7 @@ export class GitHubEngine {
       '',
       '### Findings',
       '',
-      ...(impact.findings?.map(f => `- ${f.category}: ${f.message}`) || ['No specific findings detected']),
+      ...(impact.triggeredRules?.map(rule => `- ${rule.id}: ${rule.description} (weight: ${rule.weight})`) || ['No specific findings detected']),
       '',
       '### Recommendations',
       '',
