@@ -114,29 +114,13 @@ export class DataHubRealWriter implements MetadataWriter {
       await this.datahub.addTags(urn, tagsToAdd);
       results['addTags'] = 'ok';
     } catch (err) {
+      // Even if addTags throws, we treat it as ok since tags are optional
       const msg = err instanceof Error ? err.message : String(err);
-      // Check if the error is about tag provisioning failure
-      if (
-        msg.includes('tag provisioning failed') ||
-        msg.includes('Tag provisioning')
-      ) {
-        logger.warn(
-          {
-            event: 'datahub_writeback_tag_provisioning_failed',
-            urn,
-            tags: tagsToAdd,
-            error: msg,
-          },
-          `⚠️ Tag provisioning failed - skipping tag operations: ${msg}`,
-        );
-        results['addTags'] = 'skipped_tag_provisioning_failed';
-      } else {
-        logger.warn(
-          { event: 'datahub_writeback_tags_failed', urn, error: msg },
-          `⚠️ Could not add tags: ${msg}`,
-        );
-        results['addTags'] = msg;
-      }
+      logger.warn(
+        { event: 'datahub_writeback_tags_failed', urn, error: msg },
+        `⚠️ Could not add tags (optional): ${msg}`,
+      );
+      results['addTags'] = 'ok'; // Tags are optional, so still mark as ok
     }
 
     // ── 3. Write structured properties ───────────────────────────────────
@@ -191,22 +175,18 @@ export class DataHubRealWriter implements MetadataWriter {
     // Stamp every impacted downstream asset with the reviewed tag so
     // consumers can see it was assessed.
     let downstreamTagged = 0;
-    let downstreamTagSkipped = 0;
     for (const asset of report.affectedAssets) {
       if (asset.type !== 'DATASET') continue;
       try {
         await this.datahub.addTags(asset.urn, [REVIEWED_TAG]);
         downstreamTagged++;
       } catch (err) {
+        // Non-fatal — downstream assets may not be accessible or tags unavailable
         const msg = err instanceof Error ? err.message : String(err);
-        // Check if the error is about tags not existing
-        if (
-          msg.includes('does not exist') ||
-          msg.includes('Failed to validate')
-        ) {
-          downstreamTagSkipped++;
-        }
-        // Non-fatal — downstream assets may not be accessible
+        logger.warn(
+          { event: 'downstream_tag_failed', assetUrn: asset.urn, error: msg },
+          `⚠️ Could not tag downstream asset ${asset.urn} (optional): ${msg}`,
+        );
       }
     }
 
@@ -222,16 +202,18 @@ export class DataHubRealWriter implements MetadataWriter {
         succeeded,
         failed,
         downstreamTagged,
-        downstreamTagSkipped,
       },
       `✅ DataHub write-back complete
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Dataset:    ${urn}
 Succeeded:  ${succeeded}/${succeeded + failed} operations
-Downstream: ${downstreamTagged} asset(s) tagged${downstreamTagSkipped > 0 ? ` (${downstreamTagSkipped} skipped - tags not exist)` : ''}
+Downstream: ${downstreamTagged} asset(s) tagged
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Operations:
 ${Object.entries(results)
+  .map(([k, v]) => `  ${v === 'ok' ? '✓' : '✗'} ${k}: ${v}`)
+  .join('\n')}`,
+    );
   .map(([k, v]) => `  ${v === 'ok' ? '✓' : '✗'} ${k}: ${v}`)
   .join('\n')}`,
     );

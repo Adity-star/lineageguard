@@ -120,12 +120,14 @@ export class ImpactScorer {
 
     const level = this.determineLevel(score);
 
+    // Impact requiresApproval should defer to risk engine for consistency
+    // The risk engine considers operation type, downstream impact, and policy
     return {
       score,
 
       level,
 
-      requiresApproval: score >= 50 || risk.requiresApproval,
+      requiresApproval: risk.requiresApproval,
 
       triggeredRules,
     };

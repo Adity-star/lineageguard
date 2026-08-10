@@ -54,6 +54,8 @@ export const RollbackArtifactSchema = z.object({
   sql: z.string(),
 
   automatic: z.boolean(),
+
+  operationType: z.string().optional(),
 });
 
 export type RollbackArtifact = z.infer<typeof RollbackArtifactSchema>;

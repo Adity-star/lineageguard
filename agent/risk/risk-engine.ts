@@ -49,6 +49,15 @@ export class RiskEngine {
       });
     }
 
+    // Determine if approval is required based on risk level and operation type
+    // High/Critical risk always requires approval
+    // Medium risk requires approval unless explicitly overridden
+    const requiresApproval =
+      scored.overallRisk === 'HIGH' ||
+      scored.overallRisk === 'CRITICAL' ||
+      (scored.overallRisk === 'MEDIUM' && !metrics.requiresApproval) ||
+      metrics.requiresApproval;
+
     const assessment: RiskAssessment = {
       overallRisk: scored.overallRisk,
 
@@ -68,7 +77,7 @@ export class RiskEngine {
         .generate(metrics, scored.overallRisk)
         .map((r) => r.title),
 
-      requiresApproval: metrics.requiresApproval,
+      requiresApproval,
     };
 
     return this.validator.validate(assessment);

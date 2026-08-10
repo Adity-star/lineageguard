@@ -17,6 +17,8 @@ export interface RiskMetrics {
   hasOwner: boolean;
 
   requiresApproval: boolean;
+
+  operationType?: string;
 }
 
 export class RiskCalculator {
@@ -56,6 +58,11 @@ export class RiskCalculator {
       'Risk calculation using actual context data',
     );
 
+    // Extract operation type from plan for risk scoring
+    const operationType = plan.requiredChanges && plan.requiredChanges.length > 0
+      ? plan.requiredChanges[0].type
+      : plan.intent;
+
     return {
       affectedColumns: plan.affectedColumns?.length || 0,
 
@@ -72,6 +79,8 @@ export class RiskCalculator {
       hasOwner: context.dataset?.owners?.length > 0 || false,
 
       requiresApproval: plan.requiresApproval || false,
+
+      operationType,
     };
   }
 }

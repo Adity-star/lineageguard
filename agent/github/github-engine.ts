@@ -125,10 +125,42 @@ export class GitHubEngine {
 
     // Step 4: Commit generated files to the feature branch
     try {
-      // Generate the SQL file content
-      const sqlContent = request.generation.ddl.ddl;
-      const documentationContent = request.generation.documentation.markdown;
-      const rollbackContent = request.generation.rollback.sql;
+      // Generate artifact metadata
+      const datasetName = request.context.dataset?.name || 'unknown';
+      const platform = request.context.dataset?.platform || 'unknown';
+      const operationType = request.generation.ddl.operationType || 'unknown';
+      const riskLevel = request.impact.level;
+      const riskScore = request.impact.score;
+      const approvalStatus = 'PENDING';
+      const runId = this.generateRunId(request.plan);
+
+      // Generate enhanced SQL file with metadata header
+      const sqlContent = this.generateMigrationSql(
+        request.generation.ddl.ddl,
+        datasetName,
+        operationType,
+        riskLevel,
+        riskScore,
+        approvalStatus,
+        runId
+      );
+
+      // Generate enhanced documentation with context
+      const documentationContent = this.generateDocumentation(
+        request.plan,
+        request.impact,
+        request.context,
+        runId
+      );
+
+      // Generate enhanced rollback with metadata
+      const rollbackContent = this.generateRollbackSql(
+        request.generation.rollback.sql,
+        datasetName,
+        operationType,
+        request.plan.affectedColumns,
+        request.generation.rollback.automatic
+      );
 
       // Commit SQL file
       await this.client.commitFile({
@@ -137,7 +169,7 @@ export class GitHubEngine {
         branch: headBranch,
         path: 'migration.sql',
         content: sqlContent,
-        message: `Add migration for ${request.context.dataset?.name}`,
+        message: `Add migration for ${datasetName}`,
       });
 
       // Commit documentation file
@@ -147,7 +179,7 @@ export class GitHubEngine {
         branch: headBranch,
         path: 'DOCUMENTATION.md',
         content: documentationContent,
-        message: `Add documentation for ${request.context.dataset?.name}`,
+        message: `Add documentation for ${datasetName}`,
       });
 
       // Commit rollback file
@@ -157,7 +189,7 @@ export class GitHubEngine {
         branch: headBranch,
         path: 'ROLLBACK.sql',
         content: rollbackContent,
-        message: `Add rollback script for ${request.context.dataset?.name}`,
+        message: `Add rollback script for ${datasetName}`,
       });
 
       logger.info(
@@ -440,6 +472,8 @@ export class GitHubEngine {
       datasetName: request.context.dataset?.name,
     };
 
+
+
     // Extract error details from various error types
     if (error instanceof Error) {
       errorDetails.errorName = error.name;
@@ -474,5 +508,165 @@ export class GitHubEngine {
     }
 
     logger.error(errorDetails, `GitHub operation failed: ${operation}`);
+  }
+
+  /**
+   * Generate enhanced migration SQL with metadata header
+   */
+  private generateMigrationSql(
+    ddl: string,
+    datasetName: string,
+    operationType: string,
+    riskLevel: string,
+    riskScore: number,
+    approvalStatus: string,
+    runId: string
+  ): string {
+    const generatedAt = new Date().toISOString();
+    const header = [
+      '-- LineageGuard Migration Script',
+      `-- Dataset: ${datasetName}`,
+      `-- Operation: ${operationType}`,
+      `-- Risk Level: ${riskLevel}`,
+      `-- Risk Score: ${riskScore}/100`,
+      `-- Approval Status: ${approvalStatus}`,
+      `-- Generated at: ${generatedAt}`,
+      `-- Run ID: ${runId}`,
+      '--',
+      '',
+    ].join('\n');
+
+    return header + ddl;
+  }
+
+  /**
+   * Generate enhanced documentation with context
+   */
+  private generateDocumentation(
+    plan: ExecutionPlan,
+    impact: ImpactReport,
+    context: ContextBundle,
+    runId: string
+  ): string {
+    const datasetName = context?.dataset?.name || plan.affectedDataset || 'unknown';
+    const platform = context?.dataset?.platform || 'unknown';
+    const operationType = plan.requiredChanges?.[0]?.type || 'unknown';
+    const generatedAt = new Date().toISOString();
+
+    const markdown = [
+      '# LineageGuard Change Report',
+      '',
+      '## Change Summary',
+      '',
+      '| Field | Value |',
+      '|---|---|',
+      `| Dataset | \`${datasetName}\` |`,
+      `| Platform | \`${platform}\` |`,
+      `| Operation | \`${operationType}\` |`,
+      `| Risk | \`${impact.level}\` |`,
+      `| Risk Score | \`${impact.score}/100\` |`,
+      `| Approval | \`${impact.requiresApproval ? 'Required' : 'Not Required'}\` |`,
+      `| Status | \`PENDING\` |`,
+      '',
+      '## Requested Change',
+      '',
+      plan.summary || plan.intent || 'Schema change request',
+      '',
+      '## Affected Columns',
+      '',
+      ...(plan.affectedColumns?.map(col => `- \`${col}\``) || ['No columns affected']),
+      '',
+      '## Execution Plan',
+      '',
+      plan.intent || 'Schema modification based on the requested change',
+      '',
+      '## Risk Assessment',
+      '',
+      `**Level:** \`${impact.level}\``,
+      `**Score:** \`${impact.score}/100\``,
+      '',
+      '### Findings',
+      '',
+      ...(impact.findings?.map(f => `- ${f.category}: ${f.message}`) || ['No specific findings detected']),
+      '',
+      '### Recommendations',
+      '',
+      ...(impact.recommendations?.map(r => `- ${r}`) || ['No specific recommendations']),
+      '',
+      '## Impact Analysis',
+      '',
+      '### Affected Assets',
+      '',
+      ...(plan.affectedColumns?.map(col => `- \`${datasetName}\` (affected column: \`${col}\`)`) || ['No specific assets detected']),
+      '',
+      '> No downstream assets were detected in the available DataHub lineage context.',
+      '',
+      '## Approval',
+      '',
+      `**Status:** \`PENDING\``,
+      '',
+      `**Reason:** Change requires approval before execution`,
+      '',
+      '## Migration',
+      '',
+      'The following validated migration will be applied:',
+      '',
+      '```sql',
+      '<See migration.sql for the validated DDL>',
+      '```',
+      '',
+      '## Rollback',
+      '',
+      '<See ROLLBACK.sql for rollback strategy>',
+      '',
+      '## LineageGuard Metadata',
+      '',
+      `* Generated by: \`LineageGuard\``,
+      `* Version: \`1.0.0\``,
+      `* Generated at: \`${generatedAt}\``,
+      `* Run ID: \`${runId}\``,
+    ].join('\n');
+
+    return markdown;
+  }
+
+  /**
+   * Generate enhanced rollback SQL with metadata
+   */
+  private generateRollbackSql(
+    rollbackSql: string,
+    datasetName: string,
+    operationType: string,
+    affectedColumns: string[] | undefined,
+    automatic: boolean
+  ): string {
+    const generatedAt = new Date().toISOString();
+    const header = [
+      '-- LineageGuard Rollback Script',
+      `-- Dataset: ${datasetName}`,
+      `-- Operation: ${operationType}`,
+      `-- Automatic: ${automatic ? 'Yes' : 'No'}`,
+      `-- Generated at: ${generatedAt}`,
+      '--',
+      '',
+    ].join('\n');
+
+    const affectedColumnsComment = affectedColumns && affectedColumns.length > 0
+      ? `-- Affected columns: ${affectedColumns.join(', ')}\n\n`
+      : '';
+
+    return header + affectedColumnsComment + rollbackSql;
+  }
+
+  /**
+   * Generate a unique run ID for tracking
+   */
+  private generateRunId(plan: ExecutionPlan): string {
+    const hash = JSON.stringify({
+      intent: plan.intent,
+      affectedColumns: plan.affectedColumns,
+      timestamp: Date.now(),
+    });
+    return hash.substring(0, 8).replace(/[^a-zA-Z0-9]/g, '');
   }
 }

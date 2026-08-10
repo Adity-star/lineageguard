@@ -9,12 +9,18 @@ export class ApprovalEngine {
    * MEDIUM, HIGH, and CRITICAL always require approval.
    */
   requiresApproval(risk: RiskAssessment, impact: ImpactReport): boolean {
-    // If either risk or impact engine requires approval, it's required
-    if (risk.requiresApproval || impact.requiresApproval) {
+    // Use the risk engine's requiresApproval as the primary source of truth
+    // This is based on operation type, downstream impact, and configured policy
+    if (risk.requiresApproval) {
       return true;
     }
 
-    // HIGH and CRITICAL always require approval
+    // If risk engine says no approval, but impact engine says yes, respect impact
+    if (impact.requiresApproval) {
+      return true;
+    }
+
+    // HIGH and CRITICAL always require approval as a safety net
     if (risk.overallRisk === 'HIGH' || risk.overallRisk === 'CRITICAL') {
       return true;
     }

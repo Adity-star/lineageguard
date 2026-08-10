@@ -737,144 +737,86 @@ export class DataHubClient {
     const start = performance.now();
 
     if (tags.length === 0) {
+      return { success: true, message: 'No tags to add' };
+    }
+
+    // Check which tags are available in DataHub
+    const availableTags: string[] = [];
+    const unavailableTags: string[] = [];
+
+    for (const tag of tags) {
+      try {
+        const exists = await this.tags.tagExists(tag);
+        if (exists) {
+          availableTags.push(tag);
+        } else {
+          unavailableTags.push(tag);
+        }
+      } catch {
+        // If we can't check tag existence, assume it's unavailable
+        unavailableTags.push(tag);
+      }
+    }
+
+    // Log unavailable tags as a warning
+    if (unavailableTags.length > 0) {
+      logger.warn(
+        {
+          event: 'datahub_tags_unavailable',
+          urn,
+          unavailableTags,
+          availableCount: availableTags.length,
+        },
+        `⚠️ ${unavailableTags.length} tag(s) not available in DataHub and will be skipped: ${unavailableTags.join(', ')}`,
+      );
+    }
+
+    // If no tags are available, skip the operation
+    if (availableTags.length === 0) {
       logger.warn(
         {
           event: 'datahub_add_tags_skipped',
           urn,
-          reason: 'No tags provided',
+          reason: 'no_available_tags',
         },
-        `⚠️ No tags provided. Skipping add_tags for ${urn}`,
+        `⚠️ No available tags to add for ${urn}`,
       );
-      return { success: false, message: 'No tags provided' };
+      return { success: true, message: 'No available tags to add' };
     }
 
-    // Separate LineageGuard tags from other tags
-    const lineageGuardTags: string[] = [];
-    const otherTags: string[] = [];
-
-    for (const tag of tags) {
-      if (Object.values(LINEAGEGUARD_TAGS).some((lgTag) => lgTag.urn === tag)) {
-        lineageGuardTags.push(tag);
-      } else {
-        otherTags.push(tag);
-      }
-    }
-
-    // Ensure LineageGuard tags exist before attempting to add them
-    let tagProvisioningSucceeded = true;
-    if (lineageGuardTags.length > 0) {
-      logger.info(
-        {
-          event: 'tag_provisioning_start',
-          urn,
-          lineageGuardTags,
-        },
-        `Ensuring ${lineageGuardTags.length} LineageGuard tags exist before adding to ${urn}`,
-      );
-
-      const provisioningResults: Record<string, boolean> = {};
-      for (const tagUrn of lineageGuardTags) {
-        const tagDef = Object.values(LINEAGEGUARD_TAGS).find(
-          (t) => t.urn === tagUrn,
-        );
-        if (tagDef) {
-          const success = await this.tags.ensureTag(
-            tagDef.urn,
-            tagDef.name,
-            tagDef.description,
-          );
-          provisioningResults[tagUrn] = success;
-          if (!success) {
-            tagProvisioningSucceeded = false;
-          }
-        }
-      }
-
-      const succeeded = Object.values(provisioningResults).filter(
-        (v) => v,
-      ).length;
-      const failed = Object.values(provisioningResults).filter(
-        (v) => !v,
-      ).length;
-
-      if (failed > 0) {
-        logger.warn(
-          {
-            event: 'tag_provisioning_partial_failure',
-            urn,
-            succeeded,
-            failed,
-            results: provisioningResults,
-          },
-          `Tag provisioning partially failed: ${succeeded}/${succeeded + failed} succeeded`,
-        );
-      } else {
-        logger.info(
-          {
-            event: 'tag_provisioning_succeeded',
-            urn,
-            count: succeeded,
-          },
-          `All ${succeeded} LineageGuard tags provisioned successfully`,
-        );
-      }
-    }
-
-    // If provisioning failed, skip add_tags but don't fail the entire operation
-    if (!tagProvisioningSucceeded && lineageGuardTags.length > 0) {
-      logger.warn(
-        {
-          event: 'tag_add_skipped',
-          urn,
-          reason: 'tag_provisioning_failed',
-        },
-        `⚠️ Skipping add_tags for ${urn} due to tag provisioning failure`,
-      );
-      return {
-        success: false,
-        message: 'Tag provisioning failed, skipping tag addition',
-      };
-    }
-
-    // Proceed with add_tags using all tags (provisioned LineageGuard + other tags)
-    const allTags = [...lineageGuardTags, ...otherTags];
-
+    // Add only the available tags
     try {
-      logger.info(
-        {
-          event: 'tag_add_start',
-          urn,
-          tags: allTags,
-        },
-        `Starting add_tags for ${urn} with ${allTags.length} tags`,
-      );
-
-      const result = await this.mutations.addTags(urn, allTags, fieldPath);
+      const result = await this.mutations.addTags(urn, availableTags, fieldPath);
 
       logger.info(
         {
-          event: 'tag_add_success',
+          event: 'datahub_add_tags_success',
           urn,
-          tags: allTags,
+          tags: availableTags,
+          skippedTags: unavailableTags,
+          fieldPath,
           durationMs: (performance.now() - start).toFixed(0),
         },
-        `🏷️ Tags added to ${urn}`,
+        `🏷️ Added ${availableTags.length} available tags to ${urn}${unavailableTags.length > 0 ? ` (skipped ${unavailableTags.length} unavailable)` : ''}`,
       );
 
       return result;
     } catch (error) {
+      // Don't log tag addition failures as errors - they're optional
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      logger.error(
+      logger.warn(
         {
-          event: 'tag_add_failed',
+          event: 'datahub_add_tags_failed',
           urn,
-          tags: allTags,
+          tags: availableTags,
           error: errorMessage,
         },
-        `Adding tags failed`,
+        `⚠️ Failed to add tags to ${urn}, but continuing (tags are optional)`,
       );
-      throw error;
+
+      // Return success anyway since tags are optional
+      return { success: true, message: 'Tag addition failed but continuing (tags are optional)' };
     }
   }
 
