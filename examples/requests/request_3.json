@@ -1,0 +1,5 @@
+{
+  "description": "Remove shipment_info.geo_info and rename shipment_info.destination to customer_location because the existing schema is being deprecated",
+  "datasetUrn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
+  "requestedBy": "aditya@example.com"
+}

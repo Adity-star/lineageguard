@@ -1,5 +1,5 @@
 {
-  "description": "add column Customerbalance_9",
+  "description": "Drop column shipment_info from SampleHdfsDataset because it is no longer needed",
   "datasetUrn": "urn:li:dataset:(urn:li:dataPlatform:hdfs,SampleHdfsDataset,PROD)",
   "requestedBy": "aditya@example.com"
 }

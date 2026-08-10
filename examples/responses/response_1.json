@@ -1,0 +1,272 @@
+{
+  "status": "success",
+  "data": {
+    "request": {
+      "description":"Drop column shipment\_info from SampleHdfsDataset because it is no longer needed",
+      "datasetUrn":"urn\:li\:dataset:(urn\:li\:dataPlatform\:hdfs,SampleHdfsDataset,PROD)",
+      "requestedBy":"[aditya@example.com](mailto\:aditya@example.com)",
+      "priority": "medium"
+    },
+    "runId":"req\_1786356619680\_f506se9xe",
+    "context": {
+      "dataset": {
+        "urn":"urn\:li\:dataset:(urn\:li\:dataPlatform\:hdfs,SampleHdfsDataset,PROD)",
+        "name": "SampleHdfsDataset",
+        "platform": "hdfs",
+        "description": "",
+        "owners": [],
+        "tags": [],
+        "glossaryTerms": []
+      },
+      "schema": [
+        {
+          "fieldPath":"shipment\_info",
+          "type": "varchar(100)",
+          "nullable"\: false,
+          "description": "Shipment info description",
+          "tags": [
+            "Legacy"
+          ]
+        },
+        {
+          "fieldPath":"shipment\_info.date",
+          "type": "Date",
+          "nullable"\: false,
+          "description": "Shipment info date description",
+          "tags": []
+        },
+        {
+          "fieldPath":"shipment\_info.destination",
+          "type": "varchar(100)",
+          "nullable"\: false,
+          "description": "Shipment info destination description",
+          "tags": []
+        },
+        {
+          "fieldPath":"shipment\_info.geo\_info",
+          "type": "varchar(100)",
+          "nullable"\: false,
+          "description":"Shipment info geo\_info description",
+          "tags": []
+        },
+        {
+          "fieldPath":"shipment\_info.geo\_info.lat",
+          "type": "float",
+          "nullable"\: false,
+          "description":"Shipment info geo\_info lat",
+          "tags": []
+        },
+        {
+          "fieldPath":"shipment\_info.geo\_info.lng",
+          "type": "float",
+          "nullable"\: false,
+          "description":"Shipment info geo\_info lng",
+          "tags": []
+        },
+        {
+          "fieldPath":"shipment\_info.target",
+          "type": "text",
+          "nullable"\: false,
+          "description": "Shipment info target description",
+          "tags": []
+        }
+      ],
+      "lineage": {
+        "upstream": [],
+        "downstream": []
+      },
+      "queries": [],
+      "documents": [],
+      "statistics": {
+        "totalFields": 7,
+        "upstreamCount": 0,
+        "downstreamCount": 0,
+        "queryCount": 0,
+        "documentCount": 0,
+        "ownerCount": 0,
+        "glossaryTermCount": 0,
+        "tagCount": 0,
+        "dashboardCount": 0,
+        "pipelineCount": 0,
+        "dbtModelCount": 0
+      },
+      "owners": [],
+      "glossaryTerms": [],
+      "tags": [],
+      "structuredProperties": {},
+      "usage": {
+        "queryCount": 0
+      },
+      "quality": {
+        "passedChecks": 0,
+        "failedChecks": 0
+      },
+      "certification": {
+        "certified"\: false
+      },
+      "deprecation": {
+        "deprecated"\: false
+      },
+      "relatedDashboards": [],
+      "relatedPipelines": [],
+      "relatedDbtModels": [],
+      "provenance": {
+        "datasetUrn":"urn\:li\:dataset:(urn\:li\:dataPlatform\:hdfs,SampleHdfsDataset,PROD)",
+        "retrievedAt": "2026-08-10T10:10:53.624Z",
+        "source": "datahub",
+        "retrievalDurationMs": 31705.602100000004
+      }
+    },
+    "plan": {
+      "summary":"Drop column shipment\_info from SampleHdfsDataset",
+      "intent":"drop\_column",
+      "affectedDataset": "SampleHdfsDataset",
+      "affectedColumns": ["shipment\_info"
+      ],
+      "assumptions": [],
+      "missingInformation": [],
+      "requiredChanges": [
+        {
+          "type":"drop\_column",
+          "description":"Drop column shipment\_info"
+        }
+      ],
+      "confidence": 0.65,
+      "requiresApproval"\: true
+    },
+    "risk": {
+      "overallRisk": "HIGH",
+      "score": 60,
+      "affectedAssets": {
+        "datasets": 0,
+        "dashboards": 0,
+        "queries": 0
+      },
+      "findings": [
+        {
+          "severity": "HIGH",
+          "category": "DOCUMENTATION",
+          "message": "Dataset has no documentation."
+        },
+        {
+          "severity": "MEDIUM",
+          "category": "GOVERNANCE",
+          "message": "Dataset has no assigned owner."
+        }
+      ],
+      "recommendations": [
+        "Add Documentation",
+        "Assign Dataset Owner"
+      ],
+      "requiresApproval"\: false
+    },
+    "generation": {
+      "ddl": {
+        "ddl": "ALTER TABLE "SampleHdfsDataset" DROP COLUMN "shipment\_info";",
+        "platform": "hive",
+        "tableName": "SampleHdfsDataset",
+        "operationType":"drop\_column",
+        "validationStatus": "validated",
+        "fieldCount": 1,
+        "notes": ["Generated DROP\_COLUMN DDL for HIVE","Affected columns: shipment\_info",
+          "✓ DDL validated for HIVE"
+        ]
+      },
+      "sql": {
+        "migration": "TABLE "SampleHdfsDataset"  COLUMN "shipment\_info";",
+        "formatted": "-- =====================================\n-- Generated by LineageGuard\n-- Platform: hive\n-- Review before applying\n-- =====================================\nTABLE "SampleHdfsDataset"  COLUMN "shipment\_info";",
+        "platform": "hive"
+      },
+      "rollback": {
+        "sql":"-- Manual rollback required: Restore column shipment\_info from backup",
+        "automatic"\: false
+      },
+      "documentation": {
+        "markdown":"# LineageGuard Change Report\n\n## Summary\nDrop column shipment\_info from SampleHdfsDataset\n\n## Intent\ndrop\_column\n\n## Operation Type\ndrop\_column\n\n## Risk\n- Level: LOW\n- Score: 20/100\n\n## Affected Columns\nshipment\_info\n\n## Required Changes\n- drop\_column: Drop column shipment\_info\n\n## Recommendations\n- Add Documentation\n- Assign Dataset Owner\n\n## Approval\nNot Required"
+      },
+      "dbt": {
+        "files": ["models/**/\*.sql","models/**/\*.yml"
+        ]
+      }
+    },
+    "impact": {
+      "summary":"Drop column shipment\_info from SampleHdfsDataset",
+      "score": 20,
+      "level": "LOW",
+      "requiresApproval"\: false,
+      "affectedColumns": ["shipment\_info"
+      ],
+      "affectedAssets": [
+        {
+          "urn":"urn\:li\:dataset:(urn\:li\:dataPlatform\:hdfs,SampleHdfsDataset,PROD)",
+          "name": "SampleHdfsDataset",
+          "type": "DATASET"
+        }
+      ],
+      "recommendations": [
+        {
+          "id": "backup-column",
+          "title": "Create Backup",
+          "description": "Back up affected data before removing the column.",
+          "required"\: true
+        },
+        {
+          "id": "documentation",
+          "title": "Improve Documentation",
+          "description": "Add documentation for this dataset before making structural changes.",
+          "required"\: false
+        },
+        {
+          "id": "assign-owner",
+          "title": "Assign Dataset Owner",
+          "description": "Ownership should be assigned before deployment.",
+          "required"\: true
+        }
+      ],
+      "triggeredRules": [
+        {
+          "id": "drop-column",
+          "description": "Dropping a column",
+          "weight": 35
+        },
+        {
+          "id": "missing-owner",
+          "description": "Dataset has no owner",
+          "weight": 10
+        },
+        {
+          "id": "missing-documentation",
+          "description": "Dataset lacks documentation",
+          "weight": 10
+        }
+      ],
+      "generatedAt": "2026-08-10T10:10:55.233Z",
+      "metadata": {
+        "generatedBy": "LineageGuard",
+        "version": "1.0.0"
+      }
+    },
+    "approval": {
+      "status": "APPROVED",
+      "reviewedBy": "LineageGuard",
+      "reviewedAt": "2026-08-10T10:11:06.912Z",
+      "reason": "Auto-approved: Low risk change"
+    },
+    "github": {
+      "number": 2,
+      "url":"https\://github.com/Adity-star/lineageguard/pull/2",
+      "branch": "drop-column/samplehdfsdataset/shipment-info"
+    },
+    "performance": {
+      "contextMs": 31893.814199999993,
+      "planningMs": 1329.0329000000202,
+      "riskMs": 45.7271999999939,
+      "generationMs": 49.594799999991665,
+      "impactMs": 11673.760299999994,
+      "approvalMs": 36.44419999999809,
+      "githubMs": 19471.084199999983,
+      "totalMs": 66620.86470000002
+    },
+    "id":"req\_1786356686417\_jmdm1u20u"
+  }
+}
