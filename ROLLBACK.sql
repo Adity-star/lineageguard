@@ -1,0 +1,1 @@
+-- Manual rollback required: Restore column shipment_info from backup
