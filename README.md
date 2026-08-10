@@ -9,7 +9,7 @@ It uses real DataHub metadata to understand schema, lineage, ownership, tags, do
 > **Most AI tools answer: “What SQL should I write?”**  
 > **LineageGuard answers: “Should this change happen, what could it break, and how should it safely reach production?”**
 
-[Watch the demo](https://www.youtube.com/watch?v=gbcmYlucM2Y) · [View the example](https://github.com/Adity-star/lineageguard/tree/main/examples#lineageguard-example) · [Technical architecture](https://github.com/Adity-star/lineageguard/blob/main/examples/architecture/technical_architecture.png)
+[Watch the demo](https://www.youtube.com/watch?v=gbcmYlucM2Y) · [View the example](examples/README.md) · [Technical architecture](examples/architecture/technical_architecture.png)
 
 ---
 
@@ -105,17 +105,24 @@ The LLM does not directly execute SQL, modify GitHub, or decide the final approv
 
 ## Example workflow
 
-The complete example is available in [`examples/README.md`](https://github.com/Adity-star/lineageguard/tree/main/examples#readme).
+The complete example is available in [`examples/README.md`](examples/README.md).
 
 ```text
 examples/
 ├── README.md
 ├── architecture/
-├── request.json
-├── response.json
-├── migration.sql
-├── rollback.sql
-└── CHANGE_REPORT.md
+├── test_1_low_risk/
+│   ├── request.json
+│   ├── response.json
+│   ├── migration.sql
+│   ├── ROLLBACK.sql
+│   └── DOCUMENTATION.md
+├── test_2_high_risk/
+│   ├── request_2.json
+│   └── response_2.json
+└── test_3_hybrid/
+    ├── request_3.json
+    └── response_3.json
 ```
 
 The example demonstrates:
@@ -177,7 +184,7 @@ The example demonstrates:
  durable governance metadata
 ```
 
-For the complete technical design, see [`agent/README.md`]([agent/README.md](https://github.com/Adity-star/lineageguard/tree/main/examples#readme)).
+For the complete technical design, see [`agent/README.md`](agent/README.md).
 
 ---
 
@@ -299,7 +306,7 @@ The workflow records governance metadata back to DataHub, including change infor
 | Deployment | Docker, Docker Compose |
 | Testing | Unit and integration tests |
 
-Configure the actual LLM provider and model in `.env.example`. Keep the provider name consistent throughout the documentation and demo.
+Configure the actual LLM provider and model in `agent/.env.example`. Keep the provider name consistent throughout the documentation and demo.
 
 ---
 
@@ -355,7 +362,7 @@ Run a health check:
 npm run cli health
 ```
 
-For configuration details, see [`.env.example`](.env.example).
+For configuration details, see [`agent/.env.example`](agent/.env.example).
 
 ---
 
@@ -365,11 +372,11 @@ If you have limited time:
 
 1. Read this README.
 2. Open [`examples/README.md`](examples/README.md).
-3. Inspect [`examples/request.json`](examples/request.json).
-4. Inspect [`examples/response.json`](examples/response.json).
-5. Review [`examples/migration.sql`](examples/migration.sql).
-6. Review [`examples/rollback.sql`](examples/rollback.sql).
-7. Review [`examples/CHANGE_REPORT.md`](examples/CHANGE_REPORT.md).
+3. Inspect [`examples/test_1_low_risk/request.json`](examples/test_1_low_risk/request.json).
+4. Inspect [`examples/test_1_low_risk/response.json`](examples/test_1_low_risk/response.json).
+5. Review [`examples/test_1_low_risk/migration.sql`](examples/test_1_low_risk/migration.sql).
+6. Review [`examples/test_1_low_risk/ROLLBACK.sql`](examples/test_1_low_risk/ROLLBACK.sql).
+7. Review [`examples/test_1_low_risk/DOCUMENTATION.md`](examples/test_1_low_risk/DOCUMENTATION.md).
 8. Open the generated GitHub pull request, if available.
 9. Run the complete workflow using the Quick Start instructions.
 
@@ -406,9 +413,9 @@ The example folder provides a complete, judge-friendly workflow without requirin
 
 ## Project documentation
 
-- [Working example](https://github.com/Adity-star/lineageguard/tree/main/examples#readme)
+- [Working example](examples/README.md)
 - [Agent architecture and technical documentation](agent/README.md)
-- [Environment configuration](.env.example)
+- [Environment configuration](agent/.env.example)
 - [Demo video](ADD_DEMO_VIDEO_URL)
 - [DataHub documentation contribution](ADD_DATAHUB_PR_URL)
 
