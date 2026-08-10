@@ -386,7 +386,7 @@ The example folder provides a complete, judge-friendly workflow without requirin
 | Originality | Applies metadata-aware agent behavior to governed schema-change decisions and migration delivery rather than only generating SQL or answering catalog questions. |
 | Real-world usefulness | Helps prevent schema changes from silently breaking downstream data assets, reports, dashboards, and pipelines. |
 | Submission quality | Includes a runnable project, examples, architecture documentation, testable workflow, and a short demonstration. |
-| Open-source contribution | Documentation contribution: [ADD DATAHUB CONTRIBUTION LINK]. |
+| Open-source contribution | Documentation contribution:(https://github.com/datahub-project/datahub/pull/19032)]. |
 
 ---
 
@@ -409,8 +409,8 @@ The example folder provides a complete, judge-friendly workflow without requirin
 - [Working example](https://github.com/Adity-star/lineageguard/tree/main/examples#readme)
 - [Agent architecture and technical documentation](agent/README.md)
 - [Environment configuration](.env.example)
-- [Demo video](ADD_DEMO_VIDEO_URL)
-- [DataHub documentation contribution](ADD_DATAHUB_PR_URL)
+- [Demo video](https://www.youtube.com/watch?v=gbcmYlucM2Y)
+- [DataHub documentation contribution](https://github.com/datahub-project/datahub/pull/19032)
 
 ---
 
