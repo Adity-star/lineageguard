@@ -9,7 +9,7 @@ It uses real DataHub metadata to understand schema, lineage, ownership, tags, do
 > **Most AI tools answer: “What SQL should I write?”**  
 > **LineageGuard answers: “Should this change happen, what could it break, and how should it safely reach production?”**
 
-[Watch the demo](ADD_DEMO_VIDEO_URL) · [View the example](https://github.com/Adity-star/lineageguard/tree/main/examples#lineageguard-example) · [Technical architecture](https://github.com/Adity-star/lineageguard/blob/main/examples/architecture/technical_architecture.png)
+[Watch the demo](https://www.youtube.com/watch?v=gbcmYlucM2Y) · [View the example](https://github.com/Adity-star/lineageguard/tree/main/examples#lineageguard-example) · [Technical architecture](https://github.com/Adity-star/lineageguard/blob/main/examples/architecture/technical_architecture.png)
 
 ---
 
