@@ -1,87 +1,116 @@
 # LineageGuard
 
-### AI-Powered Schema Change Governance Agent
+## AI-Powered Schema Change Governance Agent
 
-LineageGuard turns natural-language database change requests into governed, risk-aware, auditable changes — using real DataHub context, LLM planning, impact analysis, platform-aware SQL generation, approval gates, and GitHub pull requests.
+LineageGuard turns natural-language database change requests into **context-aware, risk-assessed, auditable engineering changes**.
+
+It uses real DataHub metadata to understand schema, lineage, ownership, tags, documentation, and downstream dependencies before generating a platform-aware migration, requesting approval, creating a GitHub pull request, and recording the governance result back in DataHub.
+
+> **Most AI tools answer: “What SQL should I write?”**  
+> **LineageGuard answers: “Should this change happen, what could it break, and how should it safely reach production?”**
+
+[Watch the demo](ADD_DEMO_VIDEO_URL) · [View the example](https://github.com/Adity-star/lineageguard/tree/main/examples#lineageguard-example) · [Technical architecture](https://github.com/Adity-star/lineageguard/blob/main/examples/architecture/technical_architecture.png)
 
 ---
 
-## The Problem
+## The problem
 
-Database schema changes are easy to request but difficult to govern.
+Database changes are easy to request but difficult to govern.
 
-A simple request such as:
+A request such as:
 
 ```text
-"Add Customerbalance_9 to users"
+Add Customerbalance to users
 ```
 
-can have consequences for:
+may affect:
 
-* downstream datasets
-* dashboards
-* queries
-* pipelines
-* data quality
-* governance
-* production systems
+- Downstream datasets.
+- Dashboards and reports.
+- SQL queries.
+- dbt models and pipelines.
+- Data quality checks.
+- Governed or certified assets.
+- Production systems.
 
-Most AI tools can generate SQL.
+A language model can generate SQL, but SQL generation alone does not answer:
 
-The harder problem is determining:
+- What is the actual dataset and current schema?
+- Who owns the asset?
+- What depends on it?
+- How risky is the change?
+- Does it require human approval?
+- Which SQL syntax matches the database platform?
+- Can the change be rolled back?
+- Can the change be reviewed as a GitHub pull request?
+- Can the decision be recorded for future users and agents?
 
-> **Should this change happen, what could it break, and how should it safely reach production?**
+LineageGuard addresses these questions in one governed workflow.
 
 ---
 
-## The Solution
+## What LineageGuard does
 
 ```text
-Natural Language Request
+Natural-language request
           ↓
-   DataHub Context
+DataHub context through MCP
           ↓
-    LLM Planning
+Structured LLM planning
           ↓
- Risk + Impact Analysis
+Deterministic risk assessment
           ↓
- Platform-aware SQL
+Platform-aware migration generation
           ↓
-    Approval Gate
+Downstream impact analysis
           ↓
-      GitHub PR
+Risk-based approval gate
           ↓
-   DataHub Writeback
+GitHub pull request
+          ↓
+DataHub governance write-back
 ```
 
 LineageGuard is a **governance agent**, not just an SQL generator.
 
----
+It can determine that a change should be:
 
-## Why LineageGuard Is Different
-
-**The LLM understands what the user wants. LineageGuard determines how that change should safely proceed.**
-
-### Hybrid Architecture
-
-* **LLM** → understands natural-language intent and creates a structured execution plan
-* **DataHub** → provides real metadata, schema, ownership, lineage, and governance context
-* **Governance engines** → evaluate risk and impact
-* **SQL generator** → produces platform-aware migrations
-* **Approval engine** → determines whether manual approval is required
-* **GitHub** → provides an auditable delivery mechanism
-* **DataHub writeback** → records governance metadata
+- Automatically approved when it is low risk.
+- Held for human approval.
+- Rejected or blocked because required information is missing or downstream impact is too high.
 
 ---
 
-## Example
+## Why it is different
 
-👉 See the complete example: [`examples/README.md`](examples/README.md)
+LineageGuard combines AI reasoning with deterministic controls:
+
+| Responsibility | Implementation |
+|---|---|
+| Understand the request | LLM planning |
+| Retrieve trusted context | DataHub MCP |
+| Calculate risk | Deterministic governance engine |
+| Analyze dependencies | DataHub lineage and related assets |
+| Generate migrations | Platform-aware deterministic SQL generator |
+| Validate changes | SQL and artifact validation |
+| Control execution | Risk-based approval gate |
+| Deliver safely | GitHub branch, commit, and pull request |
+| Preserve governance context | DataHub write-back |
+| Prevent duplicates | Database-backed idempotency |
+| Support investigation | Audit logs and structured run state |
+
+The LLM does not directly execute SQL, modify GitHub, or decide the final approval outcome. It interprets intent and produces a structured plan that is validated by deterministic engines.
+
+---
+
+## Example workflow
+
+The complete example is available in [`examples/README.md`](https://github.com/Adity-star/lineageguard/tree/main/examples#readme).
 
 ```text
 examples/
 ├── README.md
-├── architecture.txt
+├── architecture/
 ├── request.json
 ├── response.json
 ├── migration.sql
@@ -89,185 +118,298 @@ examples/
 └── CHANGE_REPORT.md
 ```
 
-The example demonstrates one complete LineageGuard workflow from a natural-language request to generated migration, governance analysis, approval, and GitHub delivery.
+The example demonstrates:
+
+1. A natural-language schema change request.
+2. Context retrieval from DataHub through MCP.
+3. Structured execution planning.
+4. Deterministic risk assessment.
+5. Downstream impact analysis.
+6. Platform-aware migration generation.
+7. Rollback generation.
+8. Approval evaluation.
+9. GitHub PR preparation or creation.
+10. DataHub governance write-back.
 
 ---
 
 ## Architecture
 
-```
-                    LINEAGEGUARD
+```text
+                         LINEAGEGUARD
 
-    User Request
-         │
-         ▼
-    DataHub Context        ← DataHub + MCP
-         │
-         ▼
-     LLM Planning          ← Grok LLM
-         │
-         ▼
-   Risk + Impact          ← Governance Engine
-     Analysis
-         │
-         ▼
-   SQL Generation         ← Platform-aware SQL
-         │
-         ▼
-   Approval Gate          ← Risk-based Rules
-         │
-         ▼
-     GitHub PR            ← GitHub API
-         │
-         ▼
-  DataHub Writeback      ← Metadata Updates
+ User request / CLI / API
+            │
+            ▼
+   Context Engine
+            │
+            │ DataHub MCP
+            ▼
+     DataHub metadata
+ schema · lineage · owners · tags · docs · usage
+            │
+            ▼
+    Planning Engine
+      LLM intent extraction
+            │
+            ▼
+     Risk Engine
+ deterministic risk and policy rules
+            │
+            ▼
+   Generator Engine
+ platform-aware SQL and rollback
+            │
+            ▼
+    Impact Engine
+ downstream assets and recommendations
+            │
+            ▼
+    Approval Engine
+   auto-approve / pending / reject
+            │
+            ▼
+     GitHub Engine
+ branch · commit · pull request
+            │
+            ▼
+    DataHub Write-back
+ durable governance metadata
 ```
 
-For the complete technical architecture, pipeline stages, engines, state management, MCP integration, and implementation details, see [`agent/README.md`](agent/README.md).
+For the complete technical design, see [`agent/README.md`]([agent/README.md](https://github.com/Adity-star/lineageguard/tree/main/examples#readme)).
 
 ---
 
-## Core Workflow
+## Core workflow
 
 ### 1. Context
-Retrieves real dataset metadata from DataHub through MCP.
+
+Retrieves dataset metadata from DataHub through MCP, including:
+
+- Dataset identity and platform.
+- Schema fields and types.
+- Ownership.
+- Tags and glossary terms.
+- Domains and structured properties.
+- Upstream and downstream lineage.
+- Related dashboards, pipelines, queries, and dbt models.
+- Documentation, usage, quality, certification, and deprecation metadata.
 
 ### 2. Planning
-Uses the LLM to understand the requested change and produce a structured execution plan.
 
-### 3. Risk
-Evaluates governance and technical risk.
+The LLM interprets the natural-language request and produces a validated execution plan containing:
+
+- Intended operation.
+- Affected dataset and columns.
+- Required changes.
+- Target platform.
+- Missing information.
+- Assumptions.
+- Confidence.
+- Initial approval requirement.
+
+### 3. Risk assessment
+
+A deterministic risk engine evaluates:
+
+- Change type.
+- Number of downstream assets.
+- Related queries.
+- Documentation gaps.
+- Ownership gaps.
+- Governance metadata.
+- Impact severity.
 
 ### 4. Generation
-Creates and validates a platform-aware migration and rollback.
 
-### 5. Impact
-Determines affected downstream assets and governance implications.
+LineageGuard generates and validates:
+
+- Platform-specific DDL.
+- Migration SQL.
+- Rollback SQL.
+- Change documentation.
+- Optional dbt artifacts where configured.
+
+### 5. Impact analysis
+
+The impact engine identifies affected datasets, dashboards, queries, pipelines, and models, then creates a structured impact report.
 
 ### 6. Approval
-Automatically approves eligible low-risk changes or requires manual approval.
 
-### 7. GitHub
-Creates an auditable branch, commit, and pull request when the change is approved.
+Approval is risk-based:
 
----
+- Low-risk changes may be automatically approved.
+- Medium-risk changes require approval by default.
+- High- and critical-risk changes require explicit human approval.
+- Changes that fail validation or lack required information do not proceed.
 
-## Key Features
+### 7. GitHub delivery
 
-* Natural-language schema change requests
-* DataHub context through MCP
-* LLM-based structured planning
-* Deterministic risk assessment
-* Downstream impact analysis
-* Platform-aware SQL generation
-* SQL validation
-* Automatic/manual approval gates
-* Rollback generation
-* DataHub governance writeback
-* GitHub PR automation
-* Idempotency and auditability
+For approved changes, LineageGuard creates:
 
----
+- A deterministic feature branch.
+- Migration files.
+- Rollback files.
+- Documentation.
+- A pull request containing risk and impact information.
+- Labels and reviewers where configured.
 
-## Tech Stack
+LineageGuard does not directly execute the production migration or merge the pull request.
 
-| Component       | Technology           |
-| --------------- | -------------------- |
-| Runtime         | Node.js / TypeScript |
-| AI              | Grok                 |
-| Metadata        | DataHub              |
-| Integration     | MCP                  |
-| Database        | PostgreSQL / Prisma  |
-| Version Control | GitHub / Octokit     |
+### 8. DataHub write-back
+
+The workflow records governance metadata back to DataHub, including change information, impact information, tags, descriptions, and structured properties where configured.
 
 ---
 
-## Quick Start
+## Key features
 
-### With Docker
+- Natural-language schema change requests.
+- Real DataHub context through MCP.
+- Structured LLM planning.
+- Deterministic risk assessment.
+- Downstream lineage analysis.
+- Platform-aware SQL generation.
+- SQL and artifact validation.
+- Risk-based approval gates.
+- Migration and rollback generation.
+- Governance documentation.
+- DataHub metadata write-back.
+- Automated GitHub pull requests.
+- Idempotency and duplicate prevention.
+- Structured logs and auditability.
+- CLI and REST API entry points.
+- Dependency injection for production and test environments.
+
+---
+
+## Technology stack
+
+| Component | Technology |
+|---|---|
+| Runtime | Node.js, TypeScript |
+| LLM planning | Configured LLM provider |
+| Metadata platform | DataHub |
+| Agent integration | Model Context Protocol |
+| Application database | PostgreSQL |
+| ORM | Prisma |
+| Version control | GitHub API, Octokit |
+| Frontend | Next.js, React, Tailwind CSS |
+| Deployment | Docker, Docker Compose |
+| Testing | Unit and integration tests |
+
+Configure the actual LLM provider and model in `.env.example`. Keep the provider name consistent throughout the documentation and demo.
+
+---
+
+## Quick start
+
+### Docker
 
 ```bash
-# Clone the repository
 git clone https://github.com/Adity-star/lineageguard.git
 cd lineageguard
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your Grok API key, GitHub token, and other credentials
-
-# Start all services (DataHub + Agent + Frontend)
-docker compose up
-
-# Access services
-# DataHub UI: http://localhost:9002
-# LineageGuard Agent: http://localhost:3001
-# LineageGuard Web: http://localhost:3000
 ```
 
-### Without Docker (Development)
+
+The local DataHub stack may require significant Docker memory. If services repeatedly restart, increase the memory allocated to Docker or use the documented hosted DataHub environment.
+
+### Development setup
+
+Start DataHub:
 
 ```bash
-# Start DataHub (required for MCP server)
 datahub docker quickstart
+```
 
-# Configure agent
+Install and configure the agent:
+
+```bash
 cd agent
-cp .env.example .env.local
-# Edit .env.local with your credentials
 
-# Install dependencies
+cp .env.example .env
+# Edit .env with your credentials.
+
 npm install
-
-# Generate Prisma client
 npm run prisma:generate
-
-# Run migrations
 npm run prisma:migrate
-
-# Start the agent
 npm run dev
 ```
 
-For detailed configuration, see [`.env.example`](.env.example).
+Run a request through the CLI:
+
+```bash
+npm run cli request "Add column Customerbalance to SampleHdfsDataset"
+```
+
+Run a health check:
+
+```bash
+npm run cli health
+```
+
+For configuration details, see [`.env.example`](.env.example).
 
 ---
 
-## Documentation
-
-### Documentation
-
-* **[Agent Architecture & Technical Documentation](agent/README.md)**
-  Complete architecture, pipeline stages, engines, state management, MCP integration, services, and implementation details.
-
-* **[Working Example](examples/README.md)**
-  Judge-friendly end-to-end demonstration.
-
----
-
-## For Judges
+## Judge-friendly evaluation path
 
 If you have limited time:
 
-```text
-1. Read this README
-        ↓
-2. Open examples/README.md
-        ↓
-3. View examples/architecture.txt
-        ↓
-4. Inspect examples/response.json
-        ↓
-5. Inspect examples/migration.sql
-        ↓
-6. Inspect examples/CHANGE_REPORT.md
-        ↓
-7. Open the generated GitHub PR if available
-```
+1. Read this README.
+2. Open [`examples/README.md`](examples/README.md).
+3. Inspect [`examples/request.json`](examples/request.json).
+4. Inspect [`examples/response.json`](examples/response.json).
+5. Review [`examples/migration.sql`](examples/migration.sql).
+6. Review [`examples/rollback.sql`](examples/rollback.sql).
+7. Review [`examples/CHANGE_REPORT.md`](examples/CHANGE_REPORT.md).
+8. Open the generated GitHub pull request, if available.
+9. Run the complete workflow using the Quick Start instructions.
 
-This path demonstrates the complete idea without requiring understanding of the entire codebase.
+The example folder provides a complete, judge-friendly workflow without requiring an immediate understanding of the entire codebase.
+
+---
+
+## Hackathon criteria
+
+| Criterion | How LineageGuard addresses it |
+|---|---|
+| Meaningful DataHub use | Uses DataHub schema, lineage, ownership, tags, documentation, usage, and governance metadata through MCP, then writes assessment results back to DataHub. |
+| Technical execution | Implements a multi-stage workflow with validation, rollback generation, approval gates, GitHub automation, idempotency, persistence, and structured errors. |
+| Originality | Applies metadata-aware agent behavior to governed schema-change decisions and migration delivery rather than only generating SQL or answering catalog questions. |
+| Real-world usefulness | Helps prevent schema changes from silently breaking downstream data assets, reports, dashboards, and pipelines. |
+| Submission quality | Includes a runnable project, examples, architecture documentation, testable workflow, and a short demonstration. |
+| Open-source contribution | Documentation contribution: [ADD DATAHUB CONTRIBUTION LINK]. |
+
+---
+
+## Safety and limitations
+
+- LineageGuard does not directly execute production database migrations.
+- LineageGuard does not automatically merge GitHub pull requests.
+- High-risk and critical changes require human approval.
+- DataHub mutations must be explicitly enabled and should use scoped credentials.
+- Generated SQL must still be reviewed by the responsible engineering team.
+- Risk scores are deterministic indicators, not guarantees of safety.
+- Impact analysis depends on the completeness and freshness of DataHub metadata.
+- Some DataHub mutation operations require existing tags, domains, structured properties, or other entities.
+- The demo environment may use seeded or representative metadata.
+
+---
+
+## Project documentation
+
+- [Working example](https://github.com/Adity-star/lineageguard/tree/main/examples#readme)
+- [Agent architecture and technical documentation](agent/README.md)
+- [Environment configuration](.env.example)
+- [Demo video](ADD_DEMO_VIDEO_URL)
+- [DataHub documentation contribution](ADD_DATAHUB_PR_URL)
 
 ---
 
 ## License
 
-ISC
+Apache License 2.0
+
+See [`LICENSE`](LICENSE).
