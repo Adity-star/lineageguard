@@ -34,12 +34,14 @@ export class Generator {
    * @param context The ContextBundle containing schema and metadata
    * @param plan The execution plan with platform information
    * @param risk The risk assessment for documentation
+   * @param runId The workflow run ID for documentation
    * @returns GenerationResult with DDL, SQL, rollback, and docs
    */
   async generate(
     context: ContextBundle,
     plan: ExecutionPlan,
     risk: RiskAssessment,
+    runId?: string,
   ): Promise<GenerationResult> {
     logger.info(
       {
@@ -70,7 +72,7 @@ export class Generator {
     );
 
     // Step 4: Generate documentation
-    const documentation = this.documentation.generate(plan, risk);
+    const documentation = this.documentation.generate(plan, risk, context, runId);
 
     logger.info(
       { event: 'generator_documentation_generated' },

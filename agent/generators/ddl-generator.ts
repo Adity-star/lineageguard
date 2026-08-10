@@ -480,4 +480,49 @@ ${columnDefs}
     // Most platforms use standard SQL
     return `ALTER TABLE ${tableRef} DROP COLUMN ${colName};`;
   }
+
+  /**
+   * Generate a RENAME COLUMN statement.
+   * Platform-specific syntax for renaming columns.
+   */
+  public generateAlterRenameColumn(
+    tableName: string,
+    sourceColumn: string,
+    targetColumn: string,
+    platform: DatabasePlatform,
+    schemaName?: string,
+  ): string {
+    const normalizedPlatform = this.normalizePlatform(platform as string);
+    const tableRef = schemaName
+      ? `${this.quoteIdentifier(schemaName, normalizedPlatform)}.${this.quoteIdentifier(tableName, normalizedPlatform)}`
+      : this.quoteIdentifier(tableName, normalizedPlatform);
+
+    const sourceCol = this.quoteIdentifier(sourceColumn, normalizedPlatform);
+    const targetCol = this.quoteIdentifier(targetColumn, normalizedPlatform);
+
+    // Platform-specific rename syntax
+    switch (normalizedPlatform) {
+      case 'mysql':
+        return `ALTER TABLE ${tableRef} RENAME COLUMN ${sourceCol} TO ${targetCol};`;
+      case 'postgres':
+      case 'postgresql':
+        return `ALTER TABLE ${tableRef} RENAME COLUMN ${sourceCol} TO ${targetCol};`;
+      case 'snowflake':
+        return `ALTER TABLE ${tableRef} RENAME COLUMN ${sourceCol} TO ${targetCol};`;
+      case 'bigquery':
+        // BigQuery doesn't support ALTER TABLE RENAME COLUMN directly
+        // Use ALTER TABLE ALTER COLUMN approach or recreation
+        throw new Error(
+          'BigQuery does not support ALTER TABLE RENAME COLUMN. Manual recreation required.'
+        );
+      case 'redshift':
+        return `ALTER TABLE ${tableRef} RENAME COLUMN ${sourceCol} TO ${targetCol};`;
+      case 'tsql':
+        // SQL Server uses sp_rename
+        return `EXEC sp_rename '${tableRef}.${sourceCol}', '${targetCol}', 'COLUMN';`;
+      default:
+        // Default to standard SQL syntax
+        return `ALTER TABLE ${tableRef} RENAME COLUMN ${sourceCol} TO ${targetCol};`;
+    }
+  }
 }

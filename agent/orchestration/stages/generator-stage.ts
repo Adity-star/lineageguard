@@ -23,6 +23,7 @@ export class GeneratorStage implements PipelineStage {
     const context = state.get('context');
     const plan = state.get('plan');
     const risk = state.get('risk');
+    const runId = state.get('runId');
 
     if (!context) {
       throw new MissingWorkflowStateError('context');
@@ -51,7 +52,7 @@ export class GeneratorStage implements PipelineStage {
       },
       async () => {
         // Pass full context instead of placeholder schema
-        return await this.generator.generate(context, plan, risk);
+        return await this.generator.generate(context, plan, risk, runId);
       },
       this.idempotencyService,
     );

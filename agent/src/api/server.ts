@@ -314,7 +314,7 @@ app.post('/api/v1/requests/:id/approval', (req: Request, res: Response) => {
   // Validate approval request
   const validationResult = ApprovalRequestSchema.safeParse({
     approved,
-    reviewer: reviewer ? sanitizeInput(reviewer) : '',
+    reviewer: typeof reviewer === 'string' ? reviewer.trim() : '',
     comment: comment ? sanitizeInput(comment) : undefined,
     decidedAt: req.body.decidedAt,
   });
@@ -380,7 +380,7 @@ app.post('/api/v1/requests/:id/approval', (req: Request, res: Response) => {
 
   res.json({
     status: 'success',
-    data: storedRequest,
+    data: requestWithApproval,
   });
 });
 

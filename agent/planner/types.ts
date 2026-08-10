@@ -6,6 +6,8 @@ import { z } from 'zod';
 export const PlannedChangeSchema = z.object({
   type: z.string().min(1),
   description: z.string().min(1),
+  sourceColumn: z.string().optional(),
+  targetColumn: z.string().optional(),
 });
 
 export type PlannedChange = z.infer<typeof PlannedChangeSchema>;

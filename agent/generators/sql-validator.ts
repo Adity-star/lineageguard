@@ -109,6 +109,7 @@ export class SQLValidator {
   /**
    * Semantic validation: Check if the generated SQL matches the requested operation.
    * This ensures the SQL actually does what the user requested.
+   * Validates exact column paths, not just parent segments.
    */
   private validateSemanticRequirements(
     statement: string,
@@ -163,10 +164,11 @@ export class SQLValidator {
         }
 
         // Verify all expected columns are present in the SQL
+        // This validates exact column paths, not just parent segments
         for (const column of expectedColumns) {
           if (!upperStatement.includes(column.toUpperCase())) {
             errors.push(
-              `Semantic validation failed: Expected column '${column}' not found in generated SQL`,
+              `Semantic validation failed: Expected column '${column}' not found in generated SQL. The generator may have truncated the nested field path.`,
             );
           }
         }
@@ -411,13 +413,15 @@ export class SQLValidator {
 
   /**
    * Extract column names from DDL.
+   * Supports nested column paths like shipment_info.geo_info.lat
    */
   public extractColumnNames(ddl: string): string[] {
     const columns: string[] = [];
 
     // Match quoted or unquoted column names followed by type
+    // Updated pattern to support dots in column names: \w+ now includes dots with [\w.]+
     const pattern =
-      /(?:`[^`]+`|"[^"]+"|`[^\]`]+`|\[\w+\]|\w+)\s+(?:INT|VARCHAR|TEXT|BOOLEAN|TIMESTAMP|DATE|DECIMAL|FLOAT|DOUBLE|STRING|INT64|BOOL|DATETIME2|BIT|NVARCHAR|REAL|SERIAL|SMALLINT|TINYINT|MEDIUMINT|LONGTEXT|BLOB|ENUM|JSON)/gi;
+      /(?:`[^`]+`|"[^"]+"|`[^\]`]+`|\[\w+\]|[\w.]+)\s+(?:INT|VARCHAR|TEXT|BOOLEAN|TIMESTAMP|DATE|DECIMAL|FLOAT|DOUBLE|STRING|INT64|BOOL|DATETIME2|BIT|NVARCHAR|REAL|SERIAL|SMALLINT|TINYINT|MEDIUMINT|LONGTEXT|BLOB|ENUM|JSON)/gi;
 
     let match;
     while ((match = pattern.exec(ddl)) !== null) {
